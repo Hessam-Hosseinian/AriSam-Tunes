@@ -15,15 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Explicit
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +50,7 @@ import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
+import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.catalog.SongDto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -63,7 +68,15 @@ fun SongDetailRoute(
     viewModel: SongDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    SongDetailScreen(state, onBack, onPlay, viewModel::refresh)
+    SongDetailScreen(
+        state = state,
+        onBack = onBack,
+        onPlay = onPlay,
+        onRetry = viewModel::refresh,
+        onAddToPlaylistClick = viewModel::openPlaylistPicker,
+        onPlaylistSelected = viewModel::addToPlaylist,
+        onDismissPlaylistPicker = viewModel::closePlaylistPicker,
+    )
 }
 
 @Composable
@@ -72,6 +85,9 @@ private fun SongDetailScreen(
     onBack: () -> Unit,
     onPlay: (SongDto) -> Unit,
     onRetry: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
+    onPlaylistSelected: (PlaylistDto) -> Unit,
+    onDismissPlaylistPicker: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -82,13 +98,21 @@ private fun SongDetailScreen(
             state.isLoading -> Loading()
             state.hasError -> ErrorState(onRetry)
             state.song == null -> EmptyState()
-            else -> SongMetadata(state.song, onPlay)
+            else -> SongMetadata(state.song, onPlay, onAddToPlaylistClick)
         }
+    }
+    if (state.showPlaylistPicker) {
+        PlaylistPickerDialog(
+            playlists = state.playlists,
+            isAdding = state.isAddingToPlaylist,
+            onDismiss = onDismissPlaylistPicker,
+            onPlaylistSelected = onPlaylistSelected,
+        )
     }
 }
 
 @Composable
-private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit) {
+private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit, onAddToPlaylistClick: () -> Unit) {
     val spacing = AriSamThemeTokens.spacing
     val facts = song.metadataFacts()
     LazyColumn(
@@ -97,6 +121,15 @@ private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
         item { SongHero(song, onPlay) }
+        item {
+            Button(
+                onClick = onAddToPlaylistClick,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.lg),
+            ) {
+                Icon(Icons.Rounded.Add, null)
+                Text(stringResource(R.string.playlist_add_song))
+            }
+        }
         if (song.tags.isNotEmpty() || song.isExplicit || song.isLocal || song.isDemo) {
             item { SongChips(song) }
         }
@@ -131,6 +164,41 @@ private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun PlaylistPickerDialog(
+    playlists: List<PlaylistDto>,
+    isAdding: Boolean,
+    onDismiss: () -> Unit,
+    onPlaylistSelected: (PlaylistDto) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isAdding) onDismiss() },
+        title = { Text(stringResource(R.string.playlist_add_song)) },
+        text = {
+            when {
+                isAdding -> Loading()
+                playlists.isEmpty() -> Text(stringResource(R.string.playlist_create_first))
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(playlists.size, key = { playlists[it].id }) { index ->
+                        val playlist = playlists[index]
+                        PressScaleBox({ onPlaylistSelected(playlist) }, Modifier.fillMaxWidth()) {
+                            ListItem(
+                                headlineContent = { Text(playlist.name) },
+                                supportingContent = { Text(stringResource(R.string.home_song_count, playlist.songCount)) },
+                                leadingContent = { Icon(Icons.Rounded.MusicNote, null) },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isAdding) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
 
 @Composable

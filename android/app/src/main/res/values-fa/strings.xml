@@ -55,6 +55,17 @@
     <string name="playlists_empty">هنوز فهرست پخشی ندارید</string>
     <string name="playlist_songs_empty">این فهرست هنوز آهنگی ندارد</string>
     <string name="playlist">فهرست پخش</string>
+    <string name="playlist_create">ساخت فهرست پخش</string>
+    <string name="playlist_edit">ویرایش فهرست پخش</string>
+    <string name="playlist_name">نام فهرست پخش</string>
+    <string name="playlist_description">توضیحات</string>
+    <string name="playlist_public">فهرست عمومی</string>
+    <string name="playlist_add_song">افزودن به فهرست پخش</string>
+    <string name="playlist_remove_song">حذف از فهرست پخش</string>
+    <string name="playlist_create_first">اول یک فهرست پخش بسازید، بعد آهنگ‌ها را به آن اضافه کنید.</string>
+    <string name="save">ذخیره</string>
+    <string name="delete">حذف</string>
+    <string name="cancel">لغو</string>
     <string name="back">بازگشت</string>
     <string name="song_detail_title">جزئیات آهنگ</string>
     <string name="song_detail_empty">فراداده‌ای برای این آهنگ پیدا نشد.</string>

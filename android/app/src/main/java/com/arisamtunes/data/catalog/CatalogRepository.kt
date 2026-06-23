@@ -2,8 +2,14 @@ package com.arisamtunes.data.catalog
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -100,6 +106,37 @@ class CatalogRepository @Inject constructor(
     suspend fun playlists(): List<PlaylistDto> = client.get("playlists").body<PlaylistListDto>().items.map(CatalogUrlNormalizer::playlist)
 
     suspend fun playlist(id: String): PlaylistDto = CatalogUrlNormalizer.playlist(client.get("playlists/$id").body())
+
+    suspend fun createPlaylist(name: String, description: String?, isPublic: Boolean): PlaylistDto =
+        CatalogUrlNormalizer.playlist(
+            client.post("playlists") {
+                contentType(ContentType.Application.Json)
+                setBody(PlaylistMutationDto(name = name, description = description?.takeIf(String::isNotBlank), isPublic = isPublic))
+            }.body(),
+        )
+
+    suspend fun updatePlaylist(id: String, name: String, description: String?, isPublic: Boolean): PlaylistDto =
+        CatalogUrlNormalizer.playlist(
+            client.put("playlists/$id") {
+                contentType(ContentType.Application.Json)
+                setBody(PlaylistMutationDto(name = name, description = description?.takeIf(String::isNotBlank), isPublic = isPublic))
+            }.body(),
+        )
+
+    suspend fun deletePlaylist(id: String) {
+        client.delete("playlists/$id")
+    }
+
+    suspend fun addSongToPlaylist(playlistId: String, songId: String): PlaylistDto =
+        CatalogUrlNormalizer.playlist(
+            client.post("playlists/$playlistId/songs") {
+                contentType(ContentType.Application.Json)
+                setBody(PlaylistSongMutationDto(songId))
+            }.body(),
+        )
+
+    suspend fun removeSongFromPlaylist(playlistId: String, songId: String): PlaylistDto =
+        CatalogUrlNormalizer.playlist(client.delete("playlists/$playlistId/songs/$songId").body())
 
     private suspend fun playlistSongs(id: String, page: Int, size: Int): PlaylistSongsDto =
         client.get("playlists/$id/songs") {

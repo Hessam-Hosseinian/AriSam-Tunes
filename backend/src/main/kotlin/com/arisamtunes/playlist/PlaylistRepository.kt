@@ -60,6 +60,55 @@ class PlaylistRepository {
         c.commit(); changed > 0
     }
 
+    fun addSong(id: UUID, ownerId: UUID, songId: UUID): PlaylistResponse? = DatabaseProvider.dataSource.connection.use { c ->
+        try {
+            val playlistExists = c.prepareStatement("SELECT 1 FROM playlists WHERE id=? AND owner_id=? AND scope='USER'").use { s ->
+                s.setObject(1, id); s.setObject(2, ownerId); s.executeQuery().use { it.next() }
+            }
+            if (!playlistExists) {
+                c.rollback()
+                return null
+            }
+            val songExists = c.prepareStatement("SELECT 1 FROM songs WHERE id=?").use { s ->
+                s.setObject(1, songId); s.executeQuery().use { it.next() }
+            }
+            if (!songExists) {
+                c.rollback()
+                return null
+            }
+            c.prepareStatement(
+                """
+                INSERT INTO playlist_songs(playlist_id, song_id, position)
+                SELECT ?, ?, COALESCE(MAX(position) + 1, 0)
+                FROM playlist_songs
+                WHERE playlist_id = ?
+                ON CONFLICT (playlist_id, song_id) DO NOTHING
+                """.trimIndent(),
+            ).use { s ->
+                s.setObject(1, id); s.setObject(2, songId); s.setObject(3, id); s.executeUpdate()
+            }
+            c.commit()
+            findVisible(id, ownerId)
+        } catch (error: Throwable) { c.rollback(); throw error }
+    }
+
+    fun removeSong(id: UUID, ownerId: UUID, songId: UUID): PlaylistResponse? = DatabaseProvider.dataSource.connection.use { c ->
+        try {
+            val playlistExists = c.prepareStatement("SELECT 1 FROM playlists WHERE id=? AND owner_id=? AND scope='USER'").use { s ->
+                s.setObject(1, id); s.setObject(2, ownerId); s.executeQuery().use { it.next() }
+            }
+            if (!playlistExists) {
+                c.rollback()
+                return null
+            }
+            c.prepareStatement("DELETE FROM playlist_songs WHERE playlist_id=? AND song_id=?").use { s ->
+                s.setObject(1, id); s.setObject(2, songId); s.executeUpdate()
+            }
+            c.commit()
+            findVisible(id, ownerId)
+        } catch (error: Throwable) { c.rollback(); throw error }
+    }
+
     fun songs(playlistId: UUID, page: Int, size: Int): Pair<List<SongResponse>, Long> = DatabaseProvider.dataSource.connection.use { c ->
         val total = c.prepareStatement("SELECT COUNT(*) FROM playlist_songs WHERE playlist_id=?").use { s ->
             s.setObject(1, playlistId); s.executeQuery().use { it.next(); it.getLong(1) }

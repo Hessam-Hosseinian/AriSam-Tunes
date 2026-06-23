@@ -55,6 +55,17 @@
     <string name="playlists_empty">No playlists yet</string>
     <string name="playlist_songs_empty">This playlist has no songs yet</string>
     <string name="playlist">Playlist</string>
+    <string name="playlist_create">Create playlist</string>
+    <string name="playlist_edit">Edit playlist</string>
+    <string name="playlist_name">Playlist name</string>
+    <string name="playlist_description">Description</string>
+    <string name="playlist_public">Public playlist</string>
+    <string name="playlist_add_song">Add to playlist</string>
+    <string name="playlist_remove_song">Remove from playlist</string>
+    <string name="playlist_create_first">Create a playlist first, then add songs to it.</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
     <string name="back">Back</string>
     <string name="song_detail_title">Song details</string>
     <string name="song_detail_empty">Song metadata was not found.</string>
