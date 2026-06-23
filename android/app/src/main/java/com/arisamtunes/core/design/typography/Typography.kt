@@ -27,3 +27,20 @@ val AriSamTypography = Typography(
     labelLarge = brandStyle(FontWeight.SemiBold, 14, 20),
     labelMedium = brandStyle(FontWeight.Medium, 12, 16),
 )
+
+fun Typography.scaled(scale: Float): Typography {
+    val safeScale = scale.coerceIn(0.85f, 1.35f)
+    fun TextStyle.scale() = copy(fontSize = fontSize * safeScale, lineHeight = lineHeight * safeScale)
+    return copy(
+        displayLarge = displayLarge.scale(),
+        displayMedium = displayMedium.scale(),
+        headlineLarge = headlineLarge.scale(),
+        headlineMedium = headlineMedium.scale(),
+        titleLarge = titleLarge.scale(),
+        titleMedium = titleMedium.scale(),
+        bodyLarge = bodyLarge.scale(),
+        bodyMedium = bodyMedium.scale(),
+        labelLarge = labelLarge.scale(),
+        labelMedium = labelMedium.scale(),
+    )
+}
