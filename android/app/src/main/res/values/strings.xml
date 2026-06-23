@@ -136,4 +136,18 @@
     <string name="error_code_format">Error code: %1$s</string>
     <string name="downloads_empty">No downloaded songs yet</string>
     <string name="try_download">Try download</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_description">Choose the app language and reading direction.</string>
+    <string name="settings_option_system">System</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_persian">Persian</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_description">Use the system appearance or pick a fixed light/dark mode.</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_font_size">Font size</string>
+    <string name="settings_font_size_description">Adjust text across AriSam Tunes.</string>
+    <string name="settings_font_size_percent">%1$d%%</string>
+    <string name="settings_font_size_preview">This is how song titles, chats, and settings will feel.</string>
 </resources>

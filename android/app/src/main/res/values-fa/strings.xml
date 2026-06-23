@@ -136,4 +136,18 @@
     <string name="error_code_format">کد خطا: %1$s</string>
     <string name="downloads_empty">هنوز آهنگی دانلود نشده است</string>
     <string name="try_download">تلاش برای دانلود</string>
+    <string name="settings_title">تنظیمات</string>
+    <string name="settings_language">زبان</string>
+    <string name="settings_language_description">زبان برنامه و جهت خواندن را انتخاب کنید.</string>
+    <string name="settings_option_system">سیستم</string>
+    <string name="settings_language_english">انگلیسی</string>
+    <string name="settings_language_persian">فارسی</string>
+    <string name="settings_theme">تم</string>
+    <string name="settings_theme_description">از ظاهر سیستم استفاده کنید یا حالت روشن/تاریک را ثابت انتخاب کنید.</string>
+    <string name="settings_theme_light">روشن</string>
+    <string name="settings_theme_dark">تاریک</string>
+    <string name="settings_font_size">اندازه فونت</string>
+    <string name="settings_font_size_description">اندازه متن را در سراسر آری‌سام تیونز تنظیم کنید.</string>
+    <string name="settings_font_size_percent">%1$d٪</string>
+    <string name="settings_font_size_preview">عنوان آهنگ‌ها، گفتگوها و تنظیمات با این اندازه نمایش داده می‌شوند.</string>
 </resources>

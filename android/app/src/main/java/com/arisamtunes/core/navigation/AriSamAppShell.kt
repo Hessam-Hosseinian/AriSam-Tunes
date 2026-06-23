@@ -39,12 +39,13 @@ import com.arisamtunes.feature.playlists.PlaylistsRoute
 import com.arisamtunes.feature.player.MiniPlayer
 import com.arisamtunes.feature.player.NowPlayingRoute
 import com.arisamtunes.feature.player.PlayerViewModel
+import com.arisamtunes.feature.settings.SettingsRoute
 import com.arisamtunes.feature.songdetail.SongDetailRoute
 import com.arisamtunes.feature.social.SocialProfileRoute
 import com.arisamtunes.feature.social.SocialUsersRoute
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
-private const val SettingsRoute = "settings"
+private const val SettingsRoutePath = "settings"
 private const val PlaylistDetailRoutePattern = "playlist/{playlistId}"
 private const val SongDetailRoutePattern = "song/{songId}"
 private const val NowPlayingRoutePath = "now-playing"
@@ -74,7 +75,7 @@ fun AriSamAppShell() {
                     IconButton(onClick = { }) {
                         Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.notifications))
                     }
-                    IconButton(onClick = { navController.navigate(SettingsRoute) }) {
+                    IconButton(onClick = { navController.navigate(SettingsRoutePath) }) {
                         Icon(Icons.Rounded.Settings, stringResource(R.string.settings))
                     }
                     IconButton(onClick = { navController.navigate(AppDestination.Profile.route) }) {
@@ -84,7 +85,7 @@ fun AriSamAppShell() {
             )
         },
         bottomBar = {
-            if (currentRoute != SettingsRoute) {
+            if (currentRoute != SettingsRoutePath) {
                 Column {
                     MiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) })
                     NavigationBar {
@@ -172,7 +173,7 @@ fun AriSamAppShell() {
                     onUserClick = { navController.navigate("social/user/${it.id}") },
                 )
             }
-            composable(SettingsRoute) { DestinationPlaceholder(R.string.settings) }
+            composable(SettingsRoutePath) { SettingsRoute(onBack = navController::popBackStack) }
         }
     }
 }
