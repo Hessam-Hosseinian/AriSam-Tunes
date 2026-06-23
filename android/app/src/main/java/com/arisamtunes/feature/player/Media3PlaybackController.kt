@@ -20,6 +20,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
+import com.arisamtunes.data.catalog.CatalogRepository
 import com.arisamtunes.data.catalog.SongDto
 import com.arisamtunes.data.local.LocalLibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,6 +41,7 @@ class Media3PlaybackController @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val stateRepository: PlayerStateRepository,
     private val localLibraryRepository: LocalLibraryRepository,
+    private val catalogRepository: CatalogRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val streamCache = SimpleCache(
@@ -59,6 +61,9 @@ class Media3PlaybackController @Inject constructor(
     private var mediaSession: MediaSession? = null
     private var visualizerBands = PlayerStateRepository.emptyVisualizerBands()
     private var lastFallbackVisualizerAtMillis = 0L
+    private var sourceSpectrumSongId: String? = null
+    private var sourceSpectrumFrameDurationMs = 100
+    private var sourceSpectrumFrames: List<List<Float>> = emptyList()
 
     init {
         player.setAudioAttributes(
@@ -96,6 +101,7 @@ class Media3PlaybackController @Inject constructor(
             runCatching {
                 startPlaybackServiceSafely()
                 val playbackSource = localLibraryRepository.playbackSource(song)
+                loadSourceSpectrum(song)
                 player.setMediaItem(
                     MediaItem.Builder()
                         .setUri(playbackSource)
@@ -240,8 +246,35 @@ class Media3PlaybackController @Inject constructor(
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastFallbackVisualizerAtMillis >= FallbackUpdateIntervalMillis) {
             lastFallbackVisualizerAtMillis = now
-            stateRepository.setVisualizerBands(nextVisualizerBands())
+            stateRepository.setVisualizerBands(sourceSpectrumBands() ?: nextVisualizerBands())
         }
+    }
+
+    private suspend fun loadSourceSpectrum(song: SongDto) {
+        if (sourceSpectrumSongId == song.id && sourceSpectrumFrames.isNotEmpty()) return
+        runCatching { catalogRepository.songSpectrum(song.id) }
+            .onSuccess { spectrum ->
+                sourceSpectrumSongId = song.id
+                sourceSpectrumFrameDurationMs = spectrum.frameDurationMs.coerceAtLeast(50)
+                sourceSpectrumFrames = spectrum.frames
+                visualizerBands = spectrum.frames.firstOrNull() ?: PlayerStateRepository.emptyVisualizerBands()
+                stateRepository.setVisualizerBands(visualizerBands)
+            }
+            .onFailure {
+                sourceSpectrumSongId = null
+                sourceSpectrumFrames = emptyList()
+            }
+    }
+
+    private fun sourceSpectrumBands(): List<Float>? {
+        val frames = sourceSpectrumFrames.takeIf { it.isNotEmpty() } ?: return null
+        val index = (player.currentPosition / sourceSpectrumFrameDurationMs).toInt().coerceIn(0, frames.lastIndex)
+        val target = frames[index]
+        visualizerBands = target.mapIndexed { band, value ->
+            val previous = visualizerBands.getOrNull(band) ?: 0.08f
+            (previous * 0.35f + value * 0.65f).coerceIn(0.04f, 1f)
+        }
+        return visualizerBands
     }
 
     private fun nextVisualizerBands(): List<Float> {

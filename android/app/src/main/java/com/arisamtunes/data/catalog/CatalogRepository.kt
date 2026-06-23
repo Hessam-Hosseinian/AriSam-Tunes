@@ -68,6 +68,8 @@ class CatalogRepository @Inject constructor(
 
     suspend fun song(id: String): SongDto = CatalogUrlNormalizer.song(client.get("songs/$id").body())
 
+    suspend fun songSpectrum(id: String): SongSpectrumDto = client.get("songs/$id/spectrum").body()
+
     @OptIn(ExperimentalPagingApi::class)
     fun songsPager(): Flow<PagingData<SongDto>> = Pager(
         config = PagingConfig(pageSize = 20, initialLoadSize = 20, prefetchDistance = 5),

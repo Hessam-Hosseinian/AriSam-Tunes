@@ -79,3 +79,11 @@ data class PlaylistSongsDto(
     val items: List<SongDto>,
     val pagination: PaginationDto,
 )
+
+@Serializable
+data class SongSpectrumDto(
+    @SerialName("song_id") val songId: String,
+    val bands: Int,
+    @SerialName("frame_duration_ms") val frameDurationMs: Int,
+    val frames: List<List<Float>>,
+)
