@@ -189,7 +189,7 @@ private fun AudioVisualizer(
     val animatedBands = bands.mapIndexed { index, level ->
         val value by animateFloatAsState(
             targetValue = if (isPlaying) level else level * 0.55f,
-            animationSpec = tween(durationMillis = 110 + (index % 4) * 16, easing = LinearEasing),
+            animationSpec = tween(durationMillis = 42 + (index % 3) * 8, easing = LinearEasing),
             label = "visualizerBand$index",
         )
         value

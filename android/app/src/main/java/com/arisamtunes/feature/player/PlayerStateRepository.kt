@@ -77,7 +77,7 @@ class PlayerStateRepository @Inject constructor() {
     }
 
     companion object {
-        fun emptyVisualizerBands(): List<Float> = List(32) { 0.08f }
-        private const val VisualizerUpdateThreshold = 0.024f
+        fun emptyVisualizerBands(): List<Float> = List(32) { 0.05f }
+        private const val VisualizerUpdateThreshold = 0.012f
     }
 }

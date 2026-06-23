@@ -17,10 +17,13 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.TeeAudioProcessor
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
-import com.arisamtunes.data.catalog.CatalogRepository
 import com.arisamtunes.data.catalog.SongDto
 import com.arisamtunes.data.local.LocalLibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -41,7 +44,6 @@ class Media3PlaybackController @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val stateRepository: PlayerStateRepository,
     private val localLibraryRepository: LocalLibraryRepository,
-    private val catalogRepository: CatalogRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val streamCache = SimpleCache(
@@ -53,17 +55,20 @@ class Media3PlaybackController @Inject constructor(
         .setCache(streamCache)
         .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(OkHttpClient()))
         .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-    private val player = ExoPlayer.Builder(appContext)
+    private val realtimeVisualizer = RealtimeFftAudioBufferSink(stateRepository::setVisualizerBands)
+    private val renderersFactory = FftRenderersFactory(
+        appContext,
+        DefaultAudioSink.Builder(appContext)
+            .setAudioProcessors(arrayOf(TeeAudioProcessor(realtimeVisualizer)))
+            .build(),
+    )
+    private val player = ExoPlayer.Builder(appContext, renderersFactory)
         .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
         .build()
     private val crossfadeCoordinator = CrossfadePlaybackCoordinator(appContext, cacheDataSourceFactory)
     private var sleepTimerJob: Job? = null
     private var mediaSession: MediaSession? = null
-    private var visualizerBands = PlayerStateRepository.emptyVisualizerBands()
     private var lastFallbackVisualizerAtMillis = 0L
-    private var sourceSpectrumSongId: String? = null
-    private var sourceSpectrumFrameDurationMs = 100
-    private var sourceSpectrumFrames: List<List<Float>> = emptyList()
 
     init {
         player.setAudioAttributes(
@@ -101,7 +106,6 @@ class Media3PlaybackController @Inject constructor(
             runCatching {
                 startPlaybackServiceSafely()
                 val playbackSource = localLibraryRepository.playbackSource(song)
-                loadSourceSpectrum(song)
                 player.setMediaItem(
                     MediaItem.Builder()
                         .setUri(playbackSource)
@@ -244,74 +248,28 @@ class Media3PlaybackController @Inject constructor(
 
     private fun updateFallbackVisualizer() {
         val now = android.os.SystemClock.elapsedRealtime()
-        if (now - lastFallbackVisualizerAtMillis >= FallbackUpdateIntervalMillis) {
+        val hasFreshAudioSignal = now - realtimeVisualizer.lastBandUpdateMillis < FreshSignalMillis
+        if (!hasFreshAudioSignal && now - lastFallbackVisualizerAtMillis >= FallbackUpdateIntervalMillis) {
             lastFallbackVisualizerAtMillis = now
-            stateRepository.setVisualizerBands(sourceSpectrumBands() ?: nextVisualizerBands())
+            stateRepository.setVisualizerBands(realtimeVisualizer.decayedBands())
         }
     }
 
-    private suspend fun loadSourceSpectrum(song: SongDto) {
-        if (sourceSpectrumSongId == song.id && sourceSpectrumFrames.isNotEmpty()) return
-        runCatching { catalogRepository.songSpectrum(song.id) }
-            .onSuccess { spectrum ->
-                sourceSpectrumSongId = song.id
-                sourceSpectrumFrameDurationMs = spectrum.frameDurationMs.coerceAtLeast(50)
-                sourceSpectrumFrames = spectrum.frames
-                visualizerBands = spectrum.frames.firstOrNull() ?: PlayerStateRepository.emptyVisualizerBands()
-                stateRepository.setVisualizerBands(visualizerBands)
-            }
-            .onFailure {
-                sourceSpectrumSongId = null
-                sourceSpectrumFrames = emptyList()
-            }
-    }
-
-    private fun sourceSpectrumBands(): List<Float>? {
-        val frames = sourceSpectrumFrames.takeIf { it.isNotEmpty() } ?: return null
-        val position = player.currentPosition / sourceSpectrumFrameDurationMs.toFloat()
-        val index = position.toInt().coerceIn(0, frames.lastIndex)
-        val fraction = (position - index).coerceIn(0f, 1f)
-        val current = frames[index]
-        val next = frames.getOrNull(index + 1) ?: current
-        val target = current.mapIndexed { band, value -> value + ((next.getOrNull(band) ?: value) - value) * fraction }
-        visualizerBands = target.mapIndexed { band, value ->
-            val previous = visualizerBands.getOrNull(band) ?: 0.08f
-            (previous * 0.22f + value * 0.78f).coerceIn(0.04f, 1f)
-        }
-        return visualizerBands
-    }
-
-    private fun nextVisualizerBands(): List<Float> {
-        val song = stateRepository.state.value.currentSong
-        if (!player.isPlaying || song == null) {
-            visualizerBands = visualizerBands.map { (it * 0.82f).coerceAtLeast(0.06f) }
-            return visualizerBands
-        }
-
-        val t = player.currentPosition / 1000f
-        val seed = song.id.hashCode()
-        val speed = stateRepository.state.value.playbackSpeed
-        visualizerBands = visualizerBands.mapIndexed { index, previous ->
-            val lane = index / visualizerBands.size.toFloat().coerceAtLeast(1f)
-            val bassEnvelope = kotlin.math.abs(kotlin.math.sin((t * 3.2f * speed + seed * 0.0007f).toDouble())).toFloat()
-            val snareEnvelope = kotlin.math.abs(kotlin.math.sin((t * 7.4f * speed + index * 0.37f).toDouble())).toFloat()
-            val shimmer = kotlin.math.abs(kotlin.math.sin((t * (11.0f + index % 5) * speed + seed * 0.00013f + index).toDouble())).toFloat()
-            val profile = when {
-                index < 7 -> 0.42f + bassEnvelope * 0.55f
-                index < 18 -> 0.24f + snareEnvelope * 0.44f
-                else -> 0.12f + shimmer * 0.34f
-            }
-            val songColor = (((seed shr (index % 16)) and 0xF) / 15f) * 0.14f
-            val stereoTilt = 0.86f + kotlin.math.sin((lane * Math.PI * 2 + t).toDouble()).toFloat() * 0.10f
-            val target = ((profile + songColor) * stereoTilt).coerceIn(0.08f, 1f)
-            (previous * 0.58f + target * 0.42f).coerceIn(0.06f, 1f)
-        }
-        return visualizerBands
+    private class FftRenderersFactory(
+        context: Context,
+        private val audioSink: AudioSink,
+    ) : DefaultRenderersFactory(context) {
+        override fun buildAudioSink(
+            context: Context,
+            enableFloatOutput: Boolean,
+            enableAudioTrackPlaybackParams: Boolean,
+        ): AudioSink = audioSink
     }
 
     private companion object {
         const val MediaSessionId = "arisam_tunes_playback"
         const val MaxStreamCacheBytes = 256L * 1024L * 1024L
-        const val FallbackUpdateIntervalMillis = 60L
+        const val FallbackUpdateIntervalMillis = 80L
+        const val FreshSignalMillis = 180L
     }
 }
