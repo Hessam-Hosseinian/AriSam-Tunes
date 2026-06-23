@@ -11,3 +11,14 @@ DONE | milestone=10 | name=Add authenticated user profile endpoints | branch=fea
 DONE | milestone=11 | name=Add login and register screens | branch=feature/auth | commit=self | timestamp=2026-06-24T15:46:29+03:30
 DONE | milestone=12 | name=Add authenticated navigation flow | branch=feature/auth | commit=self | timestamp=2026-06-24T17:33:07+03:30
 DONE | milestone=13 | name=Connect Android auth data layer to backend | branch=feature/auth | commit=self | timestamp=2026-06-24T20:12:41+03:30
+DONE | milestone=14a | name=Seed system audio discovery | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T09:12:46+03:30
+DONE | milestone=14b | name=Seed system metadata extraction | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T09:39:18+03:30
+DONE | milestone=14c | name=Seed system database orchestration | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T10:06:52+03:30
+DONE | milestone=14 | name=Seed music catalog COMPLETE | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T10:23:31+03:30
+DONE | milestone=15 | name=Implement songs and artists APIs | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T10:44:23+03:30
+DONE | milestone=16 | name=Implement playlist APIs | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T12:18:57+03:30
+DONE | milestone=17 | name=Add paginated search endpoints | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T13:51:32+03:30
+DONE | milestone=18 | name=Build home screen sections | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T15:27:16+03:30
+DONE | milestone=19 | name=Add debounced paginated search UI | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T17:02:44+03:30
+DONE | milestone=20 | name=Add playlists screens | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T18:38:19+03:30
+DONE | milestone=20.1 | name=Add song detail metadata screen | branch=feature/music-catalog | commit=self | timestamp=2026-06-23T20:41:00+03:30
