@@ -17,6 +17,8 @@ data class PlayerState(
     val isCrossfadeEnabled: Boolean = true,
     val playbackError: String? = null,
     val visualizerBands: List<Float> = List(36) { 0.08f },
+    val isFftVisualizerActive: Boolean = false,
+    val visualizerPermissionRequired: Boolean = false,
 )
 
 @Singleton
@@ -52,6 +54,14 @@ class PlayerStateRepository @Inject constructor() {
 
     fun setVisualizerBands(bands: List<Float>) {
         _state.update { state -> state.copy(visualizerBands = bands) }
+    }
+
+    fun setFftVisualizerActive(active: Boolean) {
+        _state.update { state -> state.copy(isFftVisualizerActive = active) }
+    }
+
+    fun setVisualizerPermissionRequired(required: Boolean) {
+        _state.update { state -> state.copy(visualizerPermissionRequired = required) }
     }
 
     fun setPlaybackSpeed(speed: Float) {

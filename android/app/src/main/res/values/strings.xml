@@ -102,6 +102,8 @@
     <string name="next_track">Next track</string>
     <string name="media3_pending_note">Preview controls are ready. Media3 playback is added in the next player milestones.</string>
     <string name="visualizer">Visualizer</string>
+    <string name="visualizer_fft">Live FFT visualizer</string>
+    <string name="visualizer_permission">Allow audio permission for real FFT</string>
     <string name="social_profile">Social profile</string>
     <string name="social_profile_empty">Profile could not be loaded.</string>
     <string name="social_follow">Follow</string>

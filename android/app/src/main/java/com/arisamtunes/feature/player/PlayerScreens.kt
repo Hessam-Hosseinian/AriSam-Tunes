@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.player
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
@@ -39,11 +41,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
@@ -107,6 +114,17 @@ fun NowPlayingRoute(
 ) {
     val state by viewModel.state.collectAsState()
     val song = state.currentSong
+    val context = LocalContext.current
+    val visualizerPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        viewModel.setFftVisualizerPermissionGranted(granted)
+    }
+    LaunchedEffect(song?.id) {
+        if (song != null) {
+            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            viewModel.setFftVisualizerPermissionGranted(granted)
+            if (!granted) visualizerPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
@@ -140,7 +158,13 @@ fun NowPlayingRoute(
                         }
                     }
                 }
-                AudioVisualizer(isPlaying = state.isPlaying, bands = state.visualizerBands)
+                AudioVisualizer(
+                    isPlaying = state.isPlaying,
+                    bands = state.visualizerBands,
+                    isRealFft = state.isFftVisualizerActive,
+                    needsPermission = state.visualizerPermissionRequired,
+                    onRequestPermission = { visualizerPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                )
                 Slider(
                     value = state.progressSeconds.toFloat(),
                     onValueChange = { viewModel.seekTo(it.toInt()) },
@@ -176,7 +200,13 @@ fun NowPlayingRoute(
 }
 
 @Composable
-private fun AudioVisualizer(isPlaying: Boolean, bands: List<Float>) {
+private fun AudioVisualizer(
+    isPlaying: Boolean,
+    bands: List<Float>,
+    isRealFft: Boolean,
+    needsPermission: Boolean,
+    onRequestPermission: () -> Unit,
+) {
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
     Surface(
@@ -186,11 +216,19 @@ private fun AudioVisualizer(isPlaying: Boolean, bands: List<Float>) {
     ) {
         Column(Modifier.padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                stringResource(R.string.visualizer),
+                stringResource(if (isRealFft) R.string.visualizer_fft else R.string.visualizer),
                 modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.md),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
+            if (needsPermission) {
+                androidx.compose.material3.TextButton(
+                    onClick = onRequestPermission,
+                    modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.md),
+                ) {
+                    Text(stringResource(R.string.visualizer_permission))
+                }
+            }
             Canvas(
                 modifier = Modifier.fillMaxWidth().height(86.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
             ) {
