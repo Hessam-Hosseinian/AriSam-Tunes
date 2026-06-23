@@ -41,6 +41,8 @@ class CatalogRepository @Inject constructor(private val client: HttpClient) {
             parameter("size", size)
         }.body()
 
+    suspend fun song(id: String): SongDto = client.get("songs/$id").body()
+
     @OptIn(ExperimentalPagingApi::class)
     fun searchPager(query: String, type: String) = SearchMemoryStore().let { store ->
         Pager(
