@@ -62,6 +62,8 @@ class Media3PlaybackController @Inject constructor(
     private var fftVisualizer: Visualizer? = null
     private var fftPermissionGranted = false
     private var fftVisualizerActive = false
+    private var lastFallbackVisualizerAtMillis = 0L
+    private var lastFftVisualizerAtMillis = 0L
 
     init {
         player.setAudioAttributes(
@@ -88,8 +90,8 @@ class Media3PlaybackController @Inject constructor(
         scope.launch {
             while (true) {
                 stateRepository.setProgress(player.currentPosition.toInt() / 1000)
-                if (!fftVisualizerActive) stateRepository.setVisualizerBands(nextVisualizerBands())
-                delay(55)
+                if (!fftVisualizerActive) updateFallbackVisualizer()
+                delay(250)
             }
         }
     }
@@ -262,10 +264,14 @@ class Media3PlaybackController @Inject constructor(
                         override fun onWaveFormDataCapture(visualizer: Visualizer?, waveform: ByteArray?, samplingRate: Int) = Unit
 
                         override fun onFftDataCapture(visualizer: Visualizer?, fft: ByteArray?, samplingRate: Int) {
-                            if (fft != null) stateRepository.setVisualizerBands(fftToBands(fft))
+                            val now = android.os.SystemClock.elapsedRealtime()
+                            if (fft != null && now - lastFftVisualizerAtMillis >= FftUpdateIntervalMillis) {
+                                lastFftVisualizerAtMillis = now
+                                stateRepository.setVisualizerBands(fftToBands(fft))
+                            }
                         }
                     },
-                    Visualizer.getMaxCaptureRate() / 2,
+                    (Visualizer.getMaxCaptureRate() / 4).coerceAtLeast(MinFftCaptureRate),
                     false,
                     true,
                 )
@@ -289,6 +295,14 @@ class Media3PlaybackController @Inject constructor(
         fftVisualizer = null
         fftVisualizerActive = false
         if (updateState) stateRepository.setFftVisualizerActive(false)
+    }
+
+    private fun updateFallbackVisualizer() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastFallbackVisualizerAtMillis >= FallbackUpdateIntervalMillis) {
+            lastFallbackVisualizerAtMillis = now
+            stateRepository.setVisualizerBands(nextVisualizerBands())
+        }
     }
 
     private fun fftToBands(fft: ByteArray): List<Float> {
@@ -348,6 +362,9 @@ class Media3PlaybackController @Inject constructor(
     private companion object {
         const val MediaSessionId = "arisam_tunes_playback"
         const val MaxStreamCacheBytes = 256L * 1024L * 1024L
-        const val MaxFftCaptureSize = 1024
+        const val MaxFftCaptureSize = 512
+        const val FftUpdateIntervalMillis = 66L
+        const val FallbackUpdateIntervalMillis = 66L
+        const val MinFftCaptureRate = 8_000
     }
 }

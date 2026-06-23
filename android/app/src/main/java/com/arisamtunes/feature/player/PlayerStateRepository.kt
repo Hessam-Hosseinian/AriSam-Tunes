@@ -53,7 +53,13 @@ class PlayerStateRepository @Inject constructor() {
     }
 
     fun setVisualizerBands(bands: List<Float>) {
-        _state.update { state -> state.copy(visualizerBands = bands) }
+        _state.update { state ->
+            if (state.visualizerBands.size == bands.size && state.visualizerBands.zip(bands).all { (old, new) -> kotlin.math.abs(old - new) < VisualizerUpdateThreshold }) {
+                state
+            } else {
+                state.copy(visualizerBands = bands)
+            }
+        }
     }
 
     fun setFftVisualizerActive(active: Boolean) {
@@ -82,5 +88,6 @@ class PlayerStateRepository @Inject constructor() {
 
     companion object {
         fun emptyVisualizerBands(): List<Float> = List(36) { 0.08f }
+        private const val VisualizerUpdateThreshold = 0.018f
     }
 }
