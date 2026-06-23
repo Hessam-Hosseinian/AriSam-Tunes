@@ -1,8 +1,7 @@
 package com.arisamtunes.core.navigation
 
-import androidx.compose.foundation.layout.Box
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
@@ -19,9 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -43,7 +43,6 @@ import com.arisamtunes.feature.settings.SettingsRoute
 import com.arisamtunes.feature.songdetail.SongDetailRoute
 import com.arisamtunes.feature.social.SocialProfileRoute
 import com.arisamtunes.feature.social.SocialUsersRoute
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 private const val SettingsRoutePath = "settings"
 private const val PlaylistDetailRoutePattern = "playlist/{playlistId}"
@@ -60,45 +59,43 @@ fun AriSamAppShell() {
     val playerViewModel: PlayerViewModel = hiltViewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val currentMainDestination = currentRoute?.mainDestination()
+    val showMainChrome = currentRoute in MainDestinations.map(AppDestination::route)
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
-                navigationIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.GraphicEq,
-                        contentDescription = stringResource(R.string.app_logo_description),
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.notifications))
-                    }
-                    IconButton(onClick = { navController.navigate(SettingsRoutePath) }) {
-                        Icon(Icons.Rounded.Settings, stringResource(R.string.settings))
-                    }
-                    IconButton(onClick = { navController.navigate(AppDestination.Profile.route) }) {
-                        Icon(Icons.Rounded.AccountCircle, stringResource(R.string.profile_picture))
-                    }
-                },
-            )
+            if (showMainChrome) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.app_name)) },
+                    navigationIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.GraphicEq,
+                            contentDescription = stringResource(R.string.app_logo_description),
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = { }) {
+                            Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.notifications))
+                        }
+                        IconButton(onClick = { navController.navigateSingleTop(SettingsRoutePath) }) {
+                            Icon(Icons.Rounded.Settings, stringResource(R.string.settings))
+                        }
+                        IconButton(onClick = { navController.navigateTopLevel(AppDestination.Profile.route) }) {
+                            Icon(Icons.Rounded.AccountCircle, stringResource(R.string.profile_picture))
+                        }
+                    },
+                )
+            }
         },
         bottomBar = {
-            if (currentRoute != SettingsRoutePath) {
+            if (showMainChrome) {
                 Column {
                     MiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) })
                     NavigationBar {
                         MainDestinations.forEach { destination ->
                             NavigationBarItem(
-                                selected = currentRoute == destination.route,
-                                onClick = {
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
+                                selected = currentMainDestination == destination,
+                                onClick = { navController.navigateTopLevel(destination.route) },
                                 icon = { Icon(destination.icon, null) },
                                 label = { Text(stringResource(destination.labelRes)) },
                             )
@@ -115,30 +112,30 @@ fun AriSamAppShell() {
         ) {
             composable(AppDestination.Home.route) {
                 HomeRoute(
-                    onSongClick = { navController.navigate("song/${it.id}") },
-                    onPlaylistClick = { navController.navigate("playlist/${it.id}") },
+                    onSongClick = { navController.navigate(songRoute(it.id)) },
+                    onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
                     onQuickAction = { action ->
                         when (action) {
-                            HomeQuickAction.Playlists -> navController.navigate(AppDestination.Playlists.route)
-                            HomeQuickAction.Artists -> navController.navigate(AppDestination.Search.route)
-                            HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigate(AppDestination.Downloads.route)
+                            HomeQuickAction.Playlists -> navController.navigateTopLevel(AppDestination.Playlists.route)
+                            HomeQuickAction.Artists -> navController.navigateTopLevel(AppDestination.Search.route)
+                            HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigateTopLevel(AppDestination.Downloads.route)
                         }
                     },
                 )
             }
-            composable(AppDestination.Search.route) { SearchRoute(onSongClick = { navController.navigate("song/${it.id}") }) }
+            composable(AppDestination.Search.route) { SearchRoute(onSongClick = { navController.navigate(songRoute(it.id)) }) }
             composable(AppDestination.Playlists.route) {
-                PlaylistsRoute(onPlaylistClick = { navController.navigate("playlist/${it.id}") })
+                PlaylistsRoute(onPlaylistClick = { navController.navigate(playlistRoute(it.id)) })
             }
             composable(AppDestination.Downloads.route) { DownloadsRoute() }
             composable(AppDestination.Chat.route) {
-                ChatListRoute(onConversationClick = { navController.navigate("chat/$it") })
+                ChatListRoute(onConversationClick = { navController.navigate(chatRoute(it)) })
             }
             composable(ChatDetailRoutePattern) {
                 ChatDetailRoute(onBack = navController::popBackStack)
             }
             composable(PlaylistDetailRoutePattern) {
-                PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate("song/${it.id}") })
+                PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate(songRoute(it.id)) })
             }
             composable(SongDetailRoutePattern) {
                 SongDetailRoute(
@@ -154,23 +151,23 @@ fun AriSamAppShell() {
             }
             composable(AppDestination.Profile.route) {
                 SocialProfileRoute(
-                    onFollowersClick = { navController.navigate("social/users/$it/followers") },
-                    onFollowingClick = { navController.navigate("social/users/$it/following") },
-                    onPlaylistClick = { navController.navigate("playlist/${it.id}") },
+                    onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
+                    onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
+                    onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
                 )
             }
             composable(UserProfileRoutePattern) {
                 SocialProfileRoute(
                     onBack = navController::popBackStack,
-                    onFollowersClick = { navController.navigate("social/users/$it/followers") },
-                    onFollowingClick = { navController.navigate("social/users/$it/following") },
-                    onPlaylistClick = { navController.navigate("playlist/${it.id}") },
+                    onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
+                    onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
+                    onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
                 )
             }
             composable(UserListRoutePattern) {
                 SocialUsersRoute(
                     onBack = navController::popBackStack,
-                    onUserClick = { navController.navigate("social/user/${it.id}") },
+                    onUserClick = { navController.navigate(userProfileRoute(it.id)) },
                 )
             }
             composable(SettingsRoutePath) { SettingsRoute(onBack = navController::popBackStack) }
@@ -178,9 +175,32 @@ fun AriSamAppShell() {
     }
 }
 
-@Composable
-private fun DestinationPlaceholder(@androidx.annotation.StringRes labelRes: Int) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = stringResource(labelRes))
+private fun NavController.navigateTopLevel(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
+
+private fun NavController.navigateSingleTop(route: String) {
+    navigate(route) {
+        launchSingleTop = true
+    }
+}
+
+private fun String.mainDestination(): AppDestination? = when (this) {
+    AppDestination.Home.route -> AppDestination.Home
+    AppDestination.Search.route -> AppDestination.Search
+    AppDestination.Downloads.route -> AppDestination.Downloads
+    AppDestination.Playlists.route -> AppDestination.Playlists
+    AppDestination.Chat.route -> AppDestination.Chat
+    AppDestination.Profile.route -> AppDestination.Profile
+    else -> null
+}
+
+private fun songRoute(songId: String) = "song/${Uri.encode(songId)}"
+private fun playlistRoute(playlistId: String) = "playlist/${Uri.encode(playlistId)}"
+private fun chatRoute(userId: String) = "chat/${Uri.encode(userId)}"
+private fun userProfileRoute(userId: String) = "social/user/${Uri.encode(userId)}"
+private fun userListRoute(userId: String, kind: String) = "social/users/${Uri.encode(userId)}/${Uri.encode(kind)}"
