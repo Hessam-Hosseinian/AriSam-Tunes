@@ -57,6 +57,7 @@ class Media3PlaybackController @Inject constructor(
     private val crossfadeCoordinator = CrossfadePlaybackCoordinator(appContext, cacheDataSourceFactory)
     private var sleepTimerJob: Job? = null
     private var mediaSession: MediaSession? = null
+    private var visualizerBands = PlayerStateRepository.emptyVisualizerBands()
 
     init {
         player.setAudioAttributes(
@@ -82,7 +83,8 @@ class Media3PlaybackController @Inject constructor(
         scope.launch {
             while (true) {
                 stateRepository.setProgress(player.currentPosition.toInt() / 1000)
-                delay(1_000)
+                stateRepository.setVisualizerBands(nextVisualizerBands())
+                delay(55)
             }
         }
     }
@@ -231,6 +233,34 @@ class Media3PlaybackController @Inject constructor(
         }.onFailure { error ->
             Log.w("Media3PlaybackController", "Playback service could not be started", error)
         }
+    }
+
+    private fun nextVisualizerBands(): List<Float> {
+        val song = stateRepository.state.value.currentSong
+        if (!player.isPlaying || song == null) {
+            visualizerBands = visualizerBands.map { (it * 0.82f).coerceAtLeast(0.06f) }
+            return visualizerBands
+        }
+
+        val t = player.currentPosition / 1000f
+        val seed = song.id.hashCode()
+        val speed = stateRepository.state.value.playbackSpeed
+        visualizerBands = visualizerBands.mapIndexed { index, previous ->
+            val lane = index / 36f
+            val bassEnvelope = kotlin.math.abs(kotlin.math.sin((t * 3.2f * speed + seed * 0.0007f).toDouble())).toFloat()
+            val snareEnvelope = kotlin.math.abs(kotlin.math.sin((t * 7.4f * speed + index * 0.37f).toDouble())).toFloat()
+            val shimmer = kotlin.math.abs(kotlin.math.sin((t * (11.0f + index % 5) * speed + seed * 0.00013f + index).toDouble())).toFloat()
+            val profile = when {
+                index < 7 -> 0.42f + bassEnvelope * 0.55f
+                index < 18 -> 0.24f + snareEnvelope * 0.44f
+                else -> 0.12f + shimmer * 0.34f
+            }
+            val songColor = (((seed shr (index % 16)) and 0xF) / 15f) * 0.14f
+            val stereoTilt = 0.86f + kotlin.math.sin((lane * Math.PI * 2 + t).toDouble()).toFloat() * 0.10f
+            val target = ((profile + songColor) * stereoTilt).coerceIn(0.08f, 1f)
+            (previous * 0.58f + target * 0.42f).coerceIn(0.06f, 1f)
+        }
+        return visualizerBands
     }
 
     private companion object {

@@ -16,6 +16,7 @@ data class PlayerState(
     val sleepTimerEndsAtMillis: Long? = null,
     val isCrossfadeEnabled: Boolean = true,
     val playbackError: String? = null,
+    val visualizerBands: List<Float> = List(36) { 0.08f },
 )
 
 @Singleton
@@ -49,6 +50,10 @@ class PlayerStateRepository @Inject constructor() {
         _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
     }
 
+    fun setVisualizerBands(bands: List<Float>) {
+        _state.update { state -> state.copy(visualizerBands = bands) }
+    }
+
     fun setPlaybackSpeed(speed: Float) {
         _state.update { state -> state.copy(playbackSpeed = speed.coerceIn(0.5f, 2f)) }
     }
@@ -63,5 +68,9 @@ class PlayerStateRepository @Inject constructor() {
 
     fun close() {
         _state.value = PlayerState()
+    }
+
+    companion object {
+        fun emptyVisualizerBands(): List<Float> = List(36) { 0.08f }
     }
 }

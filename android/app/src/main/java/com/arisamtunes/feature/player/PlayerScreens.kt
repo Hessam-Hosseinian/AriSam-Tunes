@@ -140,7 +140,7 @@ fun NowPlayingRoute(
                         }
                     }
                 }
-                AudioVisualizer(isPlaying = state.isPlaying, seed = song.id.hashCode())
+                AudioVisualizer(isPlaying = state.isPlaying, bands = state.visualizerBands)
                 Slider(
                     value = state.progressSeconds.toFloat(),
                     onValueChange = { viewModel.seekTo(it.toInt()) },
@@ -176,17 +176,7 @@ fun NowPlayingRoute(
 }
 
 @Composable
-private fun AudioVisualizer(isPlaying: Boolean, seed: Int) {
-    val transition = rememberInfiniteTransition(label = "visualizer")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "visualizerPhase",
-    )
+private fun AudioVisualizer(isPlaying: Boolean, bands: List<Float>) {
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
     Surface(
@@ -204,14 +194,12 @@ private fun AudioVisualizer(isPlaying: Boolean, seed: Int) {
             Canvas(
                 modifier = Modifier.fillMaxWidth().height(86.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
             ) {
-                val bars = 36
+                val bars = bands.size.coerceAtLeast(1)
                 val gap = size.width / (bars * 2.1f)
                 val barWidth = gap.coerceAtLeast(5f)
                 val usableHeight = size.height * .9f
-                repeat(bars) { index ->
-                    val seeded = ((seed shr (index % 12)) and 7) / 7f
-                    val wave = kotlin.math.sin((phase * Math.PI * 2.0) + index * .55).toFloat()
-                    val normalized = if (isPlaying) (.38f + (.44f * kotlin.math.abs(wave)) + seeded * .18f) else .18f + seeded * .14f
+                bands.forEachIndexed { index, level ->
+                    val normalized = if (isPlaying) level else level * 0.55f
                     val barHeight = (usableHeight * normalized).coerceIn(size.height * .16f, usableHeight)
                     val x = index * (barWidth + gap)
                     drawLine(
