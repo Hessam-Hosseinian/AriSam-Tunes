@@ -2,3 +2,4 @@ DONE | milestone=1 | name=Initialize Ktor backend structure | branch=feature/bac
 DONE | milestone=2 | name=Add PostgreSQL Docker Compose setup | branch=feature/backend-foundation | commit=self | timestamp=2026-06-23T11:38:52+03:30
 DONE | milestone=3 | name=Add backend configuration and serialization models | branch=feature/backend-foundation | commit=self | timestamp=2026-06-23T13:06:31+03:30
 DONE | milestone=4 | name=Add database schema and migrations | branch=feature/backend-foundation | commit=self | timestamp=2026-06-23T14:42:09+03:30
+DONE | milestone=5 | name=Initialize Android project structure | branch=feature/android-foundation | commit=self | timestamp=2026-06-23T16:17:44+03:30
