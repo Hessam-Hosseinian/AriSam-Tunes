@@ -7,9 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,13 +36,12 @@ class MainActivity : ComponentActivity() {
 private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltViewModel()) {
     val preferences by preferencesViewModel.preferences.collectAsState()
     val baseContext = LocalContext.current
-    val locale = preferences.language.toLocale() ?: baseContext.resources.configuration.locales[0]
-    val localizedContext = remember(baseContext, preferences.language) {
-        preferences.language.toLocale()?.let { localeOverride ->
-            val configuration = android.content.res.Configuration(baseContext.resources.configuration)
-            configuration.setLocale(localeOverride)
-            baseContext.createConfigurationContext(configuration)
-        } ?: baseContext
+    val locale = preferences.language.toLocale() ?: Locale.getDefault()
+    SideEffect {
+        val configuration = android.content.res.Configuration(baseContext.resources.configuration)
+        configuration.setLocale(locale)
+        @Suppress("DEPRECATION")
+        baseContext.resources.updateConfiguration(configuration, baseContext.resources.displayMetrics)
     }
     val darkTheme = when (preferences.theme) {
         ThemePreference.System -> isSystemInDarkTheme()
@@ -52,7 +51,6 @@ private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltV
     val layoutDirection = if (locale.language == "fa") LayoutDirection.Rtl else LayoutDirection.Ltr
 
     CompositionLocalProvider(
-        LocalContext provides localizedContext,
         LocalLayoutDirection provides layoutDirection,
     ) {
         AriSamTheme(darkTheme = darkTheme, fontScale = preferences.fontScale) {
@@ -63,8 +61,8 @@ private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltV
 
 private fun LanguagePreference.toLocale(): Locale? = when (this) {
     LanguagePreference.System -> null
-    LanguagePreference.English -> Locale("en")
-    LanguagePreference.Persian -> Locale("fa")
+    LanguagePreference.English -> Locale.forLanguageTag("en")
+    LanguagePreference.Persian -> Locale.forLanguageTag("fa")
 }
 
 @Preview(showBackground = true)
