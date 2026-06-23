@@ -18,8 +18,6 @@ class PlayerViewModel @Inject constructor(
 
     fun retryPlayback() = playbackController.retry()
 
-    fun setFftVisualizerPermissionGranted(granted: Boolean) = playbackController.setFftVisualizerPermissionGranted(granted)
-
     fun cyclePlaybackSpeed() = playbackController.cyclePlaybackSpeed()
 
     fun setSleepTimer(minutes: Int) = playbackController.setSleepTimer(minutes)

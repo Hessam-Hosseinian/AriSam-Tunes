@@ -2,7 +2,6 @@ package com.arisamtunes.feature.player
 
 import android.content.Context
 import android.content.Intent
-import android.media.audiofx.Visualizer
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
@@ -59,11 +58,7 @@ class Media3PlaybackController @Inject constructor(
     private var sleepTimerJob: Job? = null
     private var mediaSession: MediaSession? = null
     private var visualizerBands = PlayerStateRepository.emptyVisualizerBands()
-    private var fftVisualizer: Visualizer? = null
-    private var fftPermissionGranted = false
-    private var fftVisualizerActive = false
     private var lastFallbackVisualizerAtMillis = 0L
-    private var lastFftVisualizerAtMillis = 0L
 
     init {
         player.setAudioAttributes(
@@ -80,7 +75,6 @@ class Media3PlaybackController @Inject constructor(
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 stateRepository.setProgress(player.currentPosition.toInt() / 1000)
-                if (playbackState == Player.STATE_READY && fftPermissionGranted) configureFftVisualizer()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -90,8 +84,8 @@ class Media3PlaybackController @Inject constructor(
         scope.launch {
             while (true) {
                 stateRepository.setProgress(player.currentPosition.toInt() / 1000)
-                if (!fftVisualizerActive) updateFallbackVisualizer()
-                delay(250)
+                updateFallbackVisualizer()
+                delay(120)
             }
         }
     }
@@ -118,17 +112,10 @@ class Media3PlaybackController @Inject constructor(
                 )
                 player.prepare()
                 player.play()
-                if (fftPermissionGranted) configureFftVisualizer()
             }.onFailure { error ->
                 stateRepository.setPlaybackError(error.localizedMessage ?: "Playback failed")
             }
         }
-    }
-
-    fun setFftVisualizerPermissionGranted(granted: Boolean) {
-        fftPermissionGranted = granted
-        stateRepository.setVisualizerPermissionRequired(!granted)
-        if (granted) configureFftVisualizer() else releaseFftVisualizer()
     }
 
     fun retry() {
@@ -218,7 +205,6 @@ class Media3PlaybackController @Inject constructor(
 
     fun close() {
         sleepTimerJob?.cancel()
-        releaseFftVisualizer()
         runCatching {
             player.stop()
             player.clearMediaItems()
@@ -250,85 +236,12 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
-    private fun configureFftVisualizer() {
-        val audioSessionId = player.audioSessionId
-        if (!fftPermissionGranted || audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
-        if (fftVisualizerActive) return
-
-        runCatching {
-            releaseFftVisualizer(updateState = false)
-            fftVisualizer = Visualizer(audioSessionId).apply {
-                captureSize = Visualizer.getCaptureSizeRange().last().coerceAtMost(MaxFftCaptureSize)
-                setDataCaptureListener(
-                    object : Visualizer.OnDataCaptureListener {
-                        override fun onWaveFormDataCapture(visualizer: Visualizer?, waveform: ByteArray?, samplingRate: Int) = Unit
-
-                        override fun onFftDataCapture(visualizer: Visualizer?, fft: ByteArray?, samplingRate: Int) {
-                            val now = android.os.SystemClock.elapsedRealtime()
-                            if (fft != null && now - lastFftVisualizerAtMillis >= FftUpdateIntervalMillis) {
-                                lastFftVisualizerAtMillis = now
-                                stateRepository.setVisualizerBands(fftToBands(fft))
-                            }
-                        }
-                    },
-                    (Visualizer.getMaxCaptureRate() / 4).coerceAtLeast(MinFftCaptureRate),
-                    false,
-                    true,
-                )
-                enabled = true
-            }
-            fftVisualizerActive = true
-            stateRepository.setFftVisualizerActive(true)
-            stateRepository.setVisualizerPermissionRequired(false)
-        }.onFailure { error ->
-            Log.w("Media3PlaybackController", "Real FFT visualizer unavailable; using fallback", error)
-            releaseFftVisualizer()
-            stateRepository.setVisualizerPermissionRequired(error is SecurityException)
-        }
-    }
-
-    private fun releaseFftVisualizer(updateState: Boolean = true) {
-        runCatching {
-            fftVisualizer?.enabled = false
-            fftVisualizer?.release()
-        }
-        fftVisualizer = null
-        fftVisualizerActive = false
-        if (updateState) stateRepository.setFftVisualizerActive(false)
-    }
-
     private fun updateFallbackVisualizer() {
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastFallbackVisualizerAtMillis >= FallbackUpdateIntervalMillis) {
             lastFallbackVisualizerAtMillis = now
             stateRepository.setVisualizerBands(nextVisualizerBands())
         }
-    }
-
-    private fun fftToBands(fft: ByteArray): List<Float> {
-        val complexBins = (fft.size / 2).coerceAtLeast(2)
-        val bandCount = visualizerBands.size.coerceAtLeast(36)
-        val next = List(bandCount) { band ->
-            val from = (1 + ((band.toFloat() / bandCount) * (band.toFloat() / bandCount) * (complexBins - 2))).toInt().coerceIn(1, complexBins - 1)
-            val to = (1 + ((((band + 1).toFloat() / bandCount) * ((band + 1).toFloat() / bandCount)) * (complexBins - 2))).toInt().coerceIn(from + 1, complexBins)
-            var sum = 0f
-            var count = 0
-            for (bin in from until to) {
-                val real = fft.getOrNull(bin * 2)?.toInt() ?: 0
-                val imag = fft.getOrNull(bin * 2 + 1)?.toInt() ?: 0
-                sum += kotlin.math.sqrt((real * real + imag * imag).toFloat())
-                count++
-            }
-            val average = if (count == 0) 0f else sum / count
-            val weighted = kotlin.math.log10(1f + average) / 2.25f
-            val bassBoost = if (band < 6) 1.24f else 1f
-            (weighted * bassBoost).coerceIn(0.04f, 1f)
-        }
-        visualizerBands = next.mapIndexed { index, target ->
-            val previous = visualizerBands.getOrNull(index) ?: 0.08f
-            (previous * 0.48f + target * 0.52f).coerceIn(0.04f, 1f)
-        }
-        return visualizerBands
     }
 
     private fun nextVisualizerBands(): List<Float> {
@@ -362,9 +275,6 @@ class Media3PlaybackController @Inject constructor(
     private companion object {
         const val MediaSessionId = "arisam_tunes_playback"
         const val MaxStreamCacheBytes = 256L * 1024L * 1024L
-        const val MaxFftCaptureSize = 512
-        const val FftUpdateIntervalMillis = 66L
-        const val FallbackUpdateIntervalMillis = 66L
-        const val MinFftCaptureRate = 8_000
+        const val FallbackUpdateIntervalMillis = 96L
     }
 }
