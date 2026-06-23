@@ -43,7 +43,13 @@ class CatalogRepository @Inject constructor(
         val newReleases = async { client.get("songs/new").body<List<SongDto>>() }
         val global = async { client.get("playlists/global").body<PlaylistListDto>().items }
         val local = async { client.get("playlists/local").body<PlaylistListDto>().items }
-        HomeCatalog(trending.await(), popular.await(), newReleases.await(), global.await(), local.await())
+        HomeCatalog(
+            trending.await().map(CatalogUrlNormalizer::song),
+            popular.await().map(CatalogUrlNormalizer::song),
+            newReleases.await().map(CatalogUrlNormalizer::song),
+            global.await().map(CatalogUrlNormalizer::playlist),
+            local.await().map(CatalogUrlNormalizer::playlist),
+        )
     }
 
     suspend fun search(query: String, type: String, page: Int, size: Int): SongPageDto =
@@ -52,15 +58,15 @@ class CatalogRepository @Inject constructor(
             parameter("type", type)
             parameter("page", page)
             parameter("size", size)
-        }.body()
+        }.body<SongPageDto>().normalized()
 
     suspend fun songs(page: Int, size: Int): SongPageDto =
         client.get("songs") {
             parameter("page", page)
             parameter("size", size)
-        }.body()
+        }.body<SongPageDto>().normalized()
 
-    suspend fun song(id: String): SongDto = client.get("songs/$id").body()
+    suspend fun song(id: String): SongDto = CatalogUrlNormalizer.song(client.get("songs/$id").body())
 
     @OptIn(ExperimentalPagingApi::class)
     fun songsPager(): Flow<PagingData<SongDto>> = Pager(
@@ -73,7 +79,7 @@ class CatalogRepository @Inject constructor(
             loadPage = ::songs,
         ),
         pagingSourceFactory = cachedSongDao::pagingSource,
-    ).flow.map { pagingData -> pagingData.map { it.toSongDto() } }
+    ).flow.map { pagingData -> pagingData.map { CatalogUrlNormalizer.song(it.toSongDto()) } }
 
     @OptIn(ExperimentalPagingApi::class)
     fun searchPager(query: String, type: String): Flow<PagingData<SongDto>> =
@@ -87,17 +93,17 @@ class CatalogRepository @Inject constructor(
                 loadPage = { page, size -> search(query, type, page, size) },
             ),
             pagingSourceFactory = { cachedSongDao.searchPagingSource(query, type) },
-        ).flow.map { pagingData -> pagingData.map { it.toSongDto() } }
+        ).flow.map { pagingData -> pagingData.map { CatalogUrlNormalizer.song(it.toSongDto()) } }
 
-    suspend fun playlists(): List<PlaylistDto> = client.get("playlists").body<PlaylistListDto>().items
+    suspend fun playlists(): List<PlaylistDto> = client.get("playlists").body<PlaylistListDto>().items.map(CatalogUrlNormalizer::playlist)
 
-    suspend fun playlist(id: String): PlaylistDto = client.get("playlists/$id").body()
+    suspend fun playlist(id: String): PlaylistDto = CatalogUrlNormalizer.playlist(client.get("playlists/$id").body())
 
     private suspend fun playlistSongs(id: String, page: Int, size: Int): PlaylistSongsDto =
         client.get("playlists/$id/songs") {
             parameter("page", page)
             parameter("size", size)
-        }.body()
+        }.body<PlaylistSongsDto>().normalized()
 
     fun playlistSongsPager(id: String) = Pager(
         config = PagingConfig(pageSize = 20, initialLoadSize = 20, prefetchDistance = 5),
@@ -128,3 +134,10 @@ class CatalogRepository @Inject constructor(
         const val CacheKeyAllSongs = "all"
     }
 }
+
+private fun SongPageDto.normalized() = copy(items = items.map(CatalogUrlNormalizer::song))
+
+private fun PlaylistSongsDto.normalized() = copy(
+    playlist = CatalogUrlNormalizer.playlist(playlist),
+    items = items.map(CatalogUrlNormalizer::song),
+)

@@ -1,6 +1,7 @@
 package com.arisamtunes.data.social
 
 import com.arisamtunes.data.auth.UserDto
+import com.arisamtunes.data.catalog.CatalogUrlNormalizer
 import com.arisamtunes.data.catalog.PlaylistDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -44,5 +45,5 @@ class SocialRepository @Inject constructor(private val client: HttpClient) {
     suspend fun unfollow(userId: String): PublicUserDto = client.delete("users/$userId/follow").body<FollowDto>().user
 
     suspend fun publicPlaylists(userId: String): List<PlaylistDto> =
-        client.get("users/$userId/playlists").body<PublicPlaylistListDto>().items
+        client.get("users/$userId/playlists").body<PublicPlaylistListDto>().items.map(CatalogUrlNormalizer::playlist)
 }
