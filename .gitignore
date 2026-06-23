@@ -1,0 +1,67 @@
+# Gradle
+.gradle/
+build/
+**/build/
+.gradle-cache/
+
+# Android
+local.properties
+*.apk
+*.aab
+*.ap_
+captures/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Kotlin / Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.crt
+secrets.properties
+
+# Backend runtime data
+backend/.env
+backend/build/
+backend/out/
+logs/
+*.log
+
+# Docker / database local data
+postgres-data/
+pgdata/
+docker-data/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node and tooling
+node_modules/
+dist/
+
+# Generated media and downloads
+media-cache/
+downloads-cache/
+
