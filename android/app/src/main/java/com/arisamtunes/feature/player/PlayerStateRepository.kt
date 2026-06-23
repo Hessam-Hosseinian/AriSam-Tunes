@@ -15,6 +15,7 @@ data class PlayerState(
     val playbackSpeed: Float = 1f,
     val sleepTimerEndsAtMillis: Long? = null,
     val isCrossfadeEnabled: Boolean = true,
+    val playbackError: String? = null,
 )
 
 @Singleton
@@ -24,7 +25,7 @@ class PlayerStateRepository @Inject constructor() {
 
     fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
         _state.update { current ->
-            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = queue.ifEmpty { listOf(song) })
+            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = queue.ifEmpty { listOf(song) }, playbackError = null)
         }
     }
 
@@ -34,6 +35,10 @@ class PlayerStateRepository @Inject constructor() {
 
     fun setPlaying(isPlaying: Boolean) {
         _state.update { state -> state.copy(isPlaying = isPlaying) }
+    }
+
+    fun setPlaybackError(message: String?) {
+        _state.update { state -> state.copy(playbackError = message, isPlaying = false) }
     }
 
     fun seekTo(seconds: Int) {
