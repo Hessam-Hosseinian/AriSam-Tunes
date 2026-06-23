@@ -41,3 +41,4 @@ DONE | milestone=36 | name=Add social profile screens | branch=feature/social-ch
 DONE | milestone=37 | name=Implement realtime WebSocket chat | branch=feature/social-chat | commit=self | timestamp=2026-06-26T18:03:00+03:30
 DONE | milestone=38 | name=Add typing indicator and message receipts | branch=feature/social-chat | commit=self | timestamp=2026-06-26T19:41:00+03:30
 DONE | milestone=39 | name=Add chat screens | branch=feature/social-chat | commit=self | timestamp=2026-06-26T21:18:00+03:30
+DONE | milestone=40 | name=Add offline chat persistence and sync | branch=feature/localization-settings | commit=self | timestamp=2026-06-26T22:40:00+03:30

@@ -12,6 +12,12 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE conversationUserId = :userId ORDER BY createdAt DESC")
     fun pagingSource(userId: String): PagingSource<Int, ChatMessageEntity>
 
+    @Query("SELECT * FROM chat_messages WHERE conversationUserId = :userId ORDER BY createdAt ASC")
+    fun observeConversation(userId: String): Flow<List<ChatMessageEntity>>
+
+    @Query("SELECT * FROM chat_messages WHERE conversationUserId = :userId ORDER BY createdAt ASC")
+    suspend fun conversationSnapshot(userId: String): List<ChatMessageEntity>
+
     @Query("SELECT * FROM chat_messages WHERE conversationUserId = :userId ORDER BY createdAt DESC LIMIT 1")
     fun observeLatest(userId: String): Flow<ChatMessageEntity?>
 
@@ -26,6 +32,12 @@ interface ChatMessageDao {
 
     @Query("UPDATE chat_messages SET deliveryState = :state, deliveredAt = :deliveredAt, readAt = :readAt WHERE messageId = :messageId")
     suspend fun updateReceipt(messageId: String, state: String, deliveredAt: String?, readAt: String?)
+
+    @Query("SELECT * FROM chat_messages WHERE deliveryState = 'PENDING' ORDER BY cachedAt ASC")
+    suspend fun pendingMessages(): List<ChatMessageEntity>
+
+    @Query("DELETE FROM chat_messages WHERE messageId = :messageId AND deliveryState = 'PENDING'")
+    suspend fun deletePending(messageId: String)
 
     @Query("DELETE FROM chat_messages WHERE conversationUserId = :userId")
     suspend fun clearConversation(userId: String)

@@ -14,6 +14,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 data class ChatListUiState(
@@ -74,12 +75,8 @@ class ChatDetailViewModel @Inject constructor(
             chatRepository.status.collectLatest { status -> _state.value = _state.value.copy(status = status) }
         }
         viewModelScope.launch {
-            chatRepository.events.collect { event ->
-                event.message?.let { message ->
-                    if (message.senderId == userId || message.recipientId == userId) {
-                        _state.value = _state.value.copy(messages = (_state.value.messages + message).distinctBy(ChatMessageDto::id))
-                    }
-                }
+            chatRepository.observeMessages(userId).distinctUntilChanged().collect { messages ->
+                _state.value = _state.value.copy(messages = messages, isLoading = false)
             }
         }
     }
@@ -103,7 +100,8 @@ class ChatDetailViewModel @Inject constructor(
         val text = _state.value.draft.trim()
         if (text.isBlank()) return@launch
         _state.value = _state.value.copy(draft = "")
-        chatRepository.sendText(userId, text)
+        runCatching { chatRepository.sendText(userId, text) }
+            .onFailure { _state.value = _state.value.copy(hasError = true) }
     }
 
     override fun onCleared() {
