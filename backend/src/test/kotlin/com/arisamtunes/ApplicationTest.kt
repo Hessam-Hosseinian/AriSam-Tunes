@@ -4,6 +4,7 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
+import io.ktor.server.config.MapApplicationConfig
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.Json
 class ApplicationTest {
     @Test
     fun `health endpoint is available below api v1`() = testApplication {
+        environment { config = MapApplicationConfig("database.enabled" to "false") }
         application { module() }
 
         val response = client.get("/api/v1/health")
@@ -26,6 +28,7 @@ class ApplicationTest {
 
     @Test
     fun `unversioned health endpoint is not exposed`() = testApplication {
+        environment { config = MapApplicationConfig("database.enabled" to "false") }
         application { module() }
 
         val response = client.get("/health")

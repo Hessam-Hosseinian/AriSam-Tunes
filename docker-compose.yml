@@ -25,6 +25,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8080
+      DB_ENABLED: "true"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-arisam_tunes_db}
