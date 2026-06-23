@@ -121,6 +121,10 @@
     <string name="chat_start_with_following">Start a conversation</string>
     <string name="chat_tap_to_message">Tap to send a message</string>
     <string name="chat_message_hint">Write a message…</string>
+    <string name="chat_status_offline">Offline</string>
+    <string name="chat_status_connecting">Connecting</string>
+    <string name="chat_status_connected">Connected</string>
+    <string name="chat_status_reconnecting">Reconnecting</string>
     <string name="send">Send</string>
     <string name="sleep_timer">Sleep 15m</string>
     <string name="sleep_timer_on">Sleep on</string>

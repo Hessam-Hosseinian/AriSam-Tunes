@@ -7,10 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -21,6 +21,7 @@ import com.arisamtunes.core.navigation.AriSamTunesRoot
 import com.arisamtunes.core.navigation.AppPreferencesViewModel
 import com.arisamtunes.data.preferences.LanguagePreference
 import com.arisamtunes.data.preferences.ThemePreference
+import android.content.res.Configuration
 import java.util.Locale
 
 @AndroidEntryPoint
@@ -37,12 +38,9 @@ private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltV
     val preferences by preferencesViewModel.preferences.collectAsState()
     val baseContext = LocalContext.current
     val locale = preferences.language.toLocale() ?: Locale.getDefault()
-    SideEffect {
-        val configuration = android.content.res.Configuration(baseContext.resources.configuration)
-        configuration.setLocale(locale)
-        @Suppress("DEPRECATION")
-        baseContext.resources.updateConfiguration(configuration, baseContext.resources.displayMetrics)
-    }
+    val localizedConfiguration = Configuration(baseContext.resources.configuration).apply { setLocale(locale) }
+    @Suppress("DEPRECATION")
+    baseContext.resources.updateConfiguration(localizedConfiguration, baseContext.resources.displayMetrics)
     val darkTheme = when (preferences.theme) {
         ThemePreference.System -> isSystemInDarkTheme()
         ThemePreference.Light -> false
@@ -51,6 +49,7 @@ private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltV
     val layoutDirection = if (locale.language == "fa") LayoutDirection.Rtl else LayoutDirection.Ltr
 
     CompositionLocalProvider(
+        LocalConfiguration provides localizedConfiguration,
         LocalLayoutDirection provides layoutDirection,
     ) {
         AriSamTheme(darkTheme = darkTheme, fontScale = preferences.fontScale) {

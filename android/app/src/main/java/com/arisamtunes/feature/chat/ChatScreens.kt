@@ -108,9 +108,9 @@ fun ChatDetailRoute(
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
             Column(Modifier.weight(1f)) {
                 Text(state.peer?.displayName ?: stringResource(R.string.chat), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(state.status.label(), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(state.status.labelRes()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
             }
-            AssistChip(onClick = {}, label = { Text(state.status.label()) })
+            AssistChip(onClick = {}, label = { Text(stringResource(state.status.labelRes())) })
         }
         when {
             state.isLoading -> Loading()
@@ -161,11 +161,11 @@ private fun MessageBubble(message: ChatMessageDto, isMine: Boolean) {
     }
 }
 
-private fun ChatConnectionStatus.label() = when (this) {
-    ChatConnectionStatus.Disconnected -> "Offline"
-    ChatConnectionStatus.Connecting -> "Connecting"
-    ChatConnectionStatus.Connected -> "Connected"
-    ChatConnectionStatus.Reconnecting -> "Reconnecting"
+private fun ChatConnectionStatus.labelRes() = when (this) {
+    ChatConnectionStatus.Disconnected -> R.string.chat_status_offline
+    ChatConnectionStatus.Connecting -> R.string.chat_status_connecting
+    ChatConnectionStatus.Connected -> R.string.chat_status_connected
+    ChatConnectionStatus.Reconnecting -> R.string.chat_status_reconnecting
 }
 
 @Composable
