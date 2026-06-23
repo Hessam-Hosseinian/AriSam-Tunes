@@ -1,1 +1,2 @@
 DONE | milestone=1 | name=Initialize Ktor backend structure | branch=feature/backend-foundation | commit=self | timestamp=2026-06-23T10:21:14+03:30
+DONE | milestone=2 | name=Add PostgreSQL Docker Compose setup | branch=feature/backend-foundation | commit=self | timestamp=2026-06-23T11:38:52+03:30

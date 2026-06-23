@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-arisam_tunes_db}
+      POSTGRES_USER: ${POSTGRES_USER:-arisam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arisam_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - arisam-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - arisam-network
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-arisam_tunes_db}
+      DB_USER: ${POSTGRES_USER:-arisam}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-arisam_dev_password}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./music_data:/app/music_data:ro
+    networks:
+      - arisam-network
+
+volumes:
+  arisam-postgres-data:
+
+networks:
+  arisam-network:
+    driver: bridge
