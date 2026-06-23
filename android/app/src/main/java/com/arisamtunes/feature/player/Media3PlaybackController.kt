@@ -268,11 +268,15 @@ class Media3PlaybackController @Inject constructor(
 
     private fun sourceSpectrumBands(): List<Float>? {
         val frames = sourceSpectrumFrames.takeIf { it.isNotEmpty() } ?: return null
-        val index = (player.currentPosition / sourceSpectrumFrameDurationMs).toInt().coerceIn(0, frames.lastIndex)
-        val target = frames[index]
+        val position = player.currentPosition / sourceSpectrumFrameDurationMs.toFloat()
+        val index = position.toInt().coerceIn(0, frames.lastIndex)
+        val fraction = (position - index).coerceIn(0f, 1f)
+        val current = frames[index]
+        val next = frames.getOrNull(index + 1) ?: current
+        val target = current.mapIndexed { band, value -> value + ((next.getOrNull(band) ?: value) - value) * fraction }
         visualizerBands = target.mapIndexed { band, value ->
             val previous = visualizerBands.getOrNull(band) ?: 0.08f
-            (previous * 0.35f + value * 0.65f).coerceIn(0.04f, 1f)
+            (previous * 0.22f + value * 0.78f).coerceIn(0.04f, 1f)
         }
         return visualizerBands
     }
@@ -288,7 +292,7 @@ class Media3PlaybackController @Inject constructor(
         val seed = song.id.hashCode()
         val speed = stateRepository.state.value.playbackSpeed
         visualizerBands = visualizerBands.mapIndexed { index, previous ->
-            val lane = index / 36f
+            val lane = index / visualizerBands.size.toFloat().coerceAtLeast(1f)
             val bassEnvelope = kotlin.math.abs(kotlin.math.sin((t * 3.2f * speed + seed * 0.0007f).toDouble())).toFloat()
             val snareEnvelope = kotlin.math.abs(kotlin.math.sin((t * 7.4f * speed + index * 0.37f).toDouble())).toFloat()
             val shimmer = kotlin.math.abs(kotlin.math.sin((t * (11.0f + index % 5) * speed + seed * 0.00013f + index).toDouble())).toFloat()
@@ -308,6 +312,6 @@ class Media3PlaybackController @Inject constructor(
     private companion object {
         const val MediaSessionId = "arisam_tunes_playback"
         const val MaxStreamCacheBytes = 256L * 1024L * 1024L
-        const val FallbackUpdateIntervalMillis = 96L
+        const val FallbackUpdateIntervalMillis = 60L
     }
 }

@@ -40,7 +40,7 @@ fun Route.catalogRoutes(
         get("/{id}/spectrum") {
             val id = call.uuidParameter("id")
             if (repository.song(id) == null) throw ApiException(HttpStatusCode.NotFound, ErrorCode.SONG_NOT_FOUND, "Song does not exist")
-            call.respond(spectrumRepository.spectrum(id) ?: SongSpectrumResponse(id.toString(), bands = 24, frameDurationMs = 100, frames = emptyList()))
+            call.respond(spectrumRepository.spectrum(id) ?: SongSpectrumResponse(id.toString(), bands = 32, frameDurationMs = 60, frames = emptyList()))
         }
     }
     route("/artists") {

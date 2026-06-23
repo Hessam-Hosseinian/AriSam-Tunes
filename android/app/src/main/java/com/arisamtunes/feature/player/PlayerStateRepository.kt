@@ -16,7 +16,7 @@ data class PlayerState(
     val sleepTimerEndsAtMillis: Long? = null,
     val isCrossfadeEnabled: Boolean = true,
     val playbackError: String? = null,
-    val visualizerBands: List<Float> = List(36) { 0.08f },
+    val visualizerBands: List<Float> = List(32) { 0.08f },
 )
 
 @Singleton
@@ -77,7 +77,7 @@ class PlayerStateRepository @Inject constructor() {
     }
 
     companion object {
-        fun emptyVisualizerBands(): List<Float> = List(24) { 0.08f }
-        private const val VisualizerUpdateThreshold = 0.035f
+        fun emptyVisualizerBands(): List<Float> = List(32) { 0.08f }
+        private const val VisualizerUpdateThreshold = 0.024f
     }
 }

@@ -10,6 +10,7 @@ import kotlin.io.path.isRegularFile
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.ln
+import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -39,14 +40,15 @@ class SpectrumRepository(
         val samples = decodeSamples(source)
         if (samples.isEmpty()) return SongSpectrumResponse(songId.toString(), Bands, FrameDurationMs, emptyList())
         val samplesPerFrame = (SampleRate * FrameDurationMs) / 1000
-        val windowSize = 512.coerceAtMost(samples.size)
-        val frames = buildList {
+        val windowSize = WindowSize.coerceAtMost(samples.size)
+        val rawFrames = buildList {
             var offset = 0
             while (offset < samples.size && size < MaxFrames) {
                 add(frameBands(samples, offset, windowSize))
                 offset += samplesPerFrame
             }
         }
+        val frames = smoothFrames(normalizeFrames(rawFrames))
         return SongSpectrumResponse(songId.toString(), Bands, FrameDurationMs, frames)
     }
 
@@ -68,14 +70,52 @@ class SpectrumRepository(
     }
 
     private fun frameBands(samples: FloatArray, offset: Int, windowSize: Int): List<Float> {
-        val nyquist = SampleRate / 2f
+        val nyquist = SampleRate / 2f * 0.92f
         return List(Bands) { band ->
-            val startHz = 35f * (nyquist / 35f).pow(band / Bands.toFloat())
-            val endHz = 35f * (nyquist / 35f).pow((band + 1) / Bands.toFloat())
-            val hz = (startHz + endHz) * 0.5f
-            val magnitude = goertzel(samples, offset, windowSize, hz)
-            val normalized = (ln(1f + magnitude * 18f) / ln(19f)).coerceIn(0f, 1f)
-            if (band < 4) (normalized * 1.18f).coerceAtMost(1f) else normalized
+            val startHz = MinHz * (nyquist / MinHz).pow(band / Bands.toFloat())
+            val endHz = MinHz * (nyquist / MinHz).pow((band + 1) / Bands.toFloat())
+            val low = goertzel(samples, offset, windowSize, startHz * 0.72f + endHz * 0.28f)
+            val mid = goertzel(samples, offset, windowSize, sqrt(startHz * endHz))
+            val high = goertzel(samples, offset, windowSize, startHz * 0.25f + endHz * 0.75f)
+            val magnitude = low * 0.25f + mid * 0.50f + high * 0.25f
+            val normalized = (ln(1f + magnitude * 34f) / ln(35f)).coerceIn(0f, 1f)
+            val psychoacousticBoost = when {
+                band < 5 -> 1.28f
+                band < 14 -> 1.08f
+                else -> 0.92f
+            }
+            (normalized * psychoacousticBoost).coerceIn(0f, 1f)
+        }
+    }
+
+    private fun normalizeFrames(frames: List<List<Float>>): List<List<Float>> {
+        if (frames.isEmpty()) return frames
+        val bandPeaks = List(Bands) { band ->
+            frames.mapNotNull { it.getOrNull(band) }
+                .sorted()
+                .let { sorted -> sorted[(sorted.lastIndex * 0.92f).toInt().coerceIn(0, sorted.lastIndex)] }
+                .coerceAtLeast(0.03f)
+        }
+        return frames.map { frame ->
+            frame.mapIndexed { band, value ->
+                val normalized = value / bandPeaks[band]
+                val curved = normalized.pow(0.72f)
+                val floor = if (band < 6) 0.07f else 0.04f
+                (floor + curved * (1f - floor)).coerceIn(0f, 1f)
+            }
+        }
+    }
+
+    private fun smoothFrames(frames: List<List<Float>>): List<List<Float>> {
+        if (frames.isEmpty()) return frames
+        var previous = List(Bands) { 0.06f }
+        return frames.map { frame ->
+            val smoothed = frame.mapIndexed { band, target ->
+                val attack = if (target > previous[band]) 0.62f else 0.28f
+                (previous[band] * (1f - attack) + target * attack).coerceIn(0f, 1f)
+            }
+            previous = smoothed
+            smoothed
         }
     }
 
@@ -99,10 +139,12 @@ class SpectrumRepository(
     }
 
     private companion object {
-        const val SampleRate = 8_000
-        const val FrameDurationMs = 100
-        const val Bands = 24
-        const val MaxFrames = 1_800
+        const val SampleRate = 16_000
+        const val FrameDurationMs = 60
+        const val WindowSize = 1_024
+        const val Bands = 32
+        const val MaxFrames = 3_000
         const val MaxDecodeSeconds = 180
+        const val MinHz = 40f
     }
 }
