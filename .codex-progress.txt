@@ -1,0 +1,1 @@
+DONE | milestone=1 | name=Initialize Ktor backend structure | branch=feature/backend-foundation | commit=self | timestamp=2026-06-23T10:21:14+03:30
