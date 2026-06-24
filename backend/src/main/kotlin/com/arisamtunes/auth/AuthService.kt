@@ -38,6 +38,21 @@ class AuthService(private val repository: AuthRepository, private val jwt: JwtSe
     fun currentUser(id: UUID) = repository.findById(id)?.response()
         ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.USER_NOT_FOUND, "User does not exist")
 
+    fun updateProfile(id: UUID, request: UpdateProfileRequest): UserResponse {
+        val current = repository.findById(id)
+            ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.USER_NOT_FOUND, "User does not exist")
+        val name = request.displayName?.trim() ?: current.displayName
+        val avatar = request.avatarUrl?.trim()?.takeIf(String::isNotEmpty) ?: current.avatarUrl
+        val bio = request.bio?.trim()?.takeIf(String::isNotEmpty)
+        if (name.length !in 2..100 || (bio?.length ?: 0) > 500 || (avatar?.length ?: 0) > 2_000) {
+            throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "Profile fields exceed their allowed length")
+        }
+        if (avatar != null && !avatar.startsWith("http://") && !avatar.startsWith("https://")) {
+            throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "Avatar URL must use HTTP or HTTPS")
+        }
+        return repository.updateProfile(id, name, avatar, bio).response()
+    }
+
     private fun tokens(user: AuthUser): TokenResponse {
         val refresh = ByteArray(48).also(SecureRandom()::nextBytes).let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
         repository.storeRefresh(user.id, hash(refresh), Instant.now().plus(30, ChronoUnit.DAYS))

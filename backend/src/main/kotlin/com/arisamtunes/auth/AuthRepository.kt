@@ -18,6 +18,14 @@ class AuthRepository {
     fun findByEmail(email: String) = queryUser("SELECT * FROM users WHERE LOWER(email)=LOWER(?)", email)
     fun findById(id: UUID) = queryUser("SELECT * FROM users WHERE id=?", id)
 
+    fun updateProfile(id: UUID, displayName: String, avatarUrl: String?, bio: String?): AuthUser = DatabaseProvider.dataSource.connection.use { c ->
+        val user = c.prepareStatement("UPDATE users SET display_name=?,avatar_url=?,bio=?,updated_at=NOW() WHERE id=? RETURNING *").use { s ->
+            s.setString(1, displayName); s.setString(2, avatarUrl); s.setString(3, bio); s.setObject(4, id)
+            s.executeQuery().use { if (it.next()) it.toUser() else null }
+        }
+        c.commit(); user ?: throw IllegalStateException("User disappeared during profile update")
+    }
+
     private fun queryUser(sql: String, value: Any): AuthUser? = DatabaseProvider.dataSource.connection.use { c ->
         c.prepareStatement(sql).use { s ->
             s.setObject(1, value); s.executeQuery().use { if (it.next()) it.toUser() else null }
@@ -49,5 +57,5 @@ class AuthRepository {
 
 private fun ResultSet.toUser() = AuthUser(
     getObject("id", UUID::class.java), getString("email"), getString("password_hash"),
-    getString("display_name"), getString("avatar_url"), getBoolean("is_premium"),
+    getString("display_name"), getString("avatar_url"), getString("bio"), getBoolean("is_premium"),
 )

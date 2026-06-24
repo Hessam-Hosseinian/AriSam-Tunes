@@ -30,6 +30,7 @@ data class UserResponse(
     val email: String,
     @SerialName("display_name") val displayName: String,
     @SerialName("avatar_url") val avatarUrl: String?,
+    val bio: String?,
     @SerialName("is_premium") val isPremium: Boolean,
 )
 
@@ -39,7 +40,15 @@ data class AuthUser(
     val passwordHash: String,
     val displayName: String,
     val avatarUrl: String?,
+    val bio: String?,
     val isPremium: Boolean,
 ) {
-    fun response() = UserResponse(id.toString(), email, displayName, avatarUrl, isPremium)
+    fun response() = UserResponse(id.toString(), email, displayName, avatarUrl, bio, isPremium)
 }
+
+@Serializable
+data class UpdateProfileRequest(
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    val bio: String? = null,
+)

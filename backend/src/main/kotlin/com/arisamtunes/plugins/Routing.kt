@@ -2,6 +2,7 @@ package com.arisamtunes.plugins
 
 import com.arisamtunes.model.HealthResponse
 import com.arisamtunes.auth.authRoutes
+import com.arisamtunes.auth.profileRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
@@ -14,6 +15,7 @@ fun Application.configureRouting() {
     routing {
         route(API_V1) {
             authRoutes(authService)
+            profileRoutes(authService)
             get("/health") {
                 call.respond(
                     HealthResponse(

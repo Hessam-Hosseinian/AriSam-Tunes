@@ -7,3 +7,4 @@ DONE | milestone=6 | name=Add AriSam Tunes design system | branch=feature/androi
 DONE | milestone=7 | name=Configure Compose navigation and app shell | branch=feature/android-foundation | commit=self | timestamp=2026-06-24T09:19:08+03:30
 DONE | milestone=8 | name=Add adaptive app icon and core components | branch=feature/android-foundation | commit=self | timestamp=2026-06-24T10:47:35+03:30
 DONE | milestone=9 | name=Implement JWT authentication APIs | branch=feature/auth | commit=self | timestamp=2026-06-24T12:24:11+03:30
+DONE | milestone=10 | name=Add authenticated user profile endpoints | branch=feature/auth | commit=self | timestamp=2026-06-24T14:01:53+03:30
