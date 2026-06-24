@@ -1,6 +1,7 @@
 package com.arisamtunes.core.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -32,16 +33,22 @@ import com.arisamtunes.feature.home.HomeRoute
 import com.arisamtunes.feature.search.SearchRoute
 import com.arisamtunes.feature.playlists.PlaylistDetailRoute
 import com.arisamtunes.feature.playlists.PlaylistsRoute
+import com.arisamtunes.feature.player.MiniPlayer
+import com.arisamtunes.feature.player.NowPlayingRoute
+import com.arisamtunes.feature.player.PlayerViewModel
 import com.arisamtunes.feature.songdetail.SongDetailRoute
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 private const val SettingsRoute = "settings"
 private const val PlaylistDetailRoutePattern = "playlist/{playlistId}"
 private const val SongDetailRoutePattern = "song/{songId}"
+private const val NowPlayingRoutePath = "now-playing"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AriSamAppShell() {
     val navController = rememberNavController()
+    val playerViewModel: PlayerViewModel = hiltViewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -70,20 +77,23 @@ fun AriSamAppShell() {
         },
         bottomBar = {
             if (currentRoute != SettingsRoute) {
-                NavigationBar {
-                    MainDestinations.forEach { destination ->
-                        NavigationBarItem(
-                            selected = currentRoute == destination.route,
-                            onClick = {
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(destination.icon, null) },
-                            label = { Text(stringResource(destination.labelRes)) },
-                        )
+                Column {
+                    MiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) })
+                    NavigationBar {
+                        MainDestinations.forEach { destination ->
+                            NavigationBarItem(
+                                selected = currentRoute == destination.route,
+                                onClick = {
+                                    navController.navigate(destination.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = { Icon(destination.icon, null) },
+                                label = { Text(stringResource(destination.labelRes)) },
+                            )
+                        }
                     }
                 }
             }
@@ -115,7 +125,16 @@ fun AriSamAppShell() {
                 PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate("song/${it.id}") })
             }
             composable(SongDetailRoutePattern) {
-                SongDetailRoute(onBack = navController::popBackStack)
+                SongDetailRoute(
+                    onBack = navController::popBackStack,
+                    onPlay = {
+                        playerViewModel.play(it)
+                        navController.navigate(NowPlayingRoutePath)
+                    },
+                )
+            }
+            composable(NowPlayingRoutePath) {
+                NowPlayingRoute(onBack = navController::popBackStack)
             }
             MainDestinations.filterNot { it == AppDestination.Home || it == AppDestination.Search || it == AppDestination.Playlists }.forEach { destination ->
                 composable(destination.route) { DestinationPlaceholder(destination.labelRes) }

@@ -1,0 +1,37 @@
+package com.arisamtunes.feature.player
+
+import com.arisamtunes.data.catalog.SongDto
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import javax.inject.Inject
+import javax.inject.Singleton
+
+data class PlayerState(
+    val currentSong: SongDto? = null,
+    val isPlaying: Boolean = false,
+    val progressSeconds: Int = 0,
+    val queue: List<SongDto> = emptyList(),
+)
+
+@Singleton
+class PlayerStateRepository @Inject constructor() {
+    private val _state = MutableStateFlow(PlayerState())
+    val state = _state.asStateFlow()
+
+    fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
+        _state.value = PlayerState(currentSong = song, isPlaying = true, queue = queue.ifEmpty { listOf(song) })
+    }
+
+    fun togglePlayPause() {
+        _state.update { state -> state.copy(isPlaying = !state.isPlaying) }
+    }
+
+    fun seekTo(seconds: Int) {
+        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+    }
+
+    fun close() {
+        _state.value = PlayerState()
+    }
+}

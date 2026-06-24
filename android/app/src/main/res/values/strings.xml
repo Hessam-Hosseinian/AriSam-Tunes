@@ -93,4 +93,11 @@
     <string name="metadata_explicit">Explicit</string>
     <string name="metadata_local">Local catalog</string>
     <string name="metadata_demo">Demo seed</string>
+    <string name="pause">Pause</string>
+    <string name="close_player">Close player</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="no_song_playing">No song is playing yet</string>
+    <string name="previous_track">Previous track</string>
+    <string name="next_track">Next track</string>
+    <string name="media3_pending_note">Preview controls are ready. Media3 playback is added in the next player milestones.</string>
 </resources>

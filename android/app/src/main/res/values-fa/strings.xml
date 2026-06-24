@@ -65,4 +65,11 @@
     <string name="metadata_explicit">دارای محتوای صریح</string>
     <string name="metadata_local">کاتالوگ محلی</string>
     <string name="metadata_demo">نمونه آزمایشی</string>
+    <string name="pause">توقف</string>
+    <string name="close_player">بستن پخش‌کننده</string>
+    <string name="now_playing">در حال پخش</string>
+    <string name="no_song_playing">هنوز آهنگی در حال پخش نیست</string>
+    <string name="previous_track">آهنگ قبلی</string>
+    <string name="next_track">آهنگ بعدی</string>
+    <string name="media3_pending_note">کنترل‌های نمایشی آماده‌اند. پخش واقعی Media3 در گام‌های بعدی پخش‌کننده اضافه می‌شود.</string>
 </resources>
