@@ -9,4 +9,17 @@
     <string name="nav_downloads">Downloads</string>
     <string name="nav_playlists">Playlists</string>
     <string name="nav_profile">Profile</string>
+    <string name="login_title">Welcome back</string>
+    <string name="register_title">Create your account</string>
+    <string name="display_name">Display name</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Log in</string>
+    <string name="create_account">Create account</string>
+    <string name="need_account">New here? Create an account</string>
+    <string name="have_account">Already have an account? Log in</string>
+    <string name="toggle_password_visibility">Show or hide password</string>
+    <string name="invalid_email">Enter a valid email address.</string>
+    <string name="invalid_password">Password must contain at least 8 characters.</string>
+    <string name="invalid_display_name">Display name must contain at least 2 characters.</string>
 </resources>

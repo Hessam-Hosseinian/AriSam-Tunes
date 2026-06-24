@@ -8,3 +8,4 @@ DONE | milestone=7 | name=Configure Compose navigation and app shell | branch=fe
 DONE | milestone=8 | name=Add adaptive app icon and core components | branch=feature/android-foundation | commit=self | timestamp=2026-06-24T10:47:35+03:30
 DONE | milestone=9 | name=Implement JWT authentication APIs | branch=feature/auth | commit=self | timestamp=2026-06-24T12:24:11+03:30
 DONE | milestone=10 | name=Add authenticated user profile endpoints | branch=feature/auth | commit=self | timestamp=2026-06-24T14:01:53+03:30
+DONE | milestone=11 | name=Add login and register screens | branch=feature/auth | commit=self | timestamp=2026-06-24T15:46:29+03:30
