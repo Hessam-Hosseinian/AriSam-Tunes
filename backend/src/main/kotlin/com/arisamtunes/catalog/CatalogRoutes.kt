@@ -10,7 +10,10 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import java.util.UUID
 
-fun Route.catalogRoutes(repository: CatalogRepository = CatalogRepository()) {
+fun Route.catalogRoutes(
+    repository: CatalogRepository = CatalogRepository(),
+    spectrumRepository: SpectrumRepository = SpectrumRepository(),
+) {
     route("/songs") {
         get {
             val (page, size) = call.pageRequest()
@@ -33,6 +36,11 @@ fun Route.catalogRoutes(repository: CatalogRepository = CatalogRepository()) {
         get("/{id}") {
             val id = call.uuidParameter("id")
             call.respond(repository.song(id) ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.SONG_NOT_FOUND, "Song does not exist"))
+        }
+        get("/{id}/spectrum") {
+            val id = call.uuidParameter("id")
+            if (repository.song(id) == null) throw ApiException(HttpStatusCode.NotFound, ErrorCode.SONG_NOT_FOUND, "Song does not exist")
+            call.respond(spectrumRepository.spectrum(id) ?: SongSpectrumResponse(id.toString(), bands = 32, frameDurationMs = 60, frames = emptyList()))
         }
     }
     route("/artists") {

@@ -28,7 +28,6 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,6 +50,7 @@ import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
+import com.arisamtunes.core.design.components.ShimmerBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.catalog.SongDto
@@ -78,7 +78,7 @@ fun HomeScreen(
 ) {
     val spacing = AriSamThemeTokens.spacing
     if (state.isLoading && state.trending.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        HomeLoadingSkeleton()
         return
     }
     LazyColumn(
@@ -93,6 +93,31 @@ fun HomeScreen(
         if (state.newReleases.isNotEmpty()) item { SongSection(R.string.home_new_releases, state.newReleases, onSongClick) }
         if (state.globalPlaylists.isNotEmpty()) item { PlaylistSection(R.string.home_global_playlists, state.globalPlaylists, onPlaylistClick) }
         if (state.localPlaylists.isNotEmpty()) item { PlaylistSection(R.string.home_local_playlists, state.localPlaylists, onPlaylistClick) }
+    }
+}
+
+@Composable
+private fun HomeLoadingSkeleton() {
+    val spacing = AriSamThemeTokens.spacing
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(spacing.xl),
+    ) {
+        item { ShimmerBox(Modifier.fillMaxWidth().height(220.dp)) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.md), modifier = Modifier.fillMaxWidth()) {
+                repeat(3) { ShimmerBox(Modifier.weight(1f).height(84.dp)) }
+            }
+        }
+        items(3) {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+                ShimmerBox(Modifier.width(160.dp).height(24.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+                    items(4) { ShimmerBox(Modifier.width(172.dp).height(220.dp)) }
+                }
+            }
+        }
     }
 }
 

@@ -16,6 +16,7 @@ import com.arisamtunes.core.design.shape.AriSamShapes
 import com.arisamtunes.core.design.spacing.AriSamSpacing
 import com.arisamtunes.core.design.spacing.LocalAriSamSpacing
 import com.arisamtunes.core.design.typography.AriSamTypography
+import com.arisamtunes.core.design.typography.scaled
 
 private val DarkColors = darkColorScheme(
     primary = VioletLight,
@@ -50,6 +51,7 @@ private val LightColors = lightColorScheme(
 @Composable
 fun AriSamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    fontScale: Float = 1f,
     content: @Composable () -> Unit,
 ) {
     val view = LocalView.current
@@ -61,7 +63,7 @@ fun AriSamTheme(
     CompositionLocalProvider(LocalAriSamSpacing provides AriSamSpacing()) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
-            typography = AriSamTypography,
+            typography = AriSamTypography.scaled(fontScale),
             shapes = AriSamShapes,
             content = content,
         )

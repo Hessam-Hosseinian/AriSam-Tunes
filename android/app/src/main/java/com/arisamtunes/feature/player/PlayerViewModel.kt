@@ -16,6 +16,8 @@ class PlayerViewModel @Inject constructor(
 
     fun togglePlayPause() = playbackController.togglePlayPause()
 
+    fun retryPlayback() = playbackController.retry()
+
     fun cyclePlaybackSpeed() = playbackController.cyclePlaybackSpeed()
 
     fun setSleepTimer(minutes: Int) = playbackController.setSleepTimer(minutes)

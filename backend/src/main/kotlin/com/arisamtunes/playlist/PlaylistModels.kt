@@ -46,3 +46,8 @@ data class UpdatePlaylistRequest(
     val coverImageUrl: String? = null,
     val isPublic: Boolean = false,
 )
+
+@Serializable
+data class PlaylistSongRequest(
+    val songId: String,
+)

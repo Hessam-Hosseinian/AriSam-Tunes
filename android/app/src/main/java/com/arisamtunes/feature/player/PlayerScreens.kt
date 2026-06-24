@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -35,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -125,12 +127,29 @@ fun NowPlayingRoute(
                     Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                state.playbackError?.let { error ->
+                    GlassCard(Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.md),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm),
+                        ) {
+                            Text(error, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            androidx.compose.material3.TextButton(onClick = viewModel::retryPlayback) {
+                                Text(stringResource(R.string.retry))
+                            }
+                        }
+                    }
+                }
+                AudioVisualizer(
+                    isPlaying = state.isPlaying,
+                    bands = state.visualizerBands,
+                )
                 Slider(
                     value = state.progressSeconds.toFloat(),
                     onValueChange = { viewModel.seekTo(it.toInt()) },
                     valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
                 )
-                AudioVisualizer(isPlaying = state.isPlaying, seed = song.id.hashCode())
                 Row(horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
                     androidx.compose.material3.AssistChip(
                         onClick = viewModel::cyclePlaybackSpeed,
@@ -155,46 +174,57 @@ fun NowPlayingRoute(
                     }
                     IconButton(onClick = { }) { Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(34.dp)) }
                 }
-                Text(stringResource(R.string.media3_pending_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-private fun AudioVisualizer(isPlaying: Boolean, seed: Int) {
-    val transition = rememberInfiniteTransition(label = "visualizer")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "visualizerPhase",
-    )
+private fun AudioVisualizer(
+    isPlaying: Boolean,
+    bands: List<Float>,
+) {
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
-    Canvas(
-        modifier = Modifier.fillMaxWidth().height(88.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
+    val animatedBands = bands.mapIndexed { index, level ->
+        val value by animateFloatAsState(
+            targetValue = if (isPlaying) level else level * 0.55f,
+            animationSpec = tween(durationMillis = 42 + (index % 3) * 8, easing = LinearEasing),
+            label = "visualizerBand$index",
+        )
+        value
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+        shape = MaterialTheme.shapes.extraLarge,
     ) {
-        val bars = 32
-        val gap = size.width / (bars * 1.8f)
-        val barWidth = gap.coerceAtLeast(5f)
-        val usableHeight = size.height * .82f
-        repeat(bars) { index ->
-            val seeded = ((seed shr (index % 12)) and 7) / 7f
-            val wave = kotlin.math.sin((phase * Math.PI * 2.0) + index * .55).toFloat()
-            val normalized = if (isPlaying) (.35f + (.45f * kotlin.math.abs(wave)) + seeded * .2f) else .22f + seeded * .18f
-            val barHeight = (usableHeight * normalized).coerceIn(size.height * .14f, usableHeight)
-            val x = index * (barWidth + gap)
-            drawLine(
-                color = if (index % 2 == 0) primary else secondary,
-                start = androidx.compose.ui.geometry.Offset(x, (size.height - barHeight) / 2f),
-                end = androidx.compose.ui.geometry.Offset(x, (size.height + barHeight) / 2f),
-                strokeWidth = barWidth,
-                cap = StrokeCap.Round,
+        Column(Modifier.padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.visualizer),
+                modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.md),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
             )
+            Canvas(
+                modifier = Modifier.fillMaxWidth().height(86.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
+            ) {
+                val bars = animatedBands.size.coerceAtLeast(1)
+                val gap = size.width / (bars * 2.1f)
+                val barWidth = gap.coerceAtLeast(5f)
+                val usableHeight = size.height * .9f
+                animatedBands.forEachIndexed { index, normalized ->
+                    val barHeight = (usableHeight * normalized).coerceIn(size.height * .16f, usableHeight)
+                    val x = index * (barWidth + gap)
+                    drawLine(
+                        color = if (index % 2 == 0) primary else secondary,
+                        start = androidx.compose.ui.geometry.Offset(x, (size.height - barHeight) / 2f),
+                        end = androidx.compose.ui.geometry.Offset(x, (size.height + barHeight) / 2f),
+                        strokeWidth = barWidth,
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
         }
     }
 }
@@ -212,7 +242,7 @@ private fun RotatingCover(coverUrl: String, title: String, isPlaying: Boolean) {
         label = "coverRotationDegrees",
     )
     Box(
-        modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.extraLarge).background(
+        modifier = Modifier.size(260.dp).clip(MaterialTheme.shapes.extraLarge).background(
             Brush.radialGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface)),
         ),
         contentAlignment = Alignment.Center,

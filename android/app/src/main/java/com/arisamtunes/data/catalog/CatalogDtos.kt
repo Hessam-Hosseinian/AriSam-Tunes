@@ -53,14 +53,30 @@ data class SongDto(
 @Serializable
 data class PlaylistDto(
     val id: String,
+    @SerialName("owner_id") val ownerId: String? = null,
     val name: String,
     val description: String? = null,
     @SerialName("cover_image_url") val coverImageUrl: String? = null,
+    val scope: String = "USER",
+    @SerialName("is_public") val isPublic: Boolean = false,
     @SerialName("song_count") val songCount: Long = 0,
 )
 
 @Serializable
 data class PlaylistListDto(val items: List<PlaylistDto>)
+
+@Serializable
+data class PlaylistMutationDto(
+    val name: String,
+    val description: String? = null,
+    @SerialName("cover_image_url") val coverImageUrl: String? = null,
+    @SerialName("is_public") val isPublic: Boolean = false,
+)
+
+@Serializable
+data class PlaylistSongMutationDto(
+    @SerialName("song_id") val songId: String,
+)
 
 @Serializable
 data class PaginationDto(
@@ -78,4 +94,12 @@ data class PlaylistSongsDto(
     val playlist: PlaylistDto,
     val items: List<SongDto>,
     val pagination: PaginationDto,
+)
+
+@Serializable
+data class SongSpectrumDto(
+    @SerialName("song_id") val songId: String,
+    val bands: Int,
+    @SerialName("frame_duration_ms") val frameDurationMs: Int,
+    val frames: List<List<Float>>,
 )

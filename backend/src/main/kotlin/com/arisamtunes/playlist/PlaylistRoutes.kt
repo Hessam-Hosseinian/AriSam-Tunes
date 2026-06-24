@@ -49,6 +49,13 @@ fun Route.playlistRoutes(repository: PlaylistRepository = PlaylistRepository()) 
                 if (!repository.delete(call.playlistId(), call.userId())) throw notFound()
                 call.respond(HttpStatusCode.NoContent)
             }
+            post("/{id}/songs") {
+                val request = call.receive<PlaylistSongRequest>().validated()
+                call.respond(repository.addSong(call.playlistId(), call.userId(), UUID.fromString(request.songId)) ?: throw notFound())
+            }
+            delete("/{id}/songs/{songId}") {
+                call.respond(repository.removeSong(call.playlistId(), call.userId(), call.songId()) ?: throw notFound())
+            }
         }
     }
 }
@@ -59,6 +66,12 @@ private fun CreatePlaylistRequest.validated(): CreatePlaylistRequest {
 }
 private fun UpdatePlaylistRequest.validated(): UpdatePlaylistRequest {
     validateFields(name, description, coverImageUrl)
+    return this
+}
+private fun PlaylistSongRequest.validated(): PlaylistSongRequest {
+    runCatching { UUID.fromString(songId) }.getOrElse {
+        throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "songId must be a valid UUID")
+    }
     return this
 }
 private fun validateFields(name: String, description: String?, coverUrl: String?) {
@@ -76,6 +89,10 @@ private fun io.ktor.server.application.ApplicationCall.optionalUserId() =
 private fun io.ktor.server.application.ApplicationCall.playlistId() =
     runCatching { UUID.fromString(parameters["id"]) }.getOrElse {
         throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "id must be a valid UUID")
+    }
+private fun io.ktor.server.application.ApplicationCall.songId() =
+    runCatching { UUID.fromString(parameters["songId"]) }.getOrElse {
+        throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "songId must be a valid UUID")
     }
 private fun io.ktor.server.application.ApplicationCall.pageRequest(): Pair<Int, Int> {
     val page = request.queryParameters["page"]?.toIntOrNull() ?: 0
