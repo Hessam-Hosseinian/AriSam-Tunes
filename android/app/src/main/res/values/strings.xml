@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">AriSam Tunes</string>
+    <string name="app_logo_description">AriSam Tunes logo</string>
+    <string name="notifications">Notifications</string>
+    <string name="settings">Settings</string>
+    <string name="profile_picture">Profile picture</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="nav_playlists">Playlists</string>
+    <string name="nav_profile">Profile</string>
 </resources>
