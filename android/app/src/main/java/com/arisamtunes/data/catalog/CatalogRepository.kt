@@ -7,10 +7,18 @@ import io.ktor.client.request.parameter
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import androidx.paging.map
+import com.arisamtunes.data.local.AriSamDatabase
+import com.arisamtunes.data.local.dao.CachedSongDao
+import com.arisamtunes.data.local.dao.RemoteKeyDao
+import com.arisamtunes.data.local.toSongDto
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +31,12 @@ data class HomeCatalog(
 )
 
 @Singleton
-class CatalogRepository @Inject constructor(private val client: HttpClient) {
+class CatalogRepository @Inject constructor(
+    private val client: HttpClient,
+    private val database: AriSamDatabase,
+    private val cachedSongDao: CachedSongDao,
+    private val remoteKeyDao: RemoteKeyDao,
+) {
     suspend fun home(): HomeCatalog = coroutineScope {
         val trending = async { client.get("songs/trending").body<List<SongDto>>() }
         val popular = async { client.get("songs/popular").body<List<SongDto>>() }
@@ -41,16 +54,40 @@ class CatalogRepository @Inject constructor(private val client: HttpClient) {
             parameter("size", size)
         }.body()
 
+    suspend fun songs(page: Int, size: Int): SongPageDto =
+        client.get("songs") {
+            parameter("page", page)
+            parameter("size", size)
+        }.body()
+
     suspend fun song(id: String): SongDto = client.get("songs/$id").body()
 
     @OptIn(ExperimentalPagingApi::class)
-    fun searchPager(query: String, type: String) = SearchMemoryStore().let { store ->
+    fun songsPager(): Flow<PagingData<SongDto>> = Pager(
+        config = PagingConfig(pageSize = 20, initialLoadSize = 20, prefetchDistance = 5),
+        remoteMediator = CachedCatalogRemoteMediator(
+            scope = ScopeSongs,
+            cacheKey = CacheKeyAllSongs,
+            database = database,
+            remoteKeyDao = remoteKeyDao,
+            loadPage = ::songs,
+        ),
+        pagingSourceFactory = cachedSongDao::pagingSource,
+    ).flow.map { pagingData -> pagingData.map { it.toSongDto() } }
+
+    @OptIn(ExperimentalPagingApi::class)
+    fun searchPager(query: String, type: String): Flow<PagingData<SongDto>> =
         Pager(
             config = PagingConfig(pageSize = 20, initialLoadSize = 20, prefetchDistance = 5),
-            remoteMediator = SearchRemoteMediator(query, type, this, store),
-            pagingSourceFactory = store::pagingSource,
-        ).flow
-    }
+            remoteMediator = CachedCatalogRemoteMediator(
+                scope = ScopeSearch,
+                cacheKey = "$type:${query.trim().lowercase()}",
+                database = database,
+                remoteKeyDao = remoteKeyDao,
+                loadPage = { page, size -> search(query, type, page, size) },
+            ),
+            pagingSourceFactory = { cachedSongDao.searchPagingSource(query, type) },
+        ).flow.map { pagingData -> pagingData.map { it.toSongDto() } }
 
     suspend fun playlists(): List<PlaylistDto> = client.get("playlists").body<PlaylistListDto>().items
 
@@ -83,5 +120,11 @@ class CatalogRepository @Inject constructor(private val client: HttpClient) {
         override fun getRefreshKey(state: PagingState<Int, SongDto>): Int? = state.anchorPosition?.let { position ->
             state.closestPageToPosition(position)?.let { page -> page.prevKey?.plus(1) ?: page.nextKey?.minus(1) }
         }
+    }
+
+    private companion object {
+        const val ScopeSongs = "songs"
+        const val ScopeSearch = "song_search"
+        const val CacheKeyAllSongs = "all"
     }
 }

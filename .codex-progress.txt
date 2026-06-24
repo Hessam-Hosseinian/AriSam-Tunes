@@ -22,3 +22,7 @@ DONE | milestone=18 | name=Build home screen sections | branch=feature/music-cat
 DONE | milestone=19 | name=Add debounced paginated search UI | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T17:02:44+03:30
 DONE | milestone=20 | name=Add playlists screens | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T18:38:19+03:30
 DONE | milestone=20.1 | name=Add song detail metadata screen | branch=feature/music-catalog | commit=self | timestamp=2026-06-23T20:41:00+03:30
+DONE | milestone=21 | name=Add Room local database | branch=feature/local-storage | commit=self | timestamp=2026-06-24T09:18:00+03:30
+DONE | milestone=22 | name=Add DataStore preferences manager | branch=feature/local-storage | commit=self | timestamp=2026-06-24T11:07:00+03:30
+DONE | milestone=23 | name=Implement repositories and use cases | branch=feature/local-storage | commit=self | timestamp=2026-06-24T13:26:00+03:30
+DONE | milestone=24 | name=Add Paging 3 data sources | branch=feature/local-storage | commit=self | timestamp=2026-06-24T15:49:00+03:30
