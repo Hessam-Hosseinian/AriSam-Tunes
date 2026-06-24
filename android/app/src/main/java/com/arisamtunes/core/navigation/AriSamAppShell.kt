@@ -1,8 +1,12 @@
 package com.arisamtunes.core.navigation
 
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -11,14 +15,19 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -63,16 +72,31 @@ fun AriSamAppShell() {
     val showMainChrome = currentRoute in MainDestinations.map(AppDestination::route)
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             if (showMainChrome) {
                 TopAppBar(
                     title = { Text(stringResource(R.string.app_name)) },
                     navigationIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.GraphicEq,
-                            contentDescription = stringResource(R.string.app_logo_description),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = com.arisamtunes.core.design.theme.AriSamThemeTokens.spacing.sm)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = .16f))
+                                .padding(com.arisamtunes.core.design.theme.AriSamThemeTokens.spacing.sm),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.GraphicEq,
+                                contentDescription = stringResource(R.string.app_logo_description),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .88f),
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
                     actions = {
                         IconButton(onClick = { }) {
                             Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.notifications))
@@ -91,7 +115,10 @@ fun AriSamAppShell() {
             if (showMainChrome) {
                 Column {
                     MiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) })
-                    NavigationBar {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
+                        tonalElevation = NavigationBarDefaults.Elevation,
+                    ) {
                         MainDestinations.forEach { destination ->
                             NavigationBarItem(
                                 selected = currentMainDestination == destination,
@@ -105,72 +132,86 @@ fun AriSamAppShell() {
             }
         },
     ) { contentPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = AppDestination.Home.route,
-            modifier = Modifier.padding(contentPadding),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = .07f),
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.secondary.copy(alpha = .05f),
+                        ),
+                    ),
+                )
+                .padding(contentPadding),
         ) {
-            composable(AppDestination.Home.route) {
-                HomeRoute(
-                    onSongClick = { navController.navigate(songRoute(it.id)) },
-                    onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
-                    onQuickAction = { action ->
-                        when (action) {
-                            HomeQuickAction.Playlists -> navController.navigateTopLevel(AppDestination.Playlists.route)
-                            HomeQuickAction.Artists -> navController.navigateTopLevel(AppDestination.Search.route)
-                            HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigateTopLevel(AppDestination.Downloads.route)
-                        }
-                    },
-                )
+            NavHost(
+                navController = navController,
+                startDestination = AppDestination.Home.route,
+            ) {
+                composable(AppDestination.Home.route) {
+                    HomeRoute(
+                        onSongClick = { navController.navigate(songRoute(it.id)) },
+                        onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
+                        onQuickAction = { action ->
+                            when (action) {
+                                HomeQuickAction.Playlists -> navController.navigateTopLevel(AppDestination.Playlists.route)
+                                HomeQuickAction.Artists -> navController.navigateTopLevel(AppDestination.Search.route)
+                                HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigateTopLevel(AppDestination.Downloads.route)
+                            }
+                        },
+                    )
+                }
+                composable(AppDestination.Search.route) { SearchRoute(onSongClick = { navController.navigate(songRoute(it.id)) }) }
+                composable(AppDestination.Playlists.route) {
+                    PlaylistsRoute(onPlaylistClick = { navController.navigate(playlistRoute(it.id)) })
+                }
+                composable(AppDestination.Downloads.route) { DownloadsRoute() }
+                composable(AppDestination.Chat.route) {
+                    ChatListRoute(onConversationClick = { navController.navigate(chatRoute(it)) })
+                }
+                composable(ChatDetailRoutePattern) {
+                    ChatDetailRoute(onBack = navController::popBackStack)
+                }
+                composable(PlaylistDetailRoutePattern) {
+                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate(songRoute(it.id)) })
+                }
+                composable(SongDetailRoutePattern) {
+                    SongDetailRoute(
+                        onBack = navController::popBackStack,
+                        onPlay = {
+                            playerViewModel.play(it)
+                            navController.navigate(NowPlayingRoutePath)
+                        },
+                    )
+                }
+                composable(NowPlayingRoutePath) {
+                    NowPlayingRoute(onBack = navController::popBackStack)
+                }
+                composable(AppDestination.Profile.route) {
+                    SocialProfileRoute(
+                        onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
+                        onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
+                        onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
+                    )
+                }
+                composable(UserProfileRoutePattern) {
+                    SocialProfileRoute(
+                        onBack = navController::popBackStack,
+                        onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
+                        onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
+                        onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
+                    )
+                }
+                composable(UserListRoutePattern) {
+                    SocialUsersRoute(
+                        onBack = navController::popBackStack,
+                        onUserClick = { navController.navigate(userProfileRoute(it.id)) },
+                    )
+                }
+                composable(SettingsRoutePath) { SettingsRoute(onBack = navController::popBackStack) }
             }
-            composable(AppDestination.Search.route) { SearchRoute(onSongClick = { navController.navigate(songRoute(it.id)) }) }
-            composable(AppDestination.Playlists.route) {
-                PlaylistsRoute(onPlaylistClick = { navController.navigate(playlistRoute(it.id)) })
-            }
-            composable(AppDestination.Downloads.route) { DownloadsRoute() }
-            composable(AppDestination.Chat.route) {
-                ChatListRoute(onConversationClick = { navController.navigate(chatRoute(it)) })
-            }
-            composable(ChatDetailRoutePattern) {
-                ChatDetailRoute(onBack = navController::popBackStack)
-            }
-            composable(PlaylistDetailRoutePattern) {
-                PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate(songRoute(it.id)) })
-            }
-            composable(SongDetailRoutePattern) {
-                SongDetailRoute(
-                    onBack = navController::popBackStack,
-                    onPlay = {
-                        playerViewModel.play(it)
-                        navController.navigate(NowPlayingRoutePath)
-                    },
-                )
-            }
-            composable(NowPlayingRoutePath) {
-                NowPlayingRoute(onBack = navController::popBackStack)
-            }
-            composable(AppDestination.Profile.route) {
-                SocialProfileRoute(
-                    onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
-                    onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
-                    onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
-                )
-            }
-            composable(UserProfileRoutePattern) {
-                SocialProfileRoute(
-                    onBack = navController::popBackStack,
-                    onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
-                    onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
-                    onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
-                )
-            }
-            composable(UserListRoutePattern) {
-                SocialUsersRoute(
-                    onBack = navController::popBackStack,
-                    onUserClick = { navController.navigate(userProfileRoute(it.id)) },
-                )
-            }
-            composable(SettingsRoutePath) { SettingsRoute(onBack = navController::popBackStack) }
         }
     }
 }

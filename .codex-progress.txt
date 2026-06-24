@@ -45,3 +45,4 @@ DONE | milestone=40 | name=Add offline chat persistence and sync | branch=featur
 DONE | milestone=41 | name=Add bilingual resources and RTL support | branch=feature/localization-settings | commit=self | timestamp=2026-06-27T09:35:00+03:30
 DONE | milestone=42 | name=Add settings preferences screen | branch=feature/localization-settings | commit=self | timestamp=2026-06-27T11:20:00+03:30
 DONE | milestone=43 | name=Fix bilingual layout issues | branch=feature/localization-settings | commit=self | timestamp=2026-06-27T13:05:00+03:30
+DONE | milestone=44 | name=Polish AriSam Tunes visual design | branch=feature/polish-release | commit=self | timestamp=2026-06-27T14:40:00+03:30
