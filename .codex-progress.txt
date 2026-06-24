@@ -5,3 +5,4 @@ DONE | milestone=4 | name=Add database schema and migrations | branch=feature/ba
 DONE | milestone=5 | name=Initialize Android project structure | branch=feature/android-foundation | commit=self | timestamp=2026-06-23T16:17:44+03:30
 DONE | milestone=6 | name=Add AriSam Tunes design system | branch=feature/android-foundation | commit=self | timestamp=2026-06-23T18:03:26+03:30
 DONE | milestone=7 | name=Configure Compose navigation and app shell | branch=feature/android-foundation | commit=self | timestamp=2026-06-24T09:19:08+03:30
+DONE | milestone=8 | name=Add adaptive app icon and core components | branch=feature/android-foundation | commit=self | timestamp=2026-06-24T10:47:35+03:30
