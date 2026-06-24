@@ -24,7 +24,7 @@ class LocalLibraryRepository @Inject constructor(
 ) {
     fun cachedSongs(): PagingSource<Int, CachedSongEntity> = cachedSongDao.pagingSource()
 
-    fun searchCachedSongs(query: String): PagingSource<Int, CachedSongEntity> = cachedSongDao.searchPagingSource(query)
+    fun searchCachedSongs(query: String, type: String = "all"): PagingSource<Int, CachedSongEntity> = cachedSongDao.searchPagingSource(query, type)
 
     suspend fun cacheSongs(songs: List<SongDto>) = cachedSongDao.upsertAll(songs.map { it.toCachedSongEntity() })
 

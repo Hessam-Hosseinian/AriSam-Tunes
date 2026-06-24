@@ -15,14 +15,23 @@ interface CachedSongDao {
     @Query(
         """
         SELECT * FROM cached_songs
-        WHERE title LIKE '%' || :query || '%'
-           OR artistName LIKE '%' || :query || '%'
-           OR album LIKE '%' || :query || '%'
-           OR genre LIKE '%' || :query || '%'
+        WHERE (:type = 'all' AND (
+                title LIKE '%' || :query || '%'
+             OR artistName LIKE '%' || :query || '%'
+             OR albumArtist LIKE '%' || :query || '%'
+             OR album LIKE '%' || :query || '%'
+             OR genre LIKE '%' || :query || '%'
+             OR composer LIKE '%' || :query || '%'
+             OR producer LIKE '%' || :query || '%'
+        ))
+        OR (:type = 'title' AND title LIKE '%' || :query || '%')
+        OR (:type = 'artist' AND (artistName LIKE '%' || :query || '%' OR albumArtist LIKE '%' || :query || '%'))
+        OR (:type = 'album' AND album LIKE '%' || :query || '%')
+        OR (:type = 'genre' AND genre LIKE '%' || :query || '%')
         ORDER BY popularity DESC, title
         """,
     )
-    fun searchPagingSource(query: String): PagingSource<Int, CachedSongEntity>
+    fun searchPagingSource(query: String, type: String): PagingSource<Int, CachedSongEntity>
 
     @Query("SELECT * FROM cached_songs WHERE id = :id LIMIT 1")
     fun observe(id: String): Flow<CachedSongEntity?>

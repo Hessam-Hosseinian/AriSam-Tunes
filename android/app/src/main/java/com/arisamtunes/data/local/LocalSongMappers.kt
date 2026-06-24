@@ -6,6 +6,7 @@ import com.arisamtunes.data.local.entity.DownloadedSongEntity
 import com.arisamtunes.data.local.entity.LikedSongEntity
 import com.arisamtunes.data.local.entity.RecentlyPlayedEntity
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 
 private val metadataJson = Json { ignoreUnknownKeys = true }
 
@@ -77,4 +78,38 @@ fun SongDto.toDownloadedSongEntity(localFilePath: String, state: String, downloa
     fileSizeBytes = audioFileSize,
     downloadState = state,
     downloadedAt = downloadedAt,
+)
+
+fun CachedSongEntity.toSongDto() = SongDto(
+    id = id,
+    title = title,
+    artistId = artistId,
+    artistName = artistName,
+    album = album,
+    genre = genre,
+    durationSeconds = durationSeconds,
+    audioUrl = audioUrl,
+    coverImageUrl = coverImageUrl,
+    albumArtist = albumArtist,
+    trackNumber = trackNumber,
+    discNumber = discNumber,
+    bitrateKbps = bitrateKbps,
+    sampleRateHz = sampleRateHz,
+    channels = channels,
+    codec = codec,
+    fileFormat = fileFormat,
+    releaseYear = releaseYear,
+    releaseDate = releaseDate,
+    language = language,
+    composer = composer,
+    producer = producer,
+    mood = mood,
+    tags = tags,
+    popularity = popularity,
+    playCount = playCount,
+    isExplicit = isExplicit,
+    isLocal = isLocal,
+    isDemo = isDemo,
+    audioFileSize = audioFileSize,
+    extraMetadata = runCatching { metadataJson.decodeFromString<JsonObject>(extraMetadataJson) }.getOrDefault(JsonObject(emptyMap())),
 )
