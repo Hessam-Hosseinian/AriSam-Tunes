@@ -1,6 +1,12 @@
 package com.arisamtunes.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,10 +36,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -100,18 +109,13 @@ fun NowPlayingRoute(
         if (song == null) {
             EmptyPlayer()
         } else {
+            val gradient = remember(song.id) { playerGradient(song.title, song.artistName) }
             Column(
-                modifier = Modifier.fillMaxSize().padding(AriSamThemeTokens.spacing.lg),
+                modifier = Modifier.fillMaxSize().background(gradient).padding(AriSamThemeTokens.spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.lg),
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.extraLarge).background(
-                        Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)),
-                    ),
-                ) {
-                    AsyncImage(song.coverImageUrl, song.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                }
+                RotatingCover(song.coverImageUrl, song.title, state.isPlaying)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -135,6 +139,34 @@ fun NowPlayingRoute(
 }
 
 @Composable
+private fun RotatingCover(coverUrl: String, title: String, isPlaying: Boolean) {
+    val transition = rememberInfiniteTransition(label = "coverRotation")
+    val rotation by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 22_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "coverRotationDegrees",
+    )
+    Box(
+        modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.extraLarge).background(
+            Brush.radialGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface)),
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        AsyncImage(
+            model = coverUrl,
+            contentDescription = title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().padding(18.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                .rotate(if (isPlaying) rotation else 0f),
+        )
+    }
+}
+
+@Composable
 private fun EmptyPlayer() {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -145,3 +177,15 @@ private fun EmptyPlayer() {
 }
 
 private fun playerProgress(position: Int, duration: Int): Float = if (duration <= 0) 0f else (position.toFloat() / duration).coerceIn(0f, 1f)
+
+private fun playerGradient(title: String, artist: String): Brush {
+    val palettes = listOf(
+        listOf(Color(0xFF321450), Color(0xFF7B2CBF), Color(0xFF10051F)),
+        listOf(Color(0xFF09203F), Color(0xFF537895), Color(0xFF050B18)),
+        listOf(Color(0xFF3D0C11), Color(0xFFD00000), Color(0xFF160305)),
+        listOf(Color(0xFF082032), Color(0xFF2C394B), Color(0xFF000814)),
+        listOf(Color(0xFF1B4332), Color(0xFF40916C), Color(0xFF081C15)),
+    )
+    val colors = palettes[Math.floorMod((title + artist).hashCode(), palettes.size)]
+    return Brush.verticalGradient(colors)
+}
