@@ -48,3 +48,4 @@ DONE | milestone=43 | name=Fix bilingual layout issues | branch=feature/localiza
 DONE | milestone=44 | name=Polish AriSam Tunes visual design | branch=feature/polish-release | commit=self | timestamp=2026-06-27T14:40:00+03:30
 DONE | milestone=45 | name=Add shimmer and responsive refinements | branch=feature/polish-release | commit=self | timestamp=2026-06-27T16:10:00+03:30
 DONE | milestone=46 | name=Fix full-stack integration issues | branch=feature/polish-release | commit=self | timestamp=2026-06-27T17:45:00+03:30
+DONE | milestone=47 | name=Add README and setup guide | branch=feature/polish-release | commit=self | timestamp=2026-06-27T19:20:00+03:30
