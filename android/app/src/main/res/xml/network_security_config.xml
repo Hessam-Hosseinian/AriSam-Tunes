@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Development builds use LAN HTTP for testing against the local Ktor backend on a physical phone. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
