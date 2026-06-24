@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import dagger.hilt.android.AndroidEntryPoint
 import com.arisamtunes.core.design.theme.AriSamTheme
-import com.arisamtunes.core.navigation.AriSamAppShell
+import com.arisamtunes.core.navigation.AriSamTunesRoot
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AriSamTunesApp() {
     AriSamTheme {
-        AriSamAppShell()
+        AriSamTunesRoot()
     }
 }
 

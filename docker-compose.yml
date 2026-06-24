@@ -31,6 +31,7 @@ services:
       DB_NAME: ${POSTGRES_DB:-arisam_tunes_db}
       DB_USER: ${POSTGRES_USER:-arisam}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-arisam_dev_password}
+      JWT_SECRET: ${JWT_SECRET:-arisam-local-development-secret-change-before-production}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
