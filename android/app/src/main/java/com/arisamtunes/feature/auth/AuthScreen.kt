@@ -83,6 +83,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
                     modifier = Modifier.fillMaxWidth(),
                 )
                 state.validationError?.let { Text(stringResource(it.messageRes()), color = MaterialTheme.colorScheme.error) }
+                state.authError?.let { Text(stringResource(it.messageRes()), color = MaterialTheme.colorScheme.error) }
                 Button(onClick = { onEvent(AuthEvent.Submit) }, enabled = !state.isLoading, modifier = Modifier.fillMaxWidth()) {
                     if (state.isLoading) CircularProgressIndicator() else Text(stringResource(if (state.mode == AuthMode.Login) R.string.login else R.string.create_account))
                 }
@@ -92,6 +93,14 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
             }
         }
     }
+}
+
+private fun AuthUiError.messageRes() = when (this) {
+    AuthUiError.InvalidCredentials -> R.string.error_invalid_credentials
+    AuthUiError.UserExists -> R.string.error_user_exists
+    AuthUiError.RateLimited -> R.string.error_rate_limited
+    AuthUiError.Network -> R.string.error_network
+    AuthUiError.Unknown -> R.string.error_unknown
 }
 
 private fun AuthValidationError.messageRes() = when (this) {

@@ -23,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import com.arisamtunes.R
 import com.arisamtunes.feature.auth.AuthScreen
 import com.arisamtunes.feature.auth.AuthViewModel
+import com.arisamtunes.feature.auth.AuthEffect
 
 private const val SplashRoute = "splash"
 private const val AuthRoute = "auth"
@@ -50,6 +51,11 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
         composable(AuthRoute) {
             val viewModel: AuthViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    if (effect == AuthEffect.Authenticated) sessionViewModel.authenticated()
+                }
+            }
             AuthScreen(state = state, onEvent = viewModel::onEvent)
         }
         composable(MainRoute) { AriSamAppShell() }

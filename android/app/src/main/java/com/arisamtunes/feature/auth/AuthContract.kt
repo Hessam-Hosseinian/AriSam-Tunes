@@ -8,10 +8,12 @@ data class AuthUiState(
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val validationError: AuthValidationError? = null,
+    val authError: AuthUiError? = null,
 )
 
 enum class AuthMode { Login, Register }
 enum class AuthValidationError { Email, Password, DisplayName }
+enum class AuthUiError { InvalidCredentials, UserExists, RateLimited, Network, Unknown }
 
 sealed interface AuthEvent {
     data class EmailChanged(val value: String) : AuthEvent
@@ -23,10 +25,5 @@ sealed interface AuthEvent {
 }
 
 sealed interface AuthEffect {
-    data class SubmitCredentials(
-        val mode: AuthMode,
-        val email: String,
-        val password: String,
-        val displayName: String,
-    ) : AuthEffect
+    data object Authenticated : AuthEffect
 }

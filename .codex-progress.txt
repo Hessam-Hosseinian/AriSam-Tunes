@@ -10,3 +10,4 @@ DONE | milestone=9 | name=Implement JWT authentication APIs | branch=feature/aut
 DONE | milestone=10 | name=Add authenticated user profile endpoints | branch=feature/auth | commit=self | timestamp=2026-06-24T14:01:53+03:30
 DONE | milestone=11 | name=Add login and register screens | branch=feature/auth | commit=self | timestamp=2026-06-24T15:46:29+03:30
 DONE | milestone=12 | name=Add authenticated navigation flow | branch=feature/auth | commit=self | timestamp=2026-06-24T17:33:07+03:30
+DONE | milestone=13 | name=Connect Android auth data layer to backend | branch=feature/auth | commit=self | timestamp=2026-06-24T20:12:41+03:30
