@@ -7,6 +7,14 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
+import javax.sql.DataSource
+
+object DatabaseProvider {
+    lateinit var dataSource: DataSource
+        private set
+
+    fun initialize(dataSource: DataSource) { this.dataSource = dataSource }
+}
 
 fun Application.configureDatabase() {
     val databaseEnabled = environment.config
@@ -39,5 +47,6 @@ fun Application.configureDatabase() {
         .migrate()
 
     Database.connect(dataSource)
+    DatabaseProvider.initialize(dataSource)
     monitor.subscribe(ApplicationStopped) { dataSource.close() }
 }

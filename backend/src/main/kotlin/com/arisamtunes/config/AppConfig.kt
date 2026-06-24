@@ -5,6 +5,7 @@ import io.ktor.server.config.ApplicationConfig
 data class AppConfig(
     val database: DatabaseConfig,
     val publicBaseUrl: String,
+    val jwt: JwtConfig,
 ) {
     companion object {
         fun from(config: ApplicationConfig): AppConfig = AppConfig(
@@ -16,9 +17,17 @@ data class AppConfig(
                 password = config.property("database.password").getString(),
             ),
             publicBaseUrl = config.property("app.publicBaseUrl").getString().trimEnd('/'),
+            jwt = JwtConfig(
+                secret = config.property("jwt.secret").getString(),
+                issuer = config.property("jwt.issuer").getString(),
+                audience = config.property("jwt.audience").getString(),
+                realm = config.property("jwt.realm").getString(),
+            ),
         )
     }
 }
+
+data class JwtConfig(val secret: String, val issuer: String, val audience: String, val realm: String)
 
 data class DatabaseConfig(
     val host: String,

@@ -16,7 +16,7 @@ import kotlinx.serialization.json.Json
 class ApplicationTest {
     @Test
     fun `health endpoint is available below api v1`() = testApplication {
-        environment { config = MapApplicationConfig("database.enabled" to "false") }
+        environment { config = testConfig() }
         application { module() }
 
         val response = client.get("/api/v1/health")
@@ -28,7 +28,7 @@ class ApplicationTest {
 
     @Test
     fun `unversioned health endpoint is not exposed`() = testApplication {
-        environment { config = MapApplicationConfig("database.enabled" to "false") }
+        environment { config = testConfig() }
         application { module() }
 
         val response = client.get("/health")
@@ -39,3 +39,10 @@ class ApplicationTest {
         )
     }
 }
+
+private fun testConfig() = MapApplicationConfig(
+    "database.enabled" to "false",
+    "database.host" to "localhost", "database.port" to "5432", "database.name" to "test",
+    "database.user" to "test", "database.password" to "test", "app.publicBaseUrl" to "http://localhost",
+    "jwt.secret" to "unit-test-secret-unit-test-secret", "jwt.issuer" to "test", "jwt.audience" to "test", "jwt.realm" to "test",
+)
