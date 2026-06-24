@@ -1,0 +1,10 @@
+-keepattributes Signature,*Annotation*,InnerClasses,EnclosingMethod
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class **$$serializer { *; }
+-keep class io.ktor.** { *; }
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
+-keep class dagger.hilt.** { *; }
+-keep class androidx.media3.** { *; }
+-keep class coil3.** { *; }
+-dontwarn io.ktor.**
