@@ -53,6 +53,12 @@ class AuthService(private val repository: AuthRepository, private val jwt: JwtSe
         return repository.updateProfile(id, name, avatar, bio).response()
     }
 
+    fun updatePremium(id: UUID, request: PremiumStatusRequest): UserResponse {
+        repository.findById(id)
+            ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.USER_NOT_FOUND, "User does not exist")
+        return repository.updatePremium(id, request.isPremium).response()
+    }
+
     private fun tokens(user: AuthUser): TokenResponse {
         val refresh = ByteArray(48).also(SecureRandom()::nextBytes).let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
         repository.storeRefresh(user.id, hash(refresh), Instant.now().plus(30, ChronoUnit.DAYS))

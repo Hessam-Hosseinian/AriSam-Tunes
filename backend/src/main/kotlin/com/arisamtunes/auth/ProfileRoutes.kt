@@ -16,6 +16,7 @@ fun Route.profileRoutes(service: AuthService) {
         route("/users/me") {
             get { call.respond(service.currentUser(call.userId())) }
             put { call.respond(service.updateProfile(call.userId(), call.receive())) }
+            put("/premium") { call.respond(service.updatePremium(call.userId(), call.receive())) }
         }
     }
 }
