@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.arisamtunes.R
 import com.arisamtunes.feature.home.HomeQuickAction
 import com.arisamtunes.feature.home.HomeRoute
+import com.arisamtunes.feature.search.SearchRoute
 
 private const val SettingsRoute = "settings"
 
@@ -101,7 +102,8 @@ fun AriSamAppShell() {
                     },
                 )
             }
-            MainDestinations.filterNot { it == AppDestination.Home }.forEach { destination ->
+            composable(AppDestination.Search.route) { SearchRoute(onSongClick = { }) }
+            MainDestinations.filterNot { it == AppDestination.Home || it == AppDestination.Search }.forEach { destination ->
                 composable(destination.route) { DestinationPlaceholder(destination.labelRes) }
             }
             composable(SettingsRoute) { DestinationPlaceholder(R.string.settings) }
