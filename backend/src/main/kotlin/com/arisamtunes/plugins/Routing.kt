@@ -5,6 +5,7 @@ import com.arisamtunes.auth.authRoutes
 import com.arisamtunes.auth.profileRoutes
 import com.arisamtunes.catalog.catalogRoutes
 import com.arisamtunes.catalog.mediaRoutes
+import com.arisamtunes.playlist.playlistRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
@@ -20,6 +21,7 @@ fun Application.configureRouting() {
             authRoutes(authService)
             profileRoutes(authService)
             catalogRoutes()
+            playlistRoutes()
             get("/health") {
                 call.respond(
                     HealthResponse(

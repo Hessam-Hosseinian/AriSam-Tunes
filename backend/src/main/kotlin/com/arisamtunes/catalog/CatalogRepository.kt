@@ -81,7 +81,7 @@ private fun ResultSet.jsonObject(column: String) = json.parseToJsonElement(getSt
 private fun ResultSet.nullableInt(column: String): Int? = getInt(column).let { if (wasNull()) null else it }
 private fun ResultSet.nullableLong(column: String): Long? = getLong(column).let { if (wasNull()) null else it }
 
-private fun ResultSet.toSong() = SongResponse(
+internal fun ResultSet.toSong() = SongResponse(
     id = getObject("id", UUID::class.java).toString(),
     artistId = getObject("artist_id", UUID::class.java)?.toString(),
     title = getString("title"), artistName = getString("artist_name"), album = getString("album"),

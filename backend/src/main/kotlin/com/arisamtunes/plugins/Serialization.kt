@@ -12,7 +12,10 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 
+@OptIn(ExperimentalSerializationApi::class)
 fun Application.configureSerialization() {
     val applicationLog = environment.log
 
@@ -22,6 +25,7 @@ fun Application.configureSerialization() {
                 ignoreUnknownKeys = true
                 explicitNulls = false
                 encodeDefaults = true
+                namingStrategy = JsonNamingStrategy.SnakeCase
             },
         )
     }
