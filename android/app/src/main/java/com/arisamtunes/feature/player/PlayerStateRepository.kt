@@ -27,7 +27,15 @@ class PlayerStateRepository @Inject constructor() {
         _state.update { state -> state.copy(isPlaying = !state.isPlaying) }
     }
 
+    fun setPlaying(isPlaying: Boolean) {
+        _state.update { state -> state.copy(isPlaying = isPlaying) }
+    }
+
     fun seekTo(seconds: Int) {
+        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+    }
+
+    fun setProgress(seconds: Int) {
         _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
     }
 

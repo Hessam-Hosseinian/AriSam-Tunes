@@ -74,6 +74,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.paging)
+    implementation(libs.androidx.media3.common)
+    implementation(libs.androidx.media3.exoplayer)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 

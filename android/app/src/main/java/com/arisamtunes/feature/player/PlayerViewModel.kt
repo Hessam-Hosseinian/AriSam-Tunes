@@ -6,14 +6,17 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class PlayerViewModel @Inject constructor(private val repository: PlayerStateRepository) : ViewModel() {
+class PlayerViewModel @Inject constructor(
+    private val repository: PlayerStateRepository,
+    private val playbackController: Media3PlaybackController,
+) : ViewModel() {
     val state = repository.state
 
-    fun play(song: SongDto) = repository.play(song)
+    fun play(song: SongDto) = playbackController.play(song)
 
-    fun togglePlayPause() = repository.togglePlayPause()
+    fun togglePlayPause() = playbackController.togglePlayPause()
 
-    fun seekTo(seconds: Int) = repository.seekTo(seconds)
+    fun seekTo(seconds: Int) = playbackController.seekTo(seconds)
 
-    fun close() = repository.close()
+    fun close() = playbackController.close()
 }
