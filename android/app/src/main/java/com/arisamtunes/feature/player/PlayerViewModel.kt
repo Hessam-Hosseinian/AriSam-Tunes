@@ -16,6 +16,12 @@ class PlayerViewModel @Inject constructor(
 
     fun togglePlayPause() = playbackController.togglePlayPause()
 
+    fun cyclePlaybackSpeed() = playbackController.cyclePlaybackSpeed()
+
+    fun setSleepTimer(minutes: Int) = playbackController.setSleepTimer(minutes)
+
+    fun toggleCrossfade() = playbackController.toggleCrossfade()
+
     fun seekTo(seconds: Int) = playbackController.seekTo(seconds)
 
     fun close() = playbackController.close()

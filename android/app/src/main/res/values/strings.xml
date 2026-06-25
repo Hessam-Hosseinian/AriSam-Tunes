@@ -100,4 +100,8 @@
     <string name="previous_track">Previous track</string>
     <string name="next_track">Next track</string>
     <string name="media3_pending_note">Preview controls are ready. Media3 playback is added in the next player milestones.</string>
+    <string name="sleep_timer">Sleep 15m</string>
+    <string name="sleep_timer_on">Sleep on</string>
+    <string name="crossfade_on">Crossfade on</string>
+    <string name="crossfade_off">Crossfade off</string>
 </resources>

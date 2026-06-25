@@ -72,4 +72,8 @@
     <string name="previous_track">آهنگ قبلی</string>
     <string name="next_track">آهنگ بعدی</string>
     <string name="media3_pending_note">کنترل‌های نمایشی آماده‌اند. پخش واقعی Media3 در گام‌های بعدی پخش‌کننده اضافه می‌شود.</string>
+    <string name="sleep_timer">خواب ۱۵ دقیقه</string>
+    <string name="sleep_timer_on">خواب فعال</string>
+    <string name="crossfade_on">کراس‌فید روشن</string>
+    <string name="crossfade_off">کراس‌فید خاموش</string>
 </resources>

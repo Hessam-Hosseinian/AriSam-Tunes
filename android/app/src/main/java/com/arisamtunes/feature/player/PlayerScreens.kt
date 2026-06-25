@@ -26,8 +26,11 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -128,6 +131,23 @@ fun NowPlayingRoute(
                     valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
                 )
                 AudioVisualizer(isPlaying = state.isPlaying, seed = song.id.hashCode())
+                Row(horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
+                    androidx.compose.material3.AssistChip(
+                        onClick = viewModel::cyclePlaybackSpeed,
+                        label = { Text("${state.playbackSpeed}x") },
+                        leadingIcon = { Icon(Icons.Rounded.Speed, null) },
+                    )
+                    androidx.compose.material3.AssistChip(
+                        onClick = { viewModel.setSleepTimer(if (state.sleepTimerEndsAtMillis == null) 15 else 0) },
+                        label = { Text(stringResource(if (state.sleepTimerEndsAtMillis == null) R.string.sleep_timer else R.string.sleep_timer_on)) },
+                        leadingIcon = { Icon(Icons.Rounded.Timer, null) },
+                    )
+                    androidx.compose.material3.AssistChip(
+                        onClick = viewModel::toggleCrossfade,
+                        label = { Text(stringResource(if (state.isCrossfadeEnabled) R.string.crossfade_on else R.string.crossfade_off)) },
+                        leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
+                    )
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.lg)) {
                     IconButton(onClick = { }) { Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(34.dp)) }
                     IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(72.dp)) {
