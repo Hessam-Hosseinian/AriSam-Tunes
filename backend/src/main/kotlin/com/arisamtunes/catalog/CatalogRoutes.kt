@@ -20,6 +20,16 @@ fun Route.catalogRoutes(repository: CatalogRepository = CatalogRepository()) {
         get("/trending") { call.respond(repository.featured("trending")) }
         get("/new") { call.respond(repository.featured("new")) }
         get("/popular") { call.respond(repository.featured("popular")) }
+        get("/search") {
+            val query = call.request.queryParameters["q"]?.trim().orEmpty()
+            val type = call.request.queryParameters["type"]?.lowercase()?.trim().orEmpty().ifBlank { "all" }
+            if (query.isBlank() || query.length > 200 || type !in setOf("all", "title", "artist", "album", "genre")) {
+                throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "q is required and type must be all, title, artist, album, or genre")
+            }
+            val (page, size) = call.pageRequest()
+            val (items, total) = repository.search(query, type, page, size)
+            call.respond(SongPageResponse(items, pagination(page, size, total)))
+        }
         get("/{id}") {
             val id = call.uuidParameter("id")
             call.respond(repository.song(id) ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.SONG_NOT_FOUND, "Song does not exist"))

@@ -21,6 +21,29 @@ class CatalogRepository {
 
     fun song(id: UUID): SongResponse? = querySong("SELECT * FROM songs WHERE id = ?", id)
 
+    fun search(query: String, type: String, page: Int, size: Int): Pair<List<SongResponse>, Long> = DatabaseProvider.dataSource.connection.use { c ->
+        val columns = when (type) {
+            "title" -> listOf("title")
+            "artist" -> listOf("artist_name", "album_artist")
+            "album" -> listOf("album")
+            "genre" -> listOf("genre")
+            "all" -> listOf("title", "artist_name", "album_artist", "album", "genre", "composer", "producer", "tags::text")
+            else -> error("Unsupported search type")
+        }
+        val condition = columns.joinToString(" OR ") { "POSITION(LOWER(?) IN LOWER(COALESCE($it, ''))) > 0" }
+        val total = c.prepareStatement("SELECT COUNT(*) FROM songs WHERE $condition").use { s ->
+            columns.indices.forEach { s.setString(it + 1, query) }
+            s.executeQuery().use { it.next(); it.getLong(1) }
+        }
+        val items = c.prepareStatement("SELECT * FROM songs WHERE $condition ORDER BY popularity DESC, title, id LIMIT ? OFFSET ?").use { s ->
+            columns.indices.forEach { s.setString(it + 1, query) }
+            s.setInt(columns.size + 1, size)
+            s.setLong(columns.size + 2, page.toLong() * size)
+            s.executeQuery().use { results -> buildList { while (results.next()) add(results.toSong()) } }
+        }
+        items to total
+    }
+
     fun featured(orderBy: String, limit: Int = 20): List<SongResponse> = DatabaseProvider.dataSource.connection.use { c ->
         val allowedOrder = when (orderBy) {
             "trending" -> "popularity DESC, play_count DESC, created_at DESC"
