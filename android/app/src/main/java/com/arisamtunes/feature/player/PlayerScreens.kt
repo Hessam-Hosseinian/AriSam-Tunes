@@ -1,6 +1,7 @@
 package com.arisamtunes.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -125,6 +127,7 @@ fun NowPlayingRoute(
                     onValueChange = { viewModel.seekTo(it.toInt()) },
                     valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
                 )
+                AudioVisualizer(isPlaying = state.isPlaying, seed = song.id.hashCode())
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.lg)) {
                     IconButton(onClick = { }) { Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(34.dp)) }
                     IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(72.dp)) {
@@ -134,6 +137,44 @@ fun NowPlayingRoute(
                 }
                 Text(stringResource(R.string.media3_pending_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+@Composable
+private fun AudioVisualizer(isPlaying: Boolean, seed: Int) {
+    val transition = rememberInfiniteTransition(label = "visualizer")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "visualizerPhase",
+    )
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    Canvas(
+        modifier = Modifier.fillMaxWidth().height(88.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
+    ) {
+        val bars = 32
+        val gap = size.width / (bars * 1.8f)
+        val barWidth = gap.coerceAtLeast(5f)
+        val usableHeight = size.height * .82f
+        repeat(bars) { index ->
+            val seeded = ((seed shr (index % 12)) and 7) / 7f
+            val wave = kotlin.math.sin((phase * Math.PI * 2.0) + index * .55).toFloat()
+            val normalized = if (isPlaying) (.35f + (.45f * kotlin.math.abs(wave)) + seeded * .2f) else .22f + seeded * .18f
+            val barHeight = (usableHeight * normalized).coerceIn(size.height * .14f, usableHeight)
+            val x = index * (barWidth + gap)
+            drawLine(
+                color = if (index % 2 == 0) primary else secondary,
+                start = androidx.compose.ui.geometry.Offset(x, (size.height - barHeight) / 2f),
+                end = androidx.compose.ui.geometry.Offset(x, (size.height + barHeight) / 2f),
+                strokeWidth = barWidth,
+                cap = StrokeCap.Round,
+            )
         }
     }
 }

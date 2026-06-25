@@ -28,3 +28,4 @@ DONE | milestone=23 | name=Implement repositories and use cases | branch=feature
 DONE | milestone=24 | name=Add Paging 3 data sources | branch=feature/local-storage | commit=self | timestamp=2026-06-24T15:49:00+03:30
 DONE | milestone=25 | name=Add player screens | branch=feature/player | commit=self | timestamp=2026-06-24T18:12:00+03:30
 DONE | milestone=26 | name=Add animated player visuals | branch=feature/player | commit=self | timestamp=2026-06-24T20:37:00+03:30
+DONE | milestone=27 | name=Add Canvas visualizer and player animations | branch=feature/player | commit=self | timestamp=2026-06-25T09:23:00+03:30
