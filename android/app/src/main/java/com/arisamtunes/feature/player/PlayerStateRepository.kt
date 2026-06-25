@@ -1,0 +1,62 @@
+package com.arisamtunes.feature.player
+
+import com.arisamtunes.data.catalog.SongDto
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import javax.inject.Inject
+import javax.inject.Singleton
+
+data class PlayerState(
+    val currentSong: SongDto? = null,
+    val isPlaying: Boolean = false,
+    val progressSeconds: Int = 0,
+    val queue: List<SongDto> = emptyList(),
+    val playbackSpeed: Float = 1f,
+    val sleepTimerEndsAtMillis: Long? = null,
+    val isCrossfadeEnabled: Boolean = true,
+)
+
+@Singleton
+class PlayerStateRepository @Inject constructor() {
+    private val _state = MutableStateFlow(PlayerState())
+    val state = _state.asStateFlow()
+
+    fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
+        _state.update { current ->
+            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = queue.ifEmpty { listOf(song) })
+        }
+    }
+
+    fun togglePlayPause() {
+        _state.update { state -> state.copy(isPlaying = !state.isPlaying) }
+    }
+
+    fun setPlaying(isPlaying: Boolean) {
+        _state.update { state -> state.copy(isPlaying = isPlaying) }
+    }
+
+    fun seekTo(seconds: Int) {
+        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+    }
+
+    fun setProgress(seconds: Int) {
+        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        _state.update { state -> state.copy(playbackSpeed = speed.coerceIn(0.5f, 2f)) }
+    }
+
+    fun setSleepTimerEndsAt(endsAtMillis: Long?) {
+        _state.update { state -> state.copy(sleepTimerEndsAtMillis = endsAtMillis) }
+    }
+
+    fun setCrossfadeEnabled(enabled: Boolean) {
+        _state.update { state -> state.copy(isCrossfadeEnabled = enabled) }
+    }
+
+    fun close() {
+        _state.value = PlayerState()
+    }
+}

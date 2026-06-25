@@ -59,16 +59,18 @@ import kotlinx.serialization.json.longOrNull
 @Composable
 fun SongDetailRoute(
     onBack: () -> Unit,
+    onPlay: (SongDto) -> Unit,
     viewModel: SongDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    SongDetailScreen(state, onBack, viewModel::refresh)
+    SongDetailScreen(state, onBack, onPlay, viewModel::refresh)
 }
 
 @Composable
 private fun SongDetailScreen(
     state: SongDetailUiState,
     onBack: () -> Unit,
+    onPlay: (SongDto) -> Unit,
     onRetry: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -80,13 +82,13 @@ private fun SongDetailScreen(
             state.isLoading -> Loading()
             state.hasError -> ErrorState(onRetry)
             state.song == null -> EmptyState()
-            else -> SongMetadata(state.song)
+            else -> SongMetadata(state.song, onPlay)
         }
     }
 }
 
 @Composable
-private fun SongMetadata(song: SongDto) {
+private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit) {
     val spacing = AriSamThemeTokens.spacing
     val facts = song.metadataFacts()
     LazyColumn(
@@ -94,7 +96,7 @@ private fun SongMetadata(song: SongDto) {
         contentPadding = PaddingValues(bottom = spacing.xl),
         verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
-        item { SongHero(song) }
+        item { SongHero(song, onPlay) }
         if (song.tags.isNotEmpty() || song.isExplicit || song.isLocal || song.isDemo) {
             item { SongChips(song) }
         }
@@ -132,7 +134,7 @@ private fun SongMetadata(song: SongDto) {
 }
 
 @Composable
-private fun SongHero(song: SongDto) {
+private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit) {
     val spacing = AriSamThemeTokens.spacing
     Box(Modifier.fillMaxWidth().height(320.dp).padding(horizontal = spacing.lg)) {
         AsyncImage(
@@ -157,7 +159,7 @@ private fun SongHero(song: SongDto) {
             }
         }
         PressScaleBox(
-            onClick = { },
+            onClick = { onPlay(song) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(spacing.lg).size(54.dp).clip(MaterialTheme.shapes.large)
                 .background(MaterialTheme.colorScheme.primary),
         ) {

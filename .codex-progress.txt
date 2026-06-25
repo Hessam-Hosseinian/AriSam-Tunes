@@ -26,3 +26,9 @@ DONE | milestone=21 | name=Add Room local database | branch=feature/local-storag
 DONE | milestone=22 | name=Add DataStore preferences manager | branch=feature/local-storage | commit=self | timestamp=2026-06-24T11:07:00+03:30
 DONE | milestone=23 | name=Implement repositories and use cases | branch=feature/local-storage | commit=self | timestamp=2026-06-24T13:26:00+03:30
 DONE | milestone=24 | name=Add Paging 3 data sources | branch=feature/local-storage | commit=self | timestamp=2026-06-24T15:49:00+03:30
+DONE | milestone=25 | name=Add player screens | branch=feature/player | commit=self | timestamp=2026-06-24T18:12:00+03:30
+DONE | milestone=26 | name=Add animated player visuals | branch=feature/player | commit=self | timestamp=2026-06-24T20:37:00+03:30
+DONE | milestone=27 | name=Add Canvas visualizer and player animations | branch=feature/player | commit=self | timestamp=2026-06-25T09:23:00+03:30
+DONE | milestone=28 | name=Integrate Media3 ExoPlayer | branch=feature/player | commit=self | timestamp=2026-06-25T11:42:00+03:30
+DONE | milestone=29 | name=Add foreground playback service | branch=feature/player | commit=self | timestamp=2026-06-25T14:16:00+03:30
+DONE | milestone=30 | name=Add advanced playback features | branch=feature/player | commit=self | timestamp=2026-06-25T16:54:00+03:30
