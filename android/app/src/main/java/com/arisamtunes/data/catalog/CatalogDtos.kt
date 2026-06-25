@@ -38,3 +38,10 @@ data class PaginationDto(
 
 @Serializable
 data class SongPageDto(val items: List<SongDto>, val pagination: PaginationDto)
+
+@Serializable
+data class PlaylistSongsDto(
+    val playlist: PlaylistDto,
+    val items: List<SongDto>,
+    val pagination: PaginationDto,
+)

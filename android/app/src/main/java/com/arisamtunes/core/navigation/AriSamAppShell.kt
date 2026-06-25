@@ -30,8 +30,11 @@ import com.arisamtunes.R
 import com.arisamtunes.feature.home.HomeQuickAction
 import com.arisamtunes.feature.home.HomeRoute
 import com.arisamtunes.feature.search.SearchRoute
+import com.arisamtunes.feature.playlists.PlaylistDetailRoute
+import com.arisamtunes.feature.playlists.PlaylistsRoute
 
 private const val SettingsRoute = "settings"
+private const val PlaylistDetailRoutePattern = "playlist/{playlistId}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +95,7 @@ fun AriSamAppShell() {
             composable(AppDestination.Home.route) {
                 HomeRoute(
                     onSongClick = { },
-                    onPlaylistClick = { navController.navigate(AppDestination.Playlists.route) },
+                    onPlaylistClick = { navController.navigate("playlist/${it.id}") },
                     onQuickAction = { action ->
                         when (action) {
                             HomeQuickAction.Playlists -> navController.navigate(AppDestination.Playlists.route)
@@ -103,7 +106,13 @@ fun AriSamAppShell() {
                 )
             }
             composable(AppDestination.Search.route) { SearchRoute(onSongClick = { }) }
-            MainDestinations.filterNot { it == AppDestination.Home || it == AppDestination.Search }.forEach { destination ->
+            composable(AppDestination.Playlists.route) {
+                PlaylistsRoute(onPlaylistClick = { navController.navigate("playlist/${it.id}") })
+            }
+            composable(PlaylistDetailRoutePattern) {
+                PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { })
+            }
+            MainDestinations.filterNot { it == AppDestination.Home || it == AppDestination.Search || it == AppDestination.Playlists }.forEach { destination ->
                 composable(destination.route) { DestinationPlaceholder(destination.labelRes) }
             }
             composable(SettingsRoute) { DestinationPlaceholder(R.string.settings) }

@@ -51,4 +51,8 @@
     <string name="search_filter_artists">Artists</string>
     <string name="search_filter_albums">Albums</string>
     <string name="search_filter_genres">Genres</string>
+    <string name="playlists_empty">No playlists yet</string>
+    <string name="playlist_songs_empty">This playlist has no songs yet</string>
+    <string name="playlist">Playlist</string>
+    <string name="back">Back</string>
 </resources>

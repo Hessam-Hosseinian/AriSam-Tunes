@@ -20,3 +20,4 @@ DONE | milestone=16 | name=Implement playlist APIs | branch=feature/music-catalo
 DONE | milestone=17 | name=Add paginated search endpoints | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T13:51:32+03:30
 DONE | milestone=18 | name=Build home screen sections | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T15:27:16+03:30
 DONE | milestone=19 | name=Add debounced paginated search UI | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T17:02:44+03:30
+DONE | milestone=20 | name=Add playlists screens | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T18:38:19+03:30

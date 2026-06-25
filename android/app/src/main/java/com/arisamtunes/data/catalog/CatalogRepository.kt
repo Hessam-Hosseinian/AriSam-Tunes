@@ -7,6 +7,8 @@ import io.ktor.client.request.parameter
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.PagingSource
+import androidx.paging.PagingState
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
@@ -46,5 +48,38 @@ class CatalogRepository @Inject constructor(private val client: HttpClient) {
             remoteMediator = SearchRemoteMediator(query, type, this, store),
             pagingSourceFactory = store::pagingSource,
         ).flow
+    }
+
+    suspend fun playlists(): List<PlaylistDto> = client.get("playlists").body<PlaylistListDto>().items
+
+    suspend fun playlist(id: String): PlaylistDto = client.get("playlists/$id").body()
+
+    private suspend fun playlistSongs(id: String, page: Int, size: Int): PlaylistSongsDto =
+        client.get("playlists/$id/songs") {
+            parameter("page", page)
+            parameter("size", size)
+        }.body()
+
+    fun playlistSongsPager(id: String) = Pager(
+        config = PagingConfig(pageSize = 20, initialLoadSize = 20, prefetchDistance = 5),
+        pagingSourceFactory = { PlaylistSongsPagingSource(id, this) },
+    ).flow
+
+    private class PlaylistSongsPagingSource(
+        private val playlistId: String,
+        private val repository: CatalogRepository,
+    ) : PagingSource<Int, SongDto>() {
+        override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SongDto> {
+            val page = params.key ?: 0
+            return runCatching { repository.playlistSongs(playlistId, page, params.loadSize.coerceAtMost(100)) }
+                .fold(
+                    onSuccess = { response -> LoadResult.Page(response.items, if (page == 0) null else page - 1, if (page + 1 < response.pagination.totalPages) page + 1 else null) },
+                    onFailure = { LoadResult.Error(it) },
+                )
+        }
+
+        override fun getRefreshKey(state: PagingState<Int, SongDto>): Int? = state.anchorPosition?.let { position ->
+            state.closestPageToPosition(position)?.let { page -> page.prevKey?.plus(1) ?: page.nextKey?.minus(1) }
+        }
     }
 }
