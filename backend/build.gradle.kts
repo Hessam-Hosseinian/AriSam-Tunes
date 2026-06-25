@@ -33,6 +33,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:7.1.0")
     runtimeOnly("org.postgresql:postgresql:42.7.11")
     implementation("at.favre.lib:bcrypt:0.10.2")
+    implementation("com.mpatric:mp3agic:0.9.1")
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation(kotlin("test"))
