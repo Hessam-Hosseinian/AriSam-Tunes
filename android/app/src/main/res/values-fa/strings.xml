@@ -76,4 +76,14 @@
     <string name="sleep_timer_on">خواب فعال</string>
     <string name="crossfade_on">کراس‌فید روشن</string>
     <string name="crossfade_off">کراس‌فید خاموش</string>
+    <string name="downloads_title">دانلودها</string>
+    <string name="premium_required_title">نیازمند پریمیوم</string>
+    <string name="downloads_premium_description">دانلود آفلاین فقط برای کاربران پریمیوم فعال است.</string>
+    <string name="downloads_premium_ready">پریمیوم فعال است. دانلود آفلاین در دسترس است.</string>
+    <string name="premium_active">پریمیوم فعال</string>
+    <string name="upgrade">ارتقا</string>
+    <string name="dismiss">بستن</string>
+    <string name="error_code_format">کد خطا: %1$s</string>
+    <string name="downloads_empty">هنوز آهنگی دانلود نشده است</string>
+    <string name="try_download">تلاش برای دانلود</string>
 </resources>

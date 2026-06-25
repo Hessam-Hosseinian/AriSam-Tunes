@@ -29,6 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.arisamtunes.R
 import com.arisamtunes.feature.home.HomeQuickAction
+import com.arisamtunes.feature.downloads.DownloadsRoute
 import com.arisamtunes.feature.home.HomeRoute
 import com.arisamtunes.feature.search.SearchRoute
 import com.arisamtunes.feature.playlists.PlaylistDetailRoute
@@ -121,6 +122,7 @@ fun AriSamAppShell() {
             composable(AppDestination.Playlists.route) {
                 PlaylistsRoute(onPlaylistClick = { navController.navigate("playlist/${it.id}") })
             }
+            composable(AppDestination.Downloads.route) { DownloadsRoute() }
             composable(PlaylistDetailRoutePattern) {
                 PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate("song/${it.id}") })
             }
@@ -136,7 +138,7 @@ fun AriSamAppShell() {
             composable(NowPlayingRoutePath) {
                 NowPlayingRoute(onBack = navController::popBackStack)
             }
-            MainDestinations.filterNot { it == AppDestination.Home || it == AppDestination.Search || it == AppDestination.Playlists }.forEach { destination ->
+            MainDestinations.filterNot { it == AppDestination.Home || it == AppDestination.Search || it == AppDestination.Playlists || it == AppDestination.Downloads }.forEach { destination ->
                 composable(destination.route) { DestinationPlaceholder(destination.labelRes) }
             }
             composable(SettingsRoute) { DestinationPlaceholder(R.string.settings) }
