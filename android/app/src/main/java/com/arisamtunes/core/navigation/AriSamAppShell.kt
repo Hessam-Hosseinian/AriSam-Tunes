@@ -27,6 +27,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.arisamtunes.R
+import com.arisamtunes.feature.home.HomeQuickAction
+import com.arisamtunes.feature.home.HomeRoute
 
 private const val SettingsRoute = "settings"
 
@@ -86,7 +88,20 @@ fun AriSamAppShell() {
             startDestination = AppDestination.Home.route,
             modifier = Modifier.padding(contentPadding),
         ) {
-            MainDestinations.forEach { destination ->
+            composable(AppDestination.Home.route) {
+                HomeRoute(
+                    onSongClick = { },
+                    onPlaylistClick = { navController.navigate(AppDestination.Playlists.route) },
+                    onQuickAction = { action ->
+                        when (action) {
+                            HomeQuickAction.Playlists -> navController.navigate(AppDestination.Playlists.route)
+                            HomeQuickAction.Artists -> navController.navigate(AppDestination.Search.route)
+                            HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigate(AppDestination.Downloads.route)
+                        }
+                    },
+                )
+            }
+            MainDestinations.filterNot { it == AppDestination.Home }.forEach { destination ->
                 composable(destination.route) { DestinationPlaceholder(destination.labelRes) }
             }
             composable(SettingsRoute) { DestinationPlaceholder(R.string.settings) }

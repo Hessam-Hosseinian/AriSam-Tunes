@@ -27,4 +27,18 @@
     <string name="error_rate_limited">Too many attempts. Please try again shortly.</string>
     <string name="error_network">Could not reach the server. Check your connection.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="home_trending_now">Trending now</string>
+    <string name="home_quick_actions">Quick actions</string>
+    <string name="home_liked_songs">Liked songs</string>
+    <string name="home_recently_played">Recently played</string>
+    <string name="home_my_playlists">My playlists</string>
+    <string name="home_top_artists">Top artists</string>
+    <string name="home_most_popular">Most popular</string>
+    <string name="home_new_releases">New releases</string>
+    <string name="home_global_playlists">Global playlists</string>
+    <string name="home_local_playlists">Local playlists</string>
+    <string name="home_song_count">%1$d songs</string>
+    <string name="home_load_error">We couldn’t load your music right now.</string>
+    <string name="retry">Retry</string>
+    <string name="play">Play</string>
 </resources>

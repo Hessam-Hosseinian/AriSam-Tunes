@@ -18,3 +18,4 @@ DONE | milestone=14 | name=Seed music catalog COMPLETE | branch=feature/music-ca
 DONE | milestone=15 | name=Implement songs and artists APIs | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T10:44:23+03:30
 DONE | milestone=16 | name=Implement playlist APIs | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T12:18:57+03:30
 DONE | milestone=17 | name=Add paginated search endpoints | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T13:51:32+03:30
+DONE | milestone=18 | name=Build home screen sections | branch=feature/music-catalog | commit=self | timestamp=2026-06-25T15:27:16+03:30
