@@ -52,3 +52,8 @@ data class UpdateProfileRequest(
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val bio: String? = null,
 )
+
+@Serializable
+data class PremiumStatusRequest(
+    @SerialName("is_premium") val isPremium: Boolean,
+)

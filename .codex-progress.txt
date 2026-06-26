@@ -32,3 +32,7 @@ DONE | milestone=27 | name=Add Canvas visualizer and player animations | branch=
 DONE | milestone=28 | name=Integrate Media3 ExoPlayer | branch=feature/player | commit=self | timestamp=2026-06-25T11:42:00+03:30
 DONE | milestone=29 | name=Add foreground playback service | branch=feature/player | commit=self | timestamp=2026-06-25T14:16:00+03:30
 DONE | milestone=30 | name=Add advanced playback features | branch=feature/player | commit=self | timestamp=2026-06-25T16:54:00+03:30
+DONE | milestone=31 | name=Add downloads and premium UI | branch=feature/downloads-premium | commit=self | timestamp=2026-06-25T19:28:00+03:30
+DONE | milestone=32 | name=Implement premium profile logic | branch=feature/downloads-premium | commit=self | timestamp=2026-06-25T21:13:00+03:30
+DONE | milestone=33 | name=Add offline download workflow | branch=feature/downloads-premium | commit=self | timestamp=2026-06-26T09:34:00+03:30
+DONE | milestone=34 | name=Add offline playback source selection | branch=feature/downloads-premium | commit=self | timestamp=2026-06-26T12:11:00+03:30

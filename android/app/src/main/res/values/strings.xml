@@ -104,4 +104,14 @@
     <string name="sleep_timer_on">Sleep on</string>
     <string name="crossfade_on">Crossfade on</string>
     <string name="crossfade_off">Crossfade off</string>
+    <string name="downloads_title">Downloads</string>
+    <string name="premium_required_title">Premium required</string>
+    <string name="downloads_premium_description">Offline downloads are a premium feature.</string>
+    <string name="downloads_premium_ready">Premium is active. Offline downloads are available.</string>
+    <string name="premium_active">Premium active</string>
+    <string name="upgrade">Upgrade</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="error_code_format">Error code: %1$s</string>
+    <string name="downloads_empty">No downloaded songs yet</string>
+    <string name="try_download">Try download</string>
 </resources>

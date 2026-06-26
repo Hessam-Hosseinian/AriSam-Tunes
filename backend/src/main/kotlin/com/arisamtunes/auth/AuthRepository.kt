@@ -26,6 +26,14 @@ class AuthRepository {
         c.commit(); user ?: throw IllegalStateException("User disappeared during profile update")
     }
 
+    fun updatePremium(id: UUID, isPremium: Boolean): AuthUser = DatabaseProvider.dataSource.connection.use { c ->
+        val user = c.prepareStatement("UPDATE users SET is_premium=?,updated_at=NOW() WHERE id=? RETURNING *").use { s ->
+            s.setBoolean(1, isPremium); s.setObject(2, id)
+            s.executeQuery().use { if (it.next()) it.toUser() else null }
+        }
+        c.commit(); user ?: throw IllegalStateException("User disappeared during premium update")
+    }
+
     private fun queryUser(sql: String, value: Any): AuthUser? = DatabaseProvider.dataSource.connection.use { c ->
         c.prepareStatement(sql).use { s ->
             s.setObject(1, value); s.executeQuery().use { if (it.next()) it.toUser() else null }

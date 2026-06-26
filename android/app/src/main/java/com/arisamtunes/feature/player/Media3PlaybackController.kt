@@ -20,6 +20,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import com.arisamtunes.data.catalog.SongDto
+import com.arisamtunes.data.local.LocalLibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import kotlinx.coroutines.Job
@@ -37,6 +38,7 @@ import javax.inject.Singleton
 class Media3PlaybackController @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val stateRepository: PlayerStateRepository,
+    private val localLibraryRepository: LocalLibraryRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val streamCache = SimpleCache(
@@ -83,22 +85,25 @@ class Media3PlaybackController @Inject constructor(
     fun play(song: SongDto) {
         startPlaybackService()
         stateRepository.play(song)
-        player.setMediaItem(
-            MediaItem.Builder()
-                .setUri(song.audioUrl)
-                .setMediaId(song.id)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(song.title)
-                        .setArtist(song.artistName)
-                        .setAlbumTitle(song.album)
-                        .setArtworkUri(android.net.Uri.parse(song.coverImageUrl))
-                        .build(),
-                )
-                .build(),
-        )
-        player.prepare()
-        player.play()
+        scope.launch {
+            val playbackSource = localLibraryRepository.playbackSource(song)
+            player.setMediaItem(
+                MediaItem.Builder()
+                    .setUri(playbackSource)
+                    .setMediaId(song.id)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(song.title)
+                            .setArtist(song.artistName)
+                            .setAlbumTitle(song.album)
+                            .setArtworkUri(android.net.Uri.parse(song.coverImageUrl))
+                            .build(),
+                    )
+                    .build(),
+            )
+            player.prepare()
+            player.play()
+        }
     }
 
     fun togglePlayPause() {
