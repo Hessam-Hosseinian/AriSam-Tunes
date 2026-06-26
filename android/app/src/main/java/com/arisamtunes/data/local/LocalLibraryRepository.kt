@@ -10,6 +10,7 @@ import com.arisamtunes.data.local.entity.CachedSongEntity
 import com.arisamtunes.data.local.entity.DownloadedSongEntity
 import com.arisamtunes.data.local.entity.LikedSongEntity
 import com.arisamtunes.data.local.entity.RecentlyPlayedEntity
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -50,7 +51,8 @@ class LocalLibraryRepository @Inject constructor(
 
     suspend fun deleteDownload(songId: String) = downloadedSongDao.delete(songId)
 
-    suspend fun playbackSource(song: SongDto): String = downloadedSongDao.completedPath(song.id) ?: song.audioUrl
+    suspend fun playbackSource(song: SongDto): String =
+        downloadedSongDao.completedPath(song.id)?.let { File(it).toURI().toString() } ?: song.audioUrl
 
     fun recentlyPlayed(): PagingSource<Int, RecentlyPlayedEntity> = recentlyPlayedDao.pagingSource()
 
