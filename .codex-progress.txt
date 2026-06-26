@@ -38,3 +38,4 @@ DONE | milestone=33 | name=Add offline download workflow | branch=feature/downlo
 DONE | milestone=34 | name=Add offline playback source selection | branch=feature/downloads-premium | commit=self | timestamp=2026-06-26T12:11:00+03:30
 DONE | milestone=35 | name=Implement social APIs | branch=feature/social-chat | commit=self | timestamp=2026-06-26T14:47:00+03:30
 DONE | milestone=36 | name=Add social profile screens | branch=feature/social-chat | commit=self | timestamp=2026-06-26T16:22:00+03:30
+DONE | milestone=37 | name=Implement realtime WebSocket chat | branch=feature/social-chat | commit=self | timestamp=2026-06-26T18:03:00+03:30
