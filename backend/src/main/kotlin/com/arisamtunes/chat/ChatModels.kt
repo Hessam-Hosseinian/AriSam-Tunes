@@ -27,6 +27,8 @@ data class ChatMessageResponse(
 @Serializable
 data class ChatSocketEnvelope(
     val type: String,
+    @SerialName("message_id") val messageId: String? = null,
+    @SerialName("sender_id") val senderId: String? = null,
     @SerialName("client_message_id") val clientMessageId: String? = null,
     @SerialName("recipient_id") val recipientId: String? = null,
     @SerialName("message_type") val messageType: ChatMessageType? = null,
@@ -34,4 +36,10 @@ data class ChatSocketEnvelope(
     @SerialName("song_id") val songId: String? = null,
     val message: ChatMessageResponse? = null,
     val error: String? = null,
+)
+
+@Serializable
+data class ChatMessageListResponse(
+    val items: List<ChatMessageResponse>,
+    val pagination: com.arisamtunes.model.PaginationMeta,
 )

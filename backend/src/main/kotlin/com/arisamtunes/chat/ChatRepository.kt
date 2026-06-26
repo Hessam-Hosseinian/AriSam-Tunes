@@ -3,9 +3,53 @@ package com.arisamtunes.chat
 import com.arisamtunes.plugins.DatabaseProvider
 import java.sql.ResultSet
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 class ChatRepository {
+    fun conversation(userId: UUID, peerId: UUID, page: Int, size: Int, since: Instant?): Pair<List<ChatMessageResponse>, Long> =
+        DatabaseProvider.dataSource.connection.use { c ->
+            val total = c.prepareStatement(
+                """
+                SELECT COUNT(*)
+                FROM chat_messages
+                WHERE ((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?))
+                  AND (? IS NULL OR created_at > ?)
+                """.trimIndent(),
+            ).use { s ->
+                s.setObject(1, userId)
+                s.setObject(2, peerId)
+                s.setObject(3, peerId)
+                s.setObject(4, userId)
+                s.setNullableTimestamp(5, since)
+                s.setNullableTimestamp(6, since)
+                s.executeQuery().use { it.next(); it.getLong(1) }
+            }
+            val order = if (since == null) "DESC" else "ASC"
+            val items = c.prepareStatement(
+                """
+                SELECT *
+                FROM chat_messages
+                WHERE ((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?))
+                  AND (? IS NULL OR created_at > ?)
+                ORDER BY created_at $order
+                LIMIT ? OFFSET ?
+                """.trimIndent(),
+            ).use { s ->
+                s.setObject(1, userId)
+                s.setObject(2, peerId)
+                s.setObject(3, peerId)
+                s.setObject(4, userId)
+                s.setNullableTimestamp(5, since)
+                s.setNullableTimestamp(6, since)
+                s.setInt(7, size)
+                s.setLong(8, page.toLong() * size)
+                s.executeQuery().use { results -> buildList { while (results.next()) add(results.toChatMessage()) } }
+            }
+            c.commit()
+            items to total
+        }
+
     fun saveMessage(
         senderId: UUID,
         clientMessageId: UUID,
@@ -42,6 +86,53 @@ class ChatRepository {
             throw error
         }
     }
+
+    fun markDelivered(messageId: UUID, recipientId: UUID): ChatMessageResponse? =
+        updateReceipt(
+            sql = """
+                UPDATE chat_messages
+                SET status = CASE WHEN status = 'SENT' THEN 'DELIVERED'::chat_message_status ELSE status END,
+                    delivered_at = COALESCE(delivered_at, NOW())
+                WHERE id = ? AND recipient_id = ?
+                RETURNING *
+            """.trimIndent(),
+            messageId = messageId,
+            recipientId = recipientId,
+        )
+
+    fun markRead(messageId: UUID, recipientId: UUID): ChatMessageResponse? =
+        updateReceipt(
+            sql = """
+                UPDATE chat_messages
+                SET status = 'READ',
+                    delivered_at = COALESCE(delivered_at, NOW()),
+                    read_at = COALESCE(read_at, NOW())
+                WHERE id = ? AND recipient_id = ?
+                RETURNING *
+            """.trimIndent(),
+            messageId = messageId,
+            recipientId = recipientId,
+        )
+
+    private fun updateReceipt(sql: String, messageId: UUID, recipientId: UUID): ChatMessageResponse? =
+        DatabaseProvider.dataSource.connection.use { c ->
+            try {
+                val message = c.prepareStatement(sql).use { s ->
+                    s.setObject(1, messageId)
+                    s.setObject(2, recipientId)
+                    s.executeQuery().use { results -> if (results.next()) results.toChatMessage() else null }
+                }
+                c.commit()
+                message
+            } catch (error: Throwable) {
+                c.rollback()
+                throw error
+            }
+        }
+}
+
+private fun java.sql.PreparedStatement.setNullableTimestamp(index: Int, value: Instant?) {
+    if (value == null) setNull(index, java.sql.Types.TIMESTAMP_WITH_TIMEZONE) else setTimestamp(index, Timestamp.from(value))
 }
 
 private fun ResultSet.toChatMessage() = ChatMessageResponse(

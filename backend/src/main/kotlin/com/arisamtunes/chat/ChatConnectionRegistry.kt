@@ -22,10 +22,12 @@ class ChatConnectionRegistry(private val json: Json) {
         }
     }
 
-    suspend fun sendTo(userId: UUID, envelope: ChatSocketEnvelope) {
+    suspend fun sendTo(userId: UUID, envelope: ChatSocketEnvelope): Int {
         val encoded = json.encodeToString(envelope)
+        var delivered = 0
         sessions[userId]?.toList().orEmpty().forEach { session ->
-            runCatching { session.send(Frame.Text(encoded)) }
+            if (runCatching { session.send(Frame.Text(encoded)) }.isSuccess) delivered++
         }
+        return delivered
     }
 }
