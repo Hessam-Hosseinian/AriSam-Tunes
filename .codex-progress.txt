@@ -34,3 +34,4 @@ DONE | milestone=29 | name=Add foreground playback service | branch=feature/play
 DONE | milestone=30 | name=Add advanced playback features | branch=feature/player | commit=self | timestamp=2026-06-25T16:54:00+03:30
 DONE | milestone=31 | name=Add downloads and premium UI | branch=feature/downloads-premium | commit=self | timestamp=2026-06-25T19:28:00+03:30
 DONE | milestone=32 | name=Implement premium profile logic | branch=feature/downloads-premium | commit=self | timestamp=2026-06-25T21:13:00+03:30
+DONE | milestone=33 | name=Add offline download workflow | branch=feature/downloads-premium | commit=self | timestamp=2026-06-26T09:34:00+03:30
