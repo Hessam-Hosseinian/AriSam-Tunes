@@ -8,6 +8,7 @@
     <string name="nav_search">Search</string>
     <string name="nav_downloads">Downloads</string>
     <string name="nav_playlists">Playlists</string>
+    <string name="nav_chat">Chat</string>
     <string name="nav_profile">Profile</string>
     <string name="login_title">Welcome back</string>
     <string name="register_title">Create your account</string>
@@ -114,6 +115,12 @@
     <string name="social_users_empty">No users here yet.</string>
     <string name="social_new_profile_hint">A quiet new profile. Follow a few people and the graph will wake up.</string>
     <string name="social_own_profile_hint">This is your public profile as other listeners see it.</string>
+    <string name="chat">Chat</string>
+    <string name="chat_empty">No conversations yet. Follow users to start chatting.</string>
+    <string name="chat_start_with_following">Start a conversation</string>
+    <string name="chat_tap_to_message">Tap to send a message</string>
+    <string name="chat_message_hint">Write a message…</string>
+    <string name="send">Send</string>
     <string name="sleep_timer">Sleep 15m</string>
     <string name="sleep_timer_on">Sleep on</string>
     <string name="crossfade_on">Crossfade on</string>

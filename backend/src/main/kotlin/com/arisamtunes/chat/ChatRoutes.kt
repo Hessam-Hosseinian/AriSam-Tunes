@@ -5,6 +5,7 @@ import com.arisamtunes.config.JwtConfig
 import com.arisamtunes.model.ApiException
 import com.arisamtunes.model.ErrorCode
 import com.arisamtunes.model.PaginationMeta
+import com.arisamtunes.social.SocialRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -50,11 +51,19 @@ fun Application.configureChatWebSockets() {
 
 fun Route.chatRoutes(
     repository: ChatRepository = ChatRepository(),
+    socialRepository: SocialRepository = SocialRepository(),
     jwtConfig: JwtConfig,
 ) {
     val jwtService = JwtService(jwtConfig)
     authenticate("auth-jwt") {
         route("/chat") {
+            get("/conversations") {
+                val viewerId = call.userId()
+                val conversations = repository.conversationPeers(viewerId).mapNotNull { (peerId, latest) ->
+                    socialRepository.user(peerId, viewerId)?.let { peer -> ChatConversationResponse(peer, latest) }
+                }
+                call.respond(ChatConversationListResponse(conversations))
+            }
             get("/{userId}/messages") {
                 val peerId = call.pathUserId()
                 val (page, size) = call.pageRequest()

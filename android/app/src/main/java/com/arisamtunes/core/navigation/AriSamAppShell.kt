@@ -30,6 +30,8 @@ import androidx.navigation.compose.rememberNavController
 import com.arisamtunes.R
 import com.arisamtunes.feature.home.HomeQuickAction
 import com.arisamtunes.feature.downloads.DownloadsRoute
+import com.arisamtunes.feature.chat.ChatDetailRoute
+import com.arisamtunes.feature.chat.ChatListRoute
 import com.arisamtunes.feature.home.HomeRoute
 import com.arisamtunes.feature.search.SearchRoute
 import com.arisamtunes.feature.playlists.PlaylistDetailRoute
@@ -48,6 +50,7 @@ private const val SongDetailRoutePattern = "song/{songId}"
 private const val NowPlayingRoutePath = "now-playing"
 private const val UserProfileRoutePattern = "social/user/{userId}"
 private const val UserListRoutePattern = "social/users/{userId}/{kind}"
+private const val ChatDetailRoutePattern = "chat/{userId}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,6 +130,12 @@ fun AriSamAppShell() {
                 PlaylistsRoute(onPlaylistClick = { navController.navigate("playlist/${it.id}") })
             }
             composable(AppDestination.Downloads.route) { DownloadsRoute() }
+            composable(AppDestination.Chat.route) {
+                ChatListRoute(onConversationClick = { navController.navigate("chat/$it") })
+            }
+            composable(ChatDetailRoutePattern) {
+                ChatDetailRoute(onBack = navController::popBackStack)
+            }
             composable(PlaylistDetailRoutePattern) {
                 PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate("song/${it.id}") })
             }

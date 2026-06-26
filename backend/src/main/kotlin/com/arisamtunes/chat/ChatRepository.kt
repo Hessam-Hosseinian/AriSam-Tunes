@@ -7,6 +7,31 @@ import java.time.Instant
 import java.util.UUID
 
 class ChatRepository {
+    fun conversationPeers(userId: UUID): List<Pair<UUID, ChatMessageResponse>> = DatabaseProvider.dataSource.connection.use { c ->
+        c.prepareStatement(
+            """
+            SELECT DISTINCT ON (peer_id) peer_id, cm.*
+            FROM (
+                SELECT
+                    CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END AS peer_id,
+                    chat_messages.*
+                FROM chat_messages
+                WHERE sender_id = ? OR recipient_id = ?
+            ) cm
+            ORDER BY peer_id, created_at DESC
+            """.trimIndent(),
+        ).use { s ->
+            s.setObject(1, userId)
+            s.setObject(2, userId)
+            s.setObject(3, userId)
+            s.executeQuery().use { results ->
+                buildList {
+                    while (results.next()) add(results.getObject("peer_id", UUID::class.java) to results.toChatMessage())
+                }
+            }
+        }.also { c.commit() }
+    }
+
     fun conversation(userId: UUID, peerId: UUID, page: Int, size: Int, since: Instant?): Pair<List<ChatMessageResponse>, Long> =
         DatabaseProvider.dataSource.connection.use { c ->
             val total = c.prepareStatement(
