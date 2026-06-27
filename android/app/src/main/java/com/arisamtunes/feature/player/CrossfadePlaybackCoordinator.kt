@@ -12,6 +12,7 @@ package com.arisamtunes.feature.player
  */
 
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -28,15 +29,36 @@ class CrossfadePlaybackCoordinator(
     private val secondaryPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
         .build()
+    private var preparedSongId: String? = null
 
-    fun prepareNext(song: SongDto, enabled: Boolean) {
+    fun prepareNext(song: SongDto, uri: String, enabled: Boolean) {
         if (!enabled) {
-            secondaryPlayer.clearMediaItems()
+            clear()
             return
         }
+        if (preparedSongId == song.id) return
+        preparedSongId = song.id
         secondaryPlayer.volume = 0f
-        secondaryPlayer.setMediaItem(MediaItem.fromUri(song.audioUrl))
+        secondaryPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(uri)))
         secondaryPlayer.prepare()
+    }
+
+    fun startPrepared(song: SongDto): Boolean {
+        if (preparedSongId != song.id) return false
+        secondaryPlayer.seekTo(0L)
+        secondaryPlayer.volume = 0f
+        secondaryPlayer.play()
+        return true
+    }
+
+    fun setVolume(volume: Float) {
+        secondaryPlayer.volume = volume.coerceIn(0f, 1f)
+    }
+
+    fun clear() {
+        secondaryPlayer.stop()
+        secondaryPlayer.clearMediaItems()
+        preparedSongId = null
     }
 
     fun release() {
