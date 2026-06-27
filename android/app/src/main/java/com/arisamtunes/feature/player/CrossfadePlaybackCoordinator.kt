@@ -15,6 +15,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -25,11 +26,20 @@ import com.arisamtunes.data.catalog.SongDto
 class CrossfadePlaybackCoordinator(
     context: Context,
     cacheDataSourceFactory: CacheDataSource.Factory,
+    private val onEnded: () -> Unit = {},
 ) {
     private val secondaryPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
         .build()
     private var preparedSongId: String? = null
+
+    init {
+        secondaryPlayer.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) onEnded()
+            }
+        })
+    }
 
     fun prepareNext(song: SongDto, uri: String, enabled: Boolean) {
         if (!enabled) {
@@ -56,6 +66,20 @@ class CrossfadePlaybackCoordinator(
     }
 
     fun currentPositionMillis(): Long = secondaryPlayer.currentPosition.coerceAtLeast(0L)
+
+    fun play() {
+        secondaryPlayer.play()
+    }
+
+    fun pause() {
+        secondaryPlayer.pause()
+    }
+
+    fun seekTo(positionMillis: Long) {
+        secondaryPlayer.seekTo(positionMillis.coerceAtLeast(0L))
+    }
+
+    fun isPlaying(): Boolean = secondaryPlayer.isPlaying
 
     fun clear() {
         secondaryPlayer.stop()
