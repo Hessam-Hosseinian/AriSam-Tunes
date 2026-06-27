@@ -16,6 +16,10 @@ class PlayerViewModel @Inject constructor(
 
     fun togglePlayPause() = playbackController.togglePlayPause()
 
+    fun skipToNext() = playbackController.skipToNext()
+
+    fun skipToPrevious() = playbackController.skipToPrevious()
+
     fun retryPlayback() = playbackController.retry()
 
     fun cyclePlaybackSpeed() = playbackController.cyclePlaybackSpeed()

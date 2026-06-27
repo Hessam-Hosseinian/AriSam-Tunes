@@ -168,11 +168,11 @@ fun NowPlayingRoute(
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.lg)) {
-                    IconButton(onClick = { }) { Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(34.dp)) }
+                    IconButton(onClick = viewModel::skipToPrevious) { Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(34.dp)) }
                     IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(72.dp)) {
                         Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (state.isPlaying) R.string.pause else R.string.play), modifier = Modifier.size(48.dp))
                     }
-                    IconButton(onClick = { }) { Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(34.dp)) }
+                    IconButton(onClick = viewModel::skipToNext) { Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(34.dp)) }
                 }
             }
         }

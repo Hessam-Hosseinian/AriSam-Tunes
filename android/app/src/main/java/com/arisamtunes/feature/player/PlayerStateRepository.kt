@@ -26,7 +26,10 @@ class PlayerStateRepository @Inject constructor() {
 
     fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
         _state.update { current ->
-            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = queue.ifEmpty { listOf(song) }, playbackError = null)
+            val normalizedQueue = queue
+                .ifEmpty { current.queue.ifEmpty { listOf(song) } }
+                .let { songs -> if (songs.any { it.id == song.id }) songs else listOf(song) + songs }
+            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = normalizedQueue, playbackError = null)
         }
     }
 

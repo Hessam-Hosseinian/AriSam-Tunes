@@ -24,6 +24,7 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.TeeAudioProcessor
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
+import com.arisamtunes.data.catalog.CatalogRepository
 import com.arisamtunes.data.catalog.SongDto
 import com.arisamtunes.data.local.LocalLibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -44,6 +45,7 @@ class Media3PlaybackController @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val stateRepository: PlayerStateRepository,
     private val localLibraryRepository: LocalLibraryRepository,
+    private val catalogRepository: CatalogRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val streamCache = SimpleCache(
@@ -85,6 +87,7 @@ class Media3PlaybackController @Inject constructor(
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 stateRepository.setProgress(player.currentPosition.toInt() / 1000)
+                if (playbackState == Player.STATE_ENDED) skipToNext()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -100,32 +103,50 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
-    fun play(song: SongDto) {
-        stateRepository.play(song)
+    fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
         scope.launch {
-            runCatching {
-                startPlaybackServiceSafely()
-                val playbackSource = localLibraryRepository.playbackSource(song)
-                player.setMediaItem(
-                    MediaItem.Builder()
-                        .setUri(playbackSource)
-                        .setMediaId(song.id)
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(song.title)
-                                .setArtist(song.artistName)
-                                .setAlbumTitle(song.album)
-                                .setArtworkUri(android.net.Uri.parse(song.coverImageUrl))
-                                .build(),
-                        )
-                        .build(),
-                )
-                player.prepare()
-                player.play()
-            }.onFailure { error ->
-                stateRepository.setPlaybackError(error.localizedMessage ?: "Playback failed")
-            }
+            val playbackQueue = resolvePlaybackQueue(song, queue)
+            playResolved(song, playbackQueue)
         }
+    }
+
+    private suspend fun playResolved(song: SongDto, queue: List<SongDto>) {
+        stateRepository.play(song, queue)
+        runCatching {
+            localLibraryRepository.recordPlayed(song)
+            startPlaybackServiceSafely()
+            val playbackSource = localLibraryRepository.playbackSource(song)
+            player.setMediaItem(
+                MediaItem.Builder()
+                    .setUri(playbackSource)
+                    .setMediaId(song.id)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(song.title)
+                            .setArtist(song.artistName)
+                            .setAlbumTitle(song.album)
+                            .setArtworkUri(android.net.Uri.parse(song.coverImageUrl))
+                            .build(),
+                    )
+                    .build(),
+            )
+            player.prepare()
+            player.play()
+            queue.nextAfter(song)?.let { crossfadeCoordinator.prepareNext(it, stateRepository.state.value.isCrossfadeEnabled) }
+        }.onFailure { error ->
+            stateRepository.setPlaybackError(error.localizedMessage ?: "Playback failed")
+        }
+    }
+
+    private suspend fun resolvePlaybackQueue(song: SongDto, requestedQueue: List<SongDto>): List<SongDto> {
+        val source = requestedQueue.ifEmpty {
+            runCatching {
+                catalogRepository.songs(page = 0, size = 100).items
+            }.getOrDefault(emptyList())
+        }
+        val unique = (listOf(song) + source).distinctBy(SongDto::id)
+        val selectedIndex = unique.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+        return unique.drop(selectedIndex) + unique.take(selectedIndex)
     }
 
     fun retry() {
@@ -158,6 +179,28 @@ class Media3PlaybackController @Inject constructor(
             safePlay()
             stateRepository.setPlaying(player.isPlaying)
         }
+    }
+
+    fun skipToNext() {
+        val state = stateRepository.state.value
+        val current = state.currentSong ?: return
+        val queue = state.queue
+        val next = queue.nextAfter(current) ?: return
+        scope.launch { playResolved(next, queue) }
+    }
+
+    fun skipToPrevious() {
+        val state = stateRepository.state.value
+        val current = state.currentSong ?: return
+        if (player.currentPosition > RestartPreviousThresholdMillis) {
+            seekTo(0)
+            return
+        }
+        val queue = state.queue
+        val currentIndex = queue.indexOfFirst { it.id == current.id }
+        if (queue.size <= 1 || currentIndex < 0) return
+        val previous = queue[Math.floorMod(currentIndex - 1, queue.size)]
+        scope.launch { playResolved(previous, queue) }
     }
 
     fun setPlaybackSpeed(speed: Float) {
@@ -271,5 +314,13 @@ class Media3PlaybackController @Inject constructor(
         const val MaxStreamCacheBytes = 256L * 1024L * 1024L
         const val FallbackUpdateIntervalMillis = 80L
         const val FreshSignalMillis = 180L
+        const val RestartPreviousThresholdMillis = 3_000L
     }
+}
+
+private fun List<SongDto>.nextAfter(song: SongDto): SongDto? {
+    if (size <= 1) return null
+    val currentIndex = indexOfFirst { it.id == song.id }
+    if (currentIndex < 0) return null
+    return this[(currentIndex + 1) % size]
 }
