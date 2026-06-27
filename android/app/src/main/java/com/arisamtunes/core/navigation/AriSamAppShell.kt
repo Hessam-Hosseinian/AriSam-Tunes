@@ -42,6 +42,7 @@ import com.arisamtunes.feature.downloads.DownloadsRoute
 import com.arisamtunes.feature.chat.ChatDetailRoute
 import com.arisamtunes.feature.chat.ChatListRoute
 import com.arisamtunes.feature.home.HomeRoute
+import com.arisamtunes.feature.library.LibraryCollectionRoute
 import com.arisamtunes.feature.search.SearchRoute
 import com.arisamtunes.feature.playlists.PlaylistDetailRoute
 import com.arisamtunes.feature.playlists.PlaylistsRoute
@@ -60,6 +61,7 @@ private const val NowPlayingRoutePath = "now-playing"
 private const val UserProfileRoutePattern = "social/user/{userId}"
 private const val UserListRoutePattern = "social/users/{userId}/{kind}"
 private const val ChatDetailRoutePattern = "chat/{userId}"
+private const val LibraryCollectionRoutePattern = "library/{kind}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,7 +160,8 @@ fun AriSamAppShell() {
                             when (action) {
                                 HomeQuickAction.Playlists -> navController.navigateTopLevel(AppDestination.Playlists.route)
                                 HomeQuickAction.Artists -> navController.navigateTopLevel(AppDestination.Search.route)
-                                HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigateTopLevel(AppDestination.Downloads.route)
+                                HomeQuickAction.Liked -> navController.navigate(libraryRoute("liked"))
+                                HomeQuickAction.Recent -> navController.navigate(libraryRoute("recent"))
                             }
                         },
                     )
@@ -176,6 +179,12 @@ fun AriSamAppShell() {
                 }
                 composable(PlaylistDetailRoutePattern) {
                     PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate(songRoute(it.id)) })
+                }
+                composable(LibraryCollectionRoutePattern) {
+                    LibraryCollectionRoute(
+                        onBack = navController::popBackStack,
+                        onSongClick = { navController.navigate(songRoute(it)) },
+                    )
                 }
                 composable(SongDetailRoutePattern) {
                     SongDetailRoute(
@@ -245,3 +254,4 @@ private fun playlistRoute(playlistId: String) = "playlist/${Uri.encode(playlistI
 private fun chatRoute(userId: String) = "chat/${Uri.encode(userId)}"
 private fun userProfileRoute(userId: String) = "social/user/${Uri.encode(userId)}"
 private fun userListRoute(userId: String, kind: String) = "social/users/${Uri.encode(userId)}/${Uri.encode(kind)}"
+private fun libraryRoute(kind: String) = "library/${Uri.encode(kind)}"

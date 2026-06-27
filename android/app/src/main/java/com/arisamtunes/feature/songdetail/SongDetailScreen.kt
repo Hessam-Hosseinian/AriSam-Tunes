@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Explicit
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -73,6 +75,7 @@ fun SongDetailRoute(
         onBack = onBack,
         onPlay = onPlay,
         onRetry = viewModel::refresh,
+        onToggleLike = viewModel::toggleLike,
         onAddToPlaylistClick = viewModel::openPlaylistPicker,
         onPlaylistSelected = viewModel::addToPlaylist,
         onDismissPlaylistPicker = viewModel::closePlaylistPicker,
@@ -85,6 +88,7 @@ private fun SongDetailScreen(
     onBack: () -> Unit,
     onPlay: (SongDto) -> Unit,
     onRetry: () -> Unit,
+    onToggleLike: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onPlaylistSelected: (PlaylistDto) -> Unit,
     onDismissPlaylistPicker: () -> Unit,
@@ -98,7 +102,7 @@ private fun SongDetailScreen(
             state.isLoading -> Loading()
             state.hasError -> ErrorState(onRetry)
             state.song == null -> EmptyState()
-            else -> SongMetadata(state.song, onPlay, onAddToPlaylistClick)
+            else -> SongMetadata(state.song, state.isLiked, onPlay, onToggleLike, onAddToPlaylistClick)
         }
     }
     if (state.showPlaylistPicker) {
@@ -112,7 +116,13 @@ private fun SongDetailScreen(
 }
 
 @Composable
-private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit, onAddToPlaylistClick: () -> Unit) {
+private fun SongMetadata(
+    song: SongDto,
+    isLiked: Boolean,
+    onPlay: (SongDto) -> Unit,
+    onToggleLike: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
+) {
     val spacing = AriSamThemeTokens.spacing
     val facts = song.metadataFacts()
     LazyColumn(
@@ -122,12 +132,18 @@ private fun SongMetadata(song: SongDto, onPlay: (SongDto) -> Unit, onAddToPlayli
     ) {
         item { SongHero(song, onPlay) }
         item {
-            Button(
-                onClick = onAddToPlaylistClick,
+            Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
             ) {
-                Icon(Icons.Rounded.Add, null)
-                Text(stringResource(R.string.playlist_add_song))
+                Button(onClick = onToggleLike, modifier = Modifier.weight(1f)) {
+                    Icon(if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null)
+                    Text(stringResource(if (isLiked) R.string.song_liked else R.string.song_like))
+                }
+                Button(onClick = onAddToPlaylistClick, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Rounded.Add, null)
+                    Text(stringResource(R.string.playlist_add_song))
+                }
             }
         }
         if (song.tags.isNotEmpty() || song.isExplicit || song.isLocal || song.isDemo) {

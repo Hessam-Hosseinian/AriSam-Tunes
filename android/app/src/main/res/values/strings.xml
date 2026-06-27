@@ -42,6 +42,10 @@
     <string name="home_load_error">We couldn’t load your music right now.</string>
     <string name="retry">Retry</string>
     <string name="play">Play</string>
+    <string name="song_like">Like</string>
+    <string name="song_liked">Liked</string>
+    <string name="library_liked_empty">Like songs from the song detail screen and they will appear here.</string>
+    <string name="library_recent_empty">Play a song and your listening history will appear here.</string>
     <string name="search_music">Search music</string>
     <string name="clear_search">Clear search</string>
     <string name="search_hint">Search songs, artists, albums, and genres</string>
