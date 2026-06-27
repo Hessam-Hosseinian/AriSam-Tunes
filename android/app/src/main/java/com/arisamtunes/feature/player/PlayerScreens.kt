@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
@@ -120,28 +118,25 @@ fun NowPlayingRoute(
         } else {
             val gradient = remember(song.id) { playerGradient(song.title, song.artistName) }
             Column(
-                modifier = Modifier.fillMaxSize().background(gradient).verticalScroll(rememberScrollState()).padding(AriSamThemeTokens.spacing.lg),
+                modifier = Modifier.fillMaxSize().background(gradient).padding(AriSamThemeTokens.spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.md),
+                verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                RotatingCover(song.coverImageUrl, song.title, state.isPlaying, Modifier.fillMaxWidth(.74f).aspectRatio(1f))
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Column(
-                        Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.md),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.xs),
-                    ) {
-                        Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        song.album?.takeIf(String::isNotBlank)?.let {
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        Text(
-                            stringResource(R.string.player_queue_count, state.queue.size.coerceAtLeast(1)),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                RotatingCover(song.coverImageUrl, song.title, state.isPlaying, Modifier.fillMaxWidth(.72f).aspectRatio(1f))
+                Column(
+                    Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        song.album?.takeIf(String::isNotBlank) ?: stringResource(R.string.player_queue_count, state.queue.size.coerceAtLeast(1)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 state.playbackError?.let { error ->
                     GlassCard(Modifier.fillMaxWidth()) {
@@ -162,7 +157,7 @@ fun NowPlayingRoute(
                     bands = state.visualizerBands,
                 )
                 GlassCard(Modifier.fillMaxWidth()) {
-                    Column(Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.md)) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamThemeTokens.spacing.sm)) {
                         Slider(
                             value = state.progressSeconds.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
                             onValueChange = { viewModel.seekTo(it.toInt()) },
@@ -172,7 +167,7 @@ fun NowPlayingRoute(
                             Text(formatDuration(state.progressSeconds), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(formatDuration(song.durationSeconds), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Spacer(Modifier.height(AriSamThemeTokens.spacing.md))
+                        Spacer(Modifier.height(AriSamThemeTokens.spacing.sm))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -203,7 +198,8 @@ fun NowPlayingRoute(
                 }
                 Row(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     androidx.compose.material3.AssistChip(
                         onClick = viewModel::cyclePlaybackSpeed,
@@ -246,7 +242,7 @@ private fun AudioVisualizer(
         color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
         shape = MaterialTheme.shapes.extraLarge,
     ) {
-        Column(Modifier.padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 stringResource(R.string.visualizer),
                 modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.md),
@@ -254,7 +250,7 @@ private fun AudioVisualizer(
                 color = MaterialTheme.colorScheme.primary,
             )
             Canvas(
-                modifier = Modifier.fillMaxWidth().height(86.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
+                modifier = Modifier.fillMaxWidth().height(58.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
             ) {
                 val bars = animatedBands.size.coerceAtLeast(1)
                 val gap = size.width / (bars * 2.1f)
