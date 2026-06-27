@@ -9,8 +9,10 @@ import javax.inject.Singleton
 
 data class PlayerState(
     val currentSong: SongDto? = null,
+    val crossfadeSong: SongDto? = null,
     val isPlaying: Boolean = false,
     val progressSeconds: Int = 0,
+    val crossfadeProgressSeconds: Int = 0,
     val queue: List<SongDto> = emptyList(),
     val playbackSpeed: Float = 1f,
     val sleepTimerEndsAtMillis: Long? = null,
@@ -29,7 +31,15 @@ class PlayerStateRepository @Inject constructor() {
             val normalizedQueue = queue
                 .ifEmpty { current.queue.ifEmpty { listOf(song) } }
                 .let { songs -> if (songs.any { it.id == song.id }) songs else listOf(song) + songs }
-            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = normalizedQueue, playbackError = null)
+            current.copy(
+                currentSong = song,
+                crossfadeSong = null,
+                isPlaying = true,
+                progressSeconds = 0,
+                crossfadeProgressSeconds = 0,
+                queue = normalizedQueue,
+                playbackError = null,
+            )
         }
     }
 
@@ -51,6 +61,12 @@ class PlayerStateRepository @Inject constructor() {
 
     fun setProgress(seconds: Int) {
         _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+    }
+
+    fun setCrossfadePreview(song: SongDto?, seconds: Int = 0) {
+        _state.update { state ->
+            state.copy(crossfadeSong = song, crossfadeProgressSeconds = seconds.coerceIn(0, song?.durationSeconds ?: 0))
+        }
     }
 
     fun setVisualizerBands(bands: List<Float>) {

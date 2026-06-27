@@ -112,7 +112,13 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
-    private suspend fun playResolved(song: SongDto, queue: List<SongDto>, startPositionMillis: Long, cancelTransition: Boolean) {
+    private suspend fun playResolved(
+        song: SongDto,
+        queue: List<SongDto>,
+        startPositionMillis: Long,
+        cancelTransition: Boolean,
+        initialVolume: Float = 1f,
+    ) {
         stateRepository.play(song, queue)
         runCatching {
             if (cancelTransition) {
@@ -122,7 +128,7 @@ class Media3PlaybackController @Inject constructor(
             localLibraryRepository.recordPlayed(song)
             startPlaybackServiceSafely()
             val playbackSource = localLibraryRepository.playbackSource(song)
-            player.volume = 1f
+            player.volume = initialVolume.coerceIn(0f, 1f)
             player.setMediaItem(
                 MediaItem.Builder()
                     .setUri(playbackSource)
@@ -261,6 +267,7 @@ class Media3PlaybackController @Inject constructor(
             transitionJob?.cancel()
             player.volume = 1f
             crossfadeCoordinator.clear()
+            stateRepository.setCrossfadePreview(null)
         }
         val state = stateRepository.state.value
         state.currentSong?.let { current ->
@@ -336,12 +343,23 @@ class Media3PlaybackController @Inject constructor(
                     playResolved(next, state.queue, startPositionMillis = 0L, cancelTransition = true)
                     return@launch
                 }
+                stateRepository.setCrossfadePreview(next, seconds = 0)
                 blendVolumes(durationMillis = CrossfadeDurationMillis)
+                val handoffPosition = crossfadeCoordinator.currentPositionMillis()
+                playResolved(
+                    next,
+                    state.queue,
+                    startPositionMillis = handoffPosition,
+                    cancelTransition = false,
+                    initialVolume = 0f,
+                )
+                blendHandoff(durationMillis = HandoffMillis)
                 crossfadeCoordinator.clear()
-                playResolved(next, state.queue, startPositionMillis = CrossfadeDurationMillis, cancelTransition = false)
+                stateRepository.setCrossfadePreview(null)
             }.onFailure {
                 player.volume = 1f
                 crossfadeCoordinator.clear()
+                stateRepository.setCrossfadePreview(null)
                 stateRepository.setPlaybackError(it.localizedMessage ?: "Crossfade failed")
             }
         }
@@ -361,6 +379,22 @@ class Media3PlaybackController @Inject constructor(
             val fraction = step / steps.toFloat()
             player.volume = 1f - fraction
             crossfadeCoordinator.setVolume(fraction)
+            stateRepository.setCrossfadePreview(
+                stateRepository.state.value.crossfadeSong,
+                seconds = (crossfadeCoordinator.currentPositionMillis() / 1000L).toInt(),
+            )
+            delay(stepDelay)
+        }
+        player.volume = 0f
+    }
+
+    private suspend fun blendHandoff(durationMillis: Long) {
+        val steps = 8
+        val stepDelay = durationMillis / steps
+        repeat(steps + 1) { step ->
+            val fraction = step / steps.toFloat()
+            player.volume = fraction
+            crossfadeCoordinator.setVolume(1f - fraction)
             delay(stepDelay)
         }
         player.volume = 1f
@@ -384,6 +418,7 @@ class Media3PlaybackController @Inject constructor(
         const val FreshSignalMillis = 180L
         const val RestartPreviousThresholdMillis = 3_000L
         const val CrossfadeDurationMillis = 10_000L
+        const val HandoffMillis = 420L
     }
 }
 

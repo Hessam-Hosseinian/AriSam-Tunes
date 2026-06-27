@@ -107,7 +107,7 @@ fun NowPlayingRoute(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val song = state.currentSong
+    val song = state.crossfadeSong ?: state.currentSong
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
@@ -158,13 +158,14 @@ fun NowPlayingRoute(
                 )
                 GlassCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamThemeTokens.spacing.sm)) {
+                        val displayedProgress = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds
                         Slider(
-                            value = state.progressSeconds.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
+                            value = displayedProgress.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
                             onValueChange = { viewModel.seekTo(it.toInt()) },
                             valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(formatDuration(state.progressSeconds), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(formatDuration(song.durationSeconds), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(Modifier.height(AriSamThemeTokens.spacing.sm))

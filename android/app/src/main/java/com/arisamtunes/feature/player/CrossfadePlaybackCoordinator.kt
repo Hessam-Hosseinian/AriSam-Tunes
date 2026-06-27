@@ -55,6 +55,8 @@ class CrossfadePlaybackCoordinator(
         secondaryPlayer.volume = volume.coerceIn(0f, 1f)
     }
 
+    fun currentPositionMillis(): Long = secondaryPlayer.currentPosition.coerceAtLeast(0L)
+
     fun clear() {
         secondaryPlayer.stop()
         secondaryPlayer.clearMediaItems()
