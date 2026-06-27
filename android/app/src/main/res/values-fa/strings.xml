@@ -115,6 +115,7 @@
     <string name="no_song_playing">هنوز آهنگی در حال پخش نیست</string>
     <string name="previous_track">آهنگ قبلی</string>
     <string name="next_track">آهنگ بعدی</string>
+    <string name="player_queue_count">%1$d آهنگ در صف</string>
     <string name="media3_pending_note">کنترل‌های نمایشی آماده‌اند. پخش واقعی Media3 در گام‌های بعدی پخش‌کننده اضافه می‌شود.</string>
     <string name="visualizer">ویژوالایزر</string>
     <string name="social_profile">پروفایل اجتماعی</string>
