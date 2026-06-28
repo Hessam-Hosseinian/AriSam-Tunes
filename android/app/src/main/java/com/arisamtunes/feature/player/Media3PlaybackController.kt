@@ -29,6 +29,7 @@ import com.arisamtunes.data.catalog.SongDto
 import com.arisamtunes.data.local.LocalLibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,12 +58,11 @@ class Media3PlaybackController @Inject constructor(
         .setCache(streamCache)
         .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(OkHttpClient()))
         .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-    private val realtimeVisualizer = RealtimeFftAudioBufferSink(stateRepository::setVisualizerBands)
+    private val realtimeVisualizers = CopyOnWriteArrayList<RealtimeFftAudioBufferSink>()
     private val renderersFactory = FftRenderersFactory(
         appContext,
-        DefaultAudioSink.Builder(appContext)
-            .setAudioProcessors(arrayOf(TeeAudioProcessor(realtimeVisualizer)))
-            .build(),
+        onVisualizerCreated = realtimeVisualizers::add,
+        onBands = stateRepository::setVisualizerBands,
     )
     private val player = ExoPlayer.Builder(appContext, renderersFactory)
         .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
@@ -359,10 +359,10 @@ class Media3PlaybackController @Inject constructor(
 
     private fun updateFallbackVisualizer() {
         val now = android.os.SystemClock.elapsedRealtime()
-        val hasFreshAudioSignal = now - realtimeVisualizer.lastBandUpdateMillis < FreshSignalMillis
+        val hasFreshAudioSignal = realtimeVisualizers.any { now - it.lastBandUpdateMillis < FreshSignalMillis }
         if (!hasFreshAudioSignal && now - lastFallbackVisualizerAtMillis >= FallbackUpdateIntervalMillis) {
             lastFallbackVisualizerAtMillis = now
-            stateRepository.setVisualizerBands(realtimeVisualizer.decayedBands())
+            realtimeVisualizers.firstOrNull()?.let { stateRepository.setVisualizerBands(it.decayedBands()) }
         }
     }
 
@@ -476,13 +476,20 @@ class Media3PlaybackController @Inject constructor(
 
     private class FftRenderersFactory(
         context: Context,
-        private val audioSink: AudioSink,
+        private val onVisualizerCreated: (RealtimeFftAudioBufferSink) -> Unit,
+        private val onBands: (List<Float>) -> Unit,
     ) : DefaultRenderersFactory(context) {
         override fun buildAudioSink(
             context: Context,
             enableFloatOutput: Boolean,
             enableAudioTrackPlaybackParams: Boolean,
-        ): AudioSink = audioSink
+        ): AudioSink {
+            val visualizer = RealtimeFftAudioBufferSink(onBands)
+            onVisualizerCreated(visualizer)
+            return DefaultAudioSink.Builder(context)
+                .setAudioProcessors(arrayOf(TeeAudioProcessor(visualizer)))
+                .build()
+        }
     }
 
     private companion object {
