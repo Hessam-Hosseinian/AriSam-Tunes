@@ -67,7 +67,7 @@ class Media3PlaybackController @Inject constructor(
     private val player = ExoPlayer.Builder(appContext, renderersFactory)
         .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
         .build()
-    private val crossfadeCoordinator = CrossfadePlaybackCoordinator(appContext, cacheDataSourceFactory) {
+    private val crossfadeCoordinator = CrossfadePlaybackCoordinator(appContext, cacheDataSourceFactory, renderersFactory) {
         if (secondaryActiveSong != null) skipToNext()
     }
     private var sleepTimerJob: Job? = null
@@ -86,12 +86,16 @@ class Media3PlaybackController @Inject constructor(
         )
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                stateRepository.setPlaying(isPlaying)
+                if (secondaryActiveSong == null && stateRepository.state.value.crossfadeSong == null) {
+                    stateRepository.setPlaying(isPlaying)
+                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                stateRepository.setProgress(player.currentPosition.toInt() / 1000)
-                if (playbackState == Player.STATE_ENDED && transitionJob?.isActive != true) skipToNext()
+                if (secondaryActiveSong == null) {
+                    stateRepository.setProgress(player.currentPosition.toInt() / 1000)
+                }
+                if (playbackState == Player.STATE_ENDED && transitionJob?.isActive != true && secondaryActiveSong == null) skipToNext()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -100,11 +104,7 @@ class Media3PlaybackController @Inject constructor(
         })
         scope.launch {
             while (true) {
-                val activeProgress = if (secondaryActiveSong != null || stateRepository.state.value.crossfadeSong != null) {
-                    crossfadeCoordinator.currentPositionMillis()
-                } else {
-                    player.currentPosition
-                }
+                val activeProgress = activePositionMillis()
                 stateRepository.setProgress(activeProgress.toInt() / 1000)
                 updateFallbackVisualizer()
                 maybeStartCrossfade()
@@ -189,14 +189,24 @@ class Media3PlaybackController @Inject constructor(
 
     fun safePause() {
         runCatching {
-            if (secondaryActiveSong != null || stateRepository.state.value.crossfadeSong != null) crossfadeCoordinator.pause() else player.pause()
+            if (transitionJob?.isActive == true) {
+                player.pause()
+                crossfadeCoordinator.pause()
+            } else if (secondaryActiveSong != null) {
+                crossfadeCoordinator.pause()
+            } else {
+                player.pause()
+            }
         }
         stateRepository.setPlaying(false)
     }
 
     private fun safePlay() {
         runCatching {
-            if (secondaryActiveSong != null || stateRepository.state.value.crossfadeSong != null) {
+            if (transitionJob?.isActive == true) {
+                player.play()
+                crossfadeCoordinator.play()
+            } else if (secondaryActiveSong != null) {
                 crossfadeCoordinator.play()
             } else {
                 player.volume = 1f
@@ -207,11 +217,11 @@ class Media3PlaybackController @Inject constructor(
     }
 
     fun togglePlayPause() {
-        if (player.isPlaying) {
+        if (activeIsPlaying()) {
             safePause()
         } else {
             safePlay()
-            stateRepository.setPlaying(player.isPlaying)
+            stateRepository.setPlaying(activeIsPlaying())
         }
     }
 
@@ -241,6 +251,9 @@ class Media3PlaybackController @Inject constructor(
         val safeSpeed = speed.coerceIn(0.5f, 2f)
         runCatching {
             player.playbackParameters = PlaybackParameters(safeSpeed)
+            // Keep both decks aligned so playback speed survives crossfade swaps.
+            // Secondary no-ops if it has no prepared media.
+            runCatching { crossfadeCoordinator.playbackSpeed(safeSpeed) }
             stateRepository.setPlaybackSpeed(safeSpeed)
         }.onFailure {
             stateRepository.setPlaybackError(it.localizedMessage ?: "Could not change playback speed")
@@ -293,7 +306,9 @@ class Media3PlaybackController @Inject constructor(
     fun seekTo(seconds: Int) {
         runCatching {
             val positionMillis = seconds * 1000L
-            if (secondaryActiveSong != null || stateRepository.state.value.crossfadeSong != null) {
+            val previewOnSecondary = stateRepository.state.value.crossfadeSong != null && secondaryActiveSong == null
+            val previewOnPrimary = stateRepository.state.value.crossfadeSong != null && secondaryActiveSong != null
+            if (previewOnSecondary || secondaryActiveSong != null && !previewOnPrimary) {
                 crossfadeCoordinator.seekTo(positionMillis)
                 stateRepository.state.value.crossfadeSong?.let { stateRepository.setCrossfadePreview(it, seconds) }
             } else {
@@ -353,27 +368,39 @@ class Media3PlaybackController @Inject constructor(
 
     private fun maybeStartCrossfade() {
         val state = stateRepository.state.value
-        if (!state.isCrossfadeEnabled || !player.isPlaying || transitionJob?.isActive == true || secondaryActiveSong != null) return
+        if (!state.isCrossfadeEnabled || transitionJob?.isActive == true) return
         val current = state.currentSong ?: return
         val next = state.queue.nextAfter(current) ?: return
-        val duration = player.duration
-        if (duration <= CrossfadeDurationMillis || player.currentPosition < duration - CrossfadeDurationMillis) return
+        val duration = activeDurationMillis()
+        val position = activePositionMillis()
+        val isPlaying = if (secondaryActiveSong != null) crossfadeCoordinator.isPlaying() else player.isPlaying
+        if (!isPlaying || duration <= CrossfadeDurationMillis || position < duration - CrossfadeDurationMillis) return
         transitionJob = scope.launch {
             runCatching {
-                prepareCrossfadeNext(current, state.queue)
-                if (!crossfadeCoordinator.startPrepared(next)) {
-                    playResolved(next, state.queue, startPositionMillis = 0L, cancelTransition = true)
-                    return@launch
+                if (secondaryActiveSong == null) {
+                    prepareCrossfadeNext(current, state.queue)
+                    if (!crossfadeCoordinator.startPrepared(next)) {
+                        playResolved(next, state.queue, startPositionMillis = 0L, cancelTransition = true)
+                        return@launch
+                    }
+                    stateRepository.setCrossfadePreview(next, seconds = 0)
+                    blendVolumes(primaryToSecondary = true, durationMillis = CrossfadeDurationMillis)
+                    secondaryActiveSong = next
+                    player.stop()
+                    player.clearMediaItems()
+                    player.volume = 1f
+                } else {
+                    preparePrimaryDeck(next)
+                    stateRepository.setCrossfadePreview(next, seconds = 0)
+                    blendVolumes(primaryToSecondary = false, durationMillis = CrossfadeDurationMillis)
+                    crossfadeCoordinator.clear()
+                    secondaryActiveSong = null
                 }
-                stateRepository.setCrossfadePreview(next, seconds = 0)
-                blendVolumes(durationMillis = CrossfadeDurationMillis)
-                secondaryActiveSong = next
-                player.stop()
-                player.clearMediaItems()
-                player.volume = 1f
                 stateRepository.play(next, state.queue)
-                stateRepository.setProgress((crossfadeCoordinator.currentPositionMillis() / 1000L).toInt())
+                localLibraryRepository.recordPlayed(next)
+                stateRepository.setProgress((activePositionMillis() / 1000L).toInt())
                 stateRepository.setCrossfadePreview(null)
+                prepareCrossfadeNext(next, state.queue)
             }.onFailure {
                 player.volume = 1f
                 crossfadeCoordinator.clear()
@@ -385,27 +412,67 @@ class Media3PlaybackController @Inject constructor(
     }
 
     private suspend fun prepareCrossfadeNext(current: SongDto, queue: List<SongDto>) {
-        if (!stateRepository.state.value.isCrossfadeEnabled) return
+        if (!stateRepository.state.value.isCrossfadeEnabled || secondaryActiveSong != null) return
         val next = queue.nextAfter(current) ?: return
         val nextSource = localLibraryRepository.playbackSource(next)
         crossfadeCoordinator.prepareNext(next, nextSource, enabled = true)
     }
 
-    private suspend fun blendVolumes(durationMillis: Long) {
+    private suspend fun preparePrimaryDeck(song: SongDto) {
+        val source = localLibraryRepository.playbackSource(song)
+        player.volume = 0f
+        player.setMediaItem(
+            MediaItem.Builder()
+                .setUri(source)
+                .setMediaId(song.id)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(song.title)
+                        .setArtist(song.artistName)
+                        .setAlbumTitle(song.album)
+                        .setArtworkUri(android.net.Uri.parse(song.coverImageUrl))
+                        .build(),
+                )
+                .build(),
+        )
+        player.prepare()
+        player.play()
+    }
+
+    private suspend fun blendVolumes(primaryToSecondary: Boolean, durationMillis: Long) {
         val steps = 40
         val stepDelay = durationMillis / steps
         repeat(steps + 1) { step ->
             val fraction = step / steps.toFloat()
-            player.volume = 1f - fraction
-            crossfadeCoordinator.setVolume(fraction)
+            if (primaryToSecondary) {
+                player.volume = 1f - fraction
+                crossfadeCoordinator.setVolume(fraction)
+            } else {
+                crossfadeCoordinator.setVolume(1f - fraction)
+                player.volume = fraction
+            }
             stateRepository.setCrossfadePreview(
                 stateRepository.state.value.crossfadeSong,
-                seconds = (crossfadeCoordinator.currentPositionMillis() / 1000L).toInt(),
+                seconds = (previewPositionMillis() / 1000L).toInt(),
             )
             delay(stepDelay)
         }
-        player.volume = 0f
+        if (primaryToSecondary) {
+            player.volume = 0f
+            crossfadeCoordinator.setVolume(1f)
+        } else {
+            crossfadeCoordinator.setVolume(0f)
+            player.volume = 1f
+        }
     }
+
+    private fun activePositionMillis(): Long = if (secondaryActiveSong != null) crossfadeCoordinator.currentPositionMillis() else player.currentPosition.coerceAtLeast(0L)
+
+    private fun activeDurationMillis(): Long = if (secondaryActiveSong != null) crossfadeCoordinator.durationMillis() else player.duration
+
+    private fun previewPositionMillis(): Long = if (secondaryActiveSong == null) crossfadeCoordinator.currentPositionMillis() else player.currentPosition.coerceAtLeast(0L)
+
+    private fun activeIsPlaying(): Boolean = if (secondaryActiveSong != null) crossfadeCoordinator.isPlaying() else player.isPlaying
 
     private class FftRenderersFactory(
         context: Context,
