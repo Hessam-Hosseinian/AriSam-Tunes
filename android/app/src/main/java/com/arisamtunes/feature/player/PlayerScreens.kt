@@ -1,6 +1,7 @@
 package com.arisamtunes.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -21,13 +22,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
@@ -35,6 +41,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Shuffle
@@ -59,6 +66,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -134,12 +143,12 @@ fun NowPlayingRoute(
         EmptyPlayer()
     } else {
         var coverColors by remember(song.id) {
-            mutableStateOf(listOf(Color(0xFF151515), Color(0xFF07191D), Color.Black))
+            mutableStateOf(listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95), Color(0xFF06060F)))
         }
         AnimatedPlayerBackground(colors = coverColors)
         CompositionLocalProvider(LocalContentColor provides Color.White) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -148,62 +157,73 @@ fun NowPlayingRoute(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.back), modifier = Modifier.size(34.dp))
+                    Surface(
+                        modifier = Modifier.size(38.dp),
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = .08f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(20.dp))
+                        }
                     }
-                    Row {
-                        IconButton(onClick = viewModel::toggleCrossfade) {
-                            Icon(Icons.Rounded.SwapHoriz, stringResource(if (state.isCrossfadeEnabled) R.string.crossfade_on else R.string.crossfade_off))
+                    Text(
+                        stringResource(R.string.now_playing).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = .42f),
+                    )
+                    Surface(
+                        modifier = Modifier.size(38.dp),
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = .08f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+                    ) {
+                        IconButton(onClick = {}) {
+                            Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(20.dp))
                         }
-                        IconButton(onClick = viewModel::cyclePlaybackSpeed) {
-                            Icon(Icons.Rounded.VolumeUp, null)
-                        }
-                        IconButton(onClick = {}) { Icon(Icons.Rounded.GraphicEq, null) }
-                        IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
                     }
                 }
-                AlbumCover(
+                VinylHero(
                     coverUrl = song.coverImageUrl,
                     title = song.title,
-                    modifier = Modifier.fillMaxWidth(.92f).aspectRatio(1f),
+                    isPlaying = state.isPlaying,
                     onPalette = { coverColors = it },
                 )
                 Column(
                     Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = .76f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(verticalAlignment = Alignment.Top) {
+                        Column(Modifier.weight(1f)) {
+                            Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                listOfNotNull(song.artistName, song.album?.takeIf(String::isNotBlank)).joinToString("  ·  "),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = .55f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        IconButton(onClick = {}) { Icon(Icons.Rounded.FavoriteBorder, null, tint = Color.White.copy(alpha = .5f)) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        QualityBadge("HI-RES", Color(0xFFA78BFA))
+                        QualityBadge("LOSSLESS", Color(0xFF34D399))
+                        QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        PlayerTextAction(Icons.Rounded.Share, "Share")
+                        PlayerTextAction(Icons.Rounded.MoreVert, "More")
+                    }
                 }
                 state.playbackError?.let { error ->
-                    GlassCard(Modifier.fillMaxWidth()) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.md),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm),
-                        ) {
-                            Text(error, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            androidx.compose.material3.TextButton(onClick = viewModel::retryPlayback) {
-                                Text(stringResource(R.string.retry))
-                            }
-                        }
-                    }
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
                 }
                 AudioVisualizer(
                     isPlaying = state.isPlaying,
                     bands = state.visualizerBands,
                     compact = true,
                 )
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = {}) { Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(30.dp)) }
-                    IconButton(onClick = {}) { Icon(Icons.Rounded.FavoriteBorder, null, modifier = Modifier.size(30.dp)) }
-                    IconButton(onClick = {}) { Icon(Icons.Rounded.Add, null, modifier = Modifier.size(32.dp)) }
-                }
                 val displayedProgress = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds
                 Column(Modifier.fillMaxWidth()) {
                     Slider(
@@ -212,13 +232,13 @@ fun NowPlayingRoute(
                         valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
                         colors = SliderDefaults.colors(
                             thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = .32f),
+                            activeTrackColor = Color(0xFFB45CFF),
+                            inactiveTrackColor = Color.White.copy(alpha = .1f),
                         ),
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium)
-                        Text(formatDuration(song.durationSeconds), style = MaterialTheme.typography.labelMedium)
+                        Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
+                        Text("-${formatDuration((song.durationSeconds - displayedProgress).coerceAtLeast(0))}", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
                     }
                 }
                 Row(
@@ -226,22 +246,34 @@ fun NowPlayingRoute(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    IconButton(onClick = {}) { Icon(Icons.Rounded.Shuffle, null) }
+                    IconButton(onClick = {}) { Icon(Icons.Rounded.Shuffle, null, tint = Color.White.copy(alpha = .42f)) }
                     IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(60.dp)) {
                         Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
                     }
-                    IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(64.dp)) {
-                        Icon(
-                            if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            stringResource(if (state.isPlaying) R.string.pause else R.string.play),
-                            modifier = Modifier.size(46.dp),
-                        )
+                    Box(
+                        Modifier.size(68.dp).clip(CircleShape).background(
+                            Brush.linearGradient(listOf(Color(0xFFA855F7), Color(0xFFEC4899))),
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                stringResource(if (state.isPlaying) R.string.pause else R.string.play),
+                                modifier = Modifier.size(40.dp),
+                            )
+                        }
                     }
                     IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(60.dp)) {
                         Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
                     }
-                    IconButton(onClick = {}) { Icon(Icons.Rounded.Repeat, null) }
+                    IconButton(onClick = {}) { Icon(Icons.Rounded.Repeat, null, tint = Color.White.copy(alpha = .42f)) }
                 }
+                SecondaryPlayerControls(
+                    onCrossfade = viewModel::toggleCrossfade,
+                    onSpeed = viewModel::cyclePlaybackSpeed,
+                    onSleep = { viewModel.setSleepTimer(if (state.sleepTimerEndsAtMillis == null) 15 else 0) },
+                )
             }
         }
     }
@@ -302,22 +334,48 @@ private fun AudioVisualizer(
 }
 
 @Composable
-private fun AlbumCover(
+private fun VinylHero(
     coverUrl: String,
     title: String,
-    modifier: Modifier = Modifier.size(260.dp),
+    isPlaying: Boolean,
     onPalette: (List<Color>) -> Unit = {},
 ) {
+    val motion = rememberInfiniteTransition(label = "vinylMotion")
+    val rotation by motion.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(20_000, easing = LinearEasing)),
+        label = "vinylRotation",
+    )
+    val pulse by motion.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(tween(1_100), repeatMode = RepeatMode.Reverse),
+        label = "vinylPulse",
+    )
     Box(
-        modifier = modifier.clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+        modifier = Modifier.size(240.dp),
         contentAlignment = Alignment.Center,
     ) {
+        listOf(236.dp, 214.dp, 192.dp).forEachIndexed { index, diameter ->
+            Box(
+                Modifier.size(diameter)
+                    .graphicsLayer {
+                        val amount = if (isPlaying) (pulse - 1f) * (1f - index * .18f) else 0f
+                        scaleX = 1f + amount
+                        scaleY = 1f + amount
+                        alpha = .38f - index * .08f
+                    }
+                    .border(1.dp, Color(0xFFB57BFF), CircleShape),
+            )
+        }
         AsyncImage(
             model = coverUrl,
             contentDescription = title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.size(196.dp).rotate(rotation)
+                .clip(CircleShape)
+                .border(2.dp, Color(0xFFB57BFF).copy(alpha = .7f), CircleShape),
             onSuccess = { success ->
                 Palette.from(success.result.image.toBitmap())
                     .maximumColorCount(12)
@@ -342,6 +400,77 @@ private fun AlbumCover(
                     }
             },
         )
+        Box(
+            Modifier.size(14.dp).clip(CircleShape).background(Color(0xFF090916))
+                .border(2.dp, Color(0xFFB57BFF), CircleShape),
+        )
+    }
+}
+
+@Composable
+private fun QualityBadge(label: String, color: Color) {
+    Surface(
+        shape = MaterialTheme.shapes.extraSmall,
+        color = color.copy(alpha = .1f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = .3f)),
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            color = color,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
+private fun PlayerTextAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Icon(icon, null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = .4f))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .4f))
+    }
+}
+
+@Composable
+private fun SecondaryPlayerControls(
+    onCrossfade: () -> Unit,
+    onSpeed: () -> Unit,
+    onSleep: () -> Unit,
+) {
+    val items = listOf(
+        Triple(Icons.Rounded.Mic, "Lyrics", {}),
+        Triple(Icons.AutoMirrored.Rounded.PlaylistPlay, "Queue", {}),
+        Triple(Icons.Rounded.SwapHoriz, "Crossfade", onCrossfade),
+        Triple(Icons.Rounded.Download, "Save", {}),
+        Triple(Icons.Rounded.Tune, "EQ", onSpeed),
+        Triple(Icons.Rounded.Timer, "Sleep", onSleep),
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = Color.White.copy(alpha = .045f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .08f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            items.forEach { (icon, label, action) ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(
+                        modifier = Modifier.size(34.dp),
+                        shape = MaterialTheme.shapes.small,
+                        color = Color.White.copy(alpha = .07f),
+                    ) {
+                        IconButton(onClick = action) {
+                            Icon(icon, null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = .6f))
+                        }
+                    }
+                    Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .34f))
+                }
+            }
+        }
     }
 }
 
@@ -360,13 +489,13 @@ private fun AnimatedPlayerBackground(colors: List<Color>) {
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         Box(
             Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to Color.Black,
-                        .38f to Color.Black,
-                        .64f to colors.getOrElse(1) { Color.Black }.copy(alpha = .82f),
-                        1f to colors.getOrElse(2) { Color.Black },
+                Brush.radialGradient(
+                    colors = listOf(
+                        colors.firstOrNull()?.copy(alpha = .78f) ?: Color.Transparent,
+                        Color.Transparent,
                     ),
+                    center = Offset(phase * 820f, -80f),
+                    radius = 980f,
                 ),
             ),
         )
@@ -374,11 +503,19 @@ private fun AnimatedPlayerBackground(colors: List<Color>) {
             Modifier.fillMaxSize().background(
                 Brush.radialGradient(
                     colors = listOf(
-                        colors.firstOrNull()?.copy(alpha = .52f) ?: Color.Transparent,
+                        colors.getOrElse(1) { Color.Transparent }.copy(alpha = .7f),
                         Color.Transparent,
                     ),
-                    center = Offset(phase * 1_100f, 1_520f),
-                    radius = 920f,
+                    center = Offset((1f - phase) * 760f, 720f),
+                    radius = 880f,
+                ),
+            ),
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(Color.Transparent, Color(0xE804040C)),
+                    startY = 760f,
                 ),
             ),
         )
