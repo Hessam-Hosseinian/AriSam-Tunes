@@ -47,6 +47,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -209,6 +210,11 @@ fun NowPlayingRoute(
                         value = displayedProgress.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
                         onValueChange = { viewModel.seekTo(it.toInt()) },
                         valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color.White,
+                            activeTrackColor = Color.White,
+                            inactiveTrackColor = Color.White.copy(alpha = .32f),
+                        ),
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium)
@@ -351,15 +357,32 @@ private fun AnimatedPlayerBackground(colors: List<Color>) {
         ),
         label = "coverGradientPhase",
     )
-    Box(
-        Modifier.fillMaxSize().background(
-            Brush.linearGradient(
-                colors = colors,
-                start = Offset(phase * 900f, 0f),
-                end = Offset((1f - phase) * 650f, 1_900f),
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0f to Color.Black,
+                        .38f to Color.Black,
+                        .64f to colors.getOrElse(1) { Color.Black }.copy(alpha = .82f),
+                        1f to colors.getOrElse(2) { Color.Black },
+                    ),
+                ),
             ),
-        ),
-    )
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        colors.firstOrNull()?.copy(alpha = .52f) ?: Color.Transparent,
+                        Color.Transparent,
+                    ),
+                    center = Offset(phase * 1_100f, 1_520f),
+                    radius = 920f,
+                ),
+            ),
+        )
+    }
 }
 
 @Composable
