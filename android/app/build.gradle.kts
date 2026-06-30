@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.media3.database)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.palette)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 

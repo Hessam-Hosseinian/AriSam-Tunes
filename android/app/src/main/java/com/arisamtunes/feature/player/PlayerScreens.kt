@@ -3,7 +3,11 @@ package com.arisamtunes.feature.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,13 +23,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Shuffle
@@ -34,26 +43,35 @@ import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.palette.graphics.Palette
+import coil3.toBitmap
 import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
@@ -111,39 +129,51 @@ fun NowPlayingRoute(
 ) {
     val state by viewModel.state.collectAsState()
     val song = state.crossfadeSong ?: state.currentSong
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
-            Text(stringResource(R.string.now_playing), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    if (song == null) {
+        EmptyPlayer()
+    } else {
+        var coverColors by remember(song.id) {
+            mutableStateOf(listOf(Color(0xFF151515), Color(0xFF07191D), Color.Black))
         }
-        if (song == null) {
-            EmptyPlayer()
-        } else {
-            val gradient = remember(song.id) { playerGradient(song.title, song.artistName) }
+        AnimatedPlayerBackground(colors = coverColors)
+        CompositionLocalProvider(LocalContentColor provides Color.White) {
             Column(
-                modifier = Modifier.fillMaxSize().background(gradient).padding(AriSamThemeTokens.spacing.lg),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                AlbumCover(song.coverImageUrl, song.title, Modifier.fillMaxWidth(.78f).aspectRatio(1f))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.back), modifier = Modifier.size(34.dp))
+                    }
+                    Row {
+                        IconButton(onClick = viewModel::toggleCrossfade) {
+                            Icon(Icons.Rounded.SwapHoriz, stringResource(if (state.isCrossfadeEnabled) R.string.crossfade_on else R.string.crossfade_off))
+                        }
+                        IconButton(onClick = viewModel::cyclePlaybackSpeed) {
+                            Icon(Icons.Rounded.VolumeUp, null)
+                        }
+                        IconButton(onClick = {}) { Icon(Icons.Rounded.GraphicEq, null) }
+                        IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
+                    }
+                }
+                AlbumCover(
+                    coverUrl = song.coverImageUrl,
+                    title = song.title,
+                    modifier = Modifier.fillMaxWidth(.92f).aspectRatio(1f),
+                    onPalette = { coverColors = it },
+                )
                 Column(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        song.album?.takeIf(String::isNotBlank) ?: stringResource(R.string.player_queue_count, state.queue.size.coerceAtLeast(1)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        IconButton(onClick = {}) { Icon(Icons.Rounded.FavoriteBorder, null) }
-                        IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
-                    }
+                    Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(song.artistName, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = .76f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 state.playbackError?.let { error ->
                     GlassCard(Modifier.fillMaxWidth()) {
@@ -162,74 +192,49 @@ fun NowPlayingRoute(
                 AudioVisualizer(
                     isPlaying = state.isPlaying,
                     bands = state.visualizerBands,
+                    compact = true,
                 )
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamThemeTokens.spacing.sm)) {
-                        val displayedProgress = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds
-                        Slider(
-                            value = displayedProgress.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
-                            onValueChange = { viewModel.seekTo(it.toInt()) },
-                            valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
-                        )
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(formatDuration(song.durationSeconds), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(Modifier.height(AriSamThemeTokens.spacing.sm))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                        ) {
-                            IconButton(onClick = {}, modifier = Modifier.size(44.dp)) {
-                                Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(22.dp))
-                            }
-                            IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(58.dp)) {
-                                Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(34.dp))
-                            }
-                            Surface(
-                                modifier = Modifier.size(82.dp),
-                                shape = androidx.compose.foundation.shape.CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ) {
-                                IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.fillMaxSize()) {
-                                    Icon(
-                                        if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                        stringResource(if (state.isPlaying) R.string.pause else R.string.play),
-                                        modifier = Modifier.size(50.dp),
-                                    )
-                                }
-                            }
-                            IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(58.dp)) {
-                                Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(34.dp))
-                            }
-                            IconButton(onClick = {}, modifier = Modifier.size(44.dp)) {
-                                Icon(Icons.Rounded.Repeat, null, modifier = Modifier.size(22.dp))
-                            }
-                        }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = {}) { Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(30.dp)) }
+                    IconButton(onClick = {}) { Icon(Icons.Rounded.FavoriteBorder, null, modifier = Modifier.size(30.dp)) }
+                    IconButton(onClick = {}) { Icon(Icons.Rounded.Add, null, modifier = Modifier.size(32.dp)) }
+                }
+                val displayedProgress = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds
+                Column(Modifier.fillMaxWidth()) {
+                    Slider(
+                        value = displayedProgress.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
+                        onValueChange = { viewModel.seekTo(it.toInt()) },
+                        valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium)
+                        Text(formatDuration(song.durationSeconds), style = MaterialTheme.typography.labelMedium)
                     }
                 }
                 Row(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    androidx.compose.material3.AssistChip(
-                        onClick = viewModel::cyclePlaybackSpeed,
-                        label = { Text("${state.playbackSpeed}x") },
-                        leadingIcon = { Icon(Icons.Rounded.Speed, null) },
-                    )
-                    androidx.compose.material3.AssistChip(
-                        onClick = { viewModel.setSleepTimer(if (state.sleepTimerEndsAtMillis == null) 15 else 0) },
-                        label = { Text(stringResource(if (state.sleepTimerEndsAtMillis == null) R.string.sleep_timer else R.string.sleep_timer_on)) },
-                        leadingIcon = { Icon(Icons.Rounded.Timer, null) },
-                    )
-                    androidx.compose.material3.AssistChip(
-                        onClick = viewModel::toggleCrossfade,
-                        label = { Text(stringResource(if (state.isCrossfadeEnabled) R.string.crossfade_on else R.string.crossfade_off)) },
-                        leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
-                    )
+                    IconButton(onClick = {}) { Icon(Icons.Rounded.Shuffle, null) }
+                    IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(60.dp)) {
+                        Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
+                    }
+                    IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(64.dp)) {
+                        Icon(
+                            if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            stringResource(if (state.isPlaying) R.string.pause else R.string.play),
+                            modifier = Modifier.size(46.dp),
+                        )
+                    }
+                    IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(60.dp)) {
+                        Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
+                    }
+                    IconButton(onClick = {}) { Icon(Icons.Rounded.Repeat, null) }
                 }
             }
         }
@@ -240,9 +245,10 @@ fun NowPlayingRoute(
 private fun AudioVisualizer(
     isPlaying: Boolean,
     bands: List<Float>,
+    compact: Boolean = false,
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
+    val primary = if (compact) Color.White else MaterialTheme.colorScheme.primary
+    val secondary = if (compact) Color.White.copy(alpha = .58f) else MaterialTheme.colorScheme.secondary
     val animatedBands = bands.mapIndexed { index, level ->
         val value by animateFloatAsState(
             targetValue = if (isPlaying) level else level * 0.55f,
@@ -253,18 +259,21 @@ private fun AudioVisualizer(
     }
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+        color = if (compact) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = .74f),
         shape = MaterialTheme.shapes.extraLarge,
     ) {
         Column(Modifier.padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                stringResource(R.string.visualizer),
-                modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.md),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (!compact) {
+                Text(
+                    stringResource(R.string.visualizer),
+                    modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.md),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Canvas(
-                modifier = Modifier.fillMaxWidth().height(58.dp).padding(horizontal = AriSamThemeTokens.spacing.md),
+                modifier = Modifier.fillMaxWidth().height(if (compact) 38.dp else 58.dp)
+                    .padding(horizontal = AriSamThemeTokens.spacing.md),
             ) {
                 val bars = animatedBands.size.coerceAtLeast(1)
                 val gap = size.width / (bars * 2.1f)
@@ -287,7 +296,12 @@ private fun AudioVisualizer(
 }
 
 @Composable
-private fun AlbumCover(coverUrl: String, title: String, modifier: Modifier = Modifier.size(260.dp)) {
+private fun AlbumCover(
+    coverUrl: String,
+    title: String,
+    modifier: Modifier = Modifier.size(260.dp),
+    onPalette: (List<Color>) -> Unit = {},
+) {
     Box(
         modifier = modifier.clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceContainer),
@@ -298,8 +312,54 @@ private fun AlbumCover(coverUrl: String, title: String, modifier: Modifier = Mod
             contentDescription = title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
+            onSuccess = { success ->
+                Palette.from(success.result.image.toBitmap())
+                    .maximumColorCount(12)
+                    .resizeBitmapArea(12_000)
+                    .generate { palette ->
+                        palette ?: return@generate
+                        val dominant = palette.getDominantColor(Color.Black.toArgb())
+                        val vibrant = palette.darkVibrantSwatch?.rgb
+                            ?: palette.vibrantSwatch?.rgb
+                            ?: dominant
+                        val muted = palette.darkMutedSwatch?.rgb
+                            ?: palette.mutedSwatch?.rgb
+                            ?: dominant
+                        onPalette(
+                            listOf(
+                                lerp(Color(vibrant), Color.Black, .58f),
+                                lerp(Color(dominant), Color.Black, .70f),
+                                lerp(Color(muted), Color.Black, .78f),
+                                Color.Black,
+                            ),
+                        )
+                    }
+            },
         )
     }
+}
+
+@Composable
+private fun AnimatedPlayerBackground(colors: List<Color>) {
+    val motion = rememberInfiniteTransition(label = "coverGradient")
+    val phase by motion.animateFloat(
+        initialValue = -0.25f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "coverGradientPhase",
+    )
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.linearGradient(
+                colors = colors,
+                start = Offset(phase * 900f, 0f),
+                end = Offset((1f - phase) * 650f, 1_900f),
+            ),
+        ),
+    )
 }
 
 @Composable
