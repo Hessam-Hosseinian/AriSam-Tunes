@@ -118,6 +118,8 @@
     <string name="player_queue_count">%1$d songs in queue</string>
     <string name="media3_pending_note">Preview controls are ready. Media3 playback is added in the next player milestones.</string>
     <string name="visualizer">Visualizer</string>
+    <string name="live_lyrics">Live lyrics</string>
+    <string name="lyrics_unavailable">Lyrics aren’t available for this song.</string>
     <string name="social_profile">Social profile</string>
     <string name="social_profile_empty">Profile could not be loaded.</string>
     <string name="social_follow">Follow</string>

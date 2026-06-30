@@ -1,5 +1,6 @@
 package com.arisamtunes.feature.player
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
@@ -22,6 +23,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
@@ -58,6 +62,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -87,6 +93,10 @@ import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
+import com.arisamtunes.data.catalog.SongDto
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun MiniPlayer(
@@ -142,11 +152,22 @@ fun NowPlayingRoute(
     if (song == null) {
         EmptyPlayer()
     } else {
+        var showLyrics by remember(song.id) { mutableStateOf(false) }
         var coverColors by remember(song.id) {
             mutableStateOf(listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95), Color(0xFF06060F)))
         }
-        AnimatedPlayerBackground(colors = coverColors)
+        AnimatedPlayerBackground(colors = coverColors, coverUrl = song.coverImageUrl)
         CompositionLocalProvider(LocalContentColor provides Color.White) {
+            if (showLyrics) {
+                LiveLyricsScreen(
+                    song = song,
+                    progressSeconds = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds,
+                    isPlaying = state.isPlaying,
+                    onBack = { showLyrics = false },
+                    onPalette = { coverColors = it },
+                )
+                return@CompositionLocalProvider
+            }
             Column(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -187,6 +208,7 @@ fun NowPlayingRoute(
                     coverUrl = song.coverImageUrl,
                     title = song.title,
                     isPlaying = state.isPlaying,
+                    bands = state.visualizerBands,
                     onPalette = { coverColors = it },
                 )
                 Column(
@@ -270,6 +292,7 @@ fun NowPlayingRoute(
                     IconButton(onClick = {}) { Icon(Icons.Rounded.Repeat, null, tint = Color.White.copy(alpha = .42f)) }
                 }
                 SecondaryPlayerControls(
+                    onLyrics = { showLyrics = true },
                     onCrossfade = viewModel::toggleCrossfade,
                     onSpeed = viewModel::cyclePlaybackSpeed,
                     onSleep = { viewModel.setSleepTimer(if (state.sleepTimerEndsAtMillis == null) 15 else 0) },
@@ -354,6 +377,7 @@ private fun VinylHero(
     coverUrl: String,
     title: String,
     isPlaying: Boolean,
+    bands: List<Float>,
     onPalette: (List<Color>) -> Unit = {},
 ) {
     val motion = rememberInfiniteTransition(label = "vinylMotion")
@@ -385,6 +409,28 @@ private fun VinylHero(
                     .border(1.dp, Color(0xFFB57BFF), CircleShape),
             )
         }
+        Canvas(Modifier.size(236.dp).rotate(rotation * .08f)) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val baseRadius = size.minDimension * .43f
+            val maxBarLength = size.minDimension * .065f
+            val count = 72
+            repeat(count) { index ->
+                val angle = (2f * PI.toFloat() * index / count) - PI.toFloat() / 2f
+                val level = bands.getOrElse(index % bands.size.coerceAtLeast(1)) { .05f }.coerceIn(.04f, 1f)
+                val length = 2.dp.toPx() + maxBarLength * level
+                val direction = Offset(cos(angle), sin(angle))
+                val start = center + direction * baseRadius
+                val end = center + direction * (baseRadius + length)
+                drawLine(
+                    color = lerp(Color(0xFF8B5CF6), Color(0xFFEC4899), index.toFloat() / count)
+                        .copy(alpha = if (isPlaying) .45f + level * .55f else .22f),
+                    start = start,
+                    end = end,
+                    strokeWidth = 1.5.dp.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+        }
         AsyncImage(
             model = coverUrl,
             contentDescription = title,
@@ -393,7 +439,7 @@ private fun VinylHero(
                 .clip(CircleShape)
                 .border(2.dp, Color(0xFFB57BFF).copy(alpha = .7f), CircleShape),
             onSuccess = { success ->
-                Palette.from(success.result.image.toBitmap())
+                Palette.from(success.result.image.toPaletteBitmap())
                     .maximumColorCount(12)
                     .resizeBitmapArea(12_000)
                     .generate { palette ->
@@ -450,12 +496,13 @@ private fun PlayerTextAction(icon: androidx.compose.ui.graphics.vector.ImageVect
 
 @Composable
 private fun SecondaryPlayerControls(
+    onLyrics: () -> Unit,
     onCrossfade: () -> Unit,
     onSpeed: () -> Unit,
     onSleep: () -> Unit,
 ) {
     val items = listOf(
-        Triple(Icons.Rounded.Mic, "Lyrics", {}),
+        Triple(Icons.Rounded.Mic, "Lyrics", onLyrics),
         Triple(Icons.AutoMirrored.Rounded.PlaylistPlay, "Queue", {}),
         Triple(Icons.Rounded.SwapHoriz, "Crossfade", onCrossfade),
         Triple(Icons.Rounded.Download, "Save", {}),
@@ -491,7 +538,153 @@ private fun SecondaryPlayerControls(
 }
 
 @Composable
-private fun AnimatedPlayerBackground(colors: List<Color>) {
+private fun LiveLyricsScreen(
+    song: SongDto,
+    progressSeconds: Int,
+    isPlaying: Boolean,
+    onBack: () -> Unit,
+    onPalette: (List<Color>) -> Unit,
+) {
+    val lines = remember(song.id, song.lyrics, song.durationSeconds) {
+        parseTimedLyrics(song.lyrics.orEmpty(), song.durationSeconds)
+    }
+    val activeIndex = lines.indexOfLast { it.startSeconds <= progressSeconds }.coerceAtLeast(0)
+    val listState = rememberLazyListState()
+    LaunchedEffect(activeIndex) {
+        if (lines.isNotEmpty()) listState.animateScrollToItem((activeIndex - 2).coerceAtLeast(0))
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = CircleShape,
+                color = Color.White.copy(alpha = .08f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(20.dp))
+                }
+            }
+            Text(
+                stringResource(R.string.live_lyrics).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = .48f),
+            )
+            IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            AsyncImage(
+                model = song.coverImageUrl,
+                contentDescription = song.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(52.dp).clip(CircleShape)
+                    .border(1.dp, Color(0xFFB57BFF), CircleShape),
+                onSuccess = { success ->
+                    Palette.from(success.result.image.toPaletteBitmap()).maximumColorCount(10).generate { palette ->
+                        palette ?: return@generate
+                        val dominant = palette.getDominantColor(Color.Black.toArgb())
+                        onPalette(
+                            listOf(
+                                lerp(Color(palette.vibrantSwatch?.rgb ?: dominant), Color.Black, .52f),
+                                lerp(Color(dominant), Color.Black, .68f),
+                                Color(0xFF06060F),
+                            ),
+                        )
+                    }
+                },
+            )
+            Column(Modifier.weight(1f)) {
+                Text(song.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(song.artistName, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .5f), maxLines = 1)
+            }
+            if (isPlaying) Icon(Icons.Rounded.GraphicEq, null, tint = Color(0xFFB57BFF))
+        }
+        if (lines.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(Icons.Rounded.Mic, null, modifier = Modifier.size(42.dp), tint = Color.White.copy(alpha = .35f))
+                    Text(stringResource(R.string.lyrics_unavailable), color = Color.White.copy(alpha = .48f))
+                }
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 140.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp),
+            ) {
+                itemsIndexed(lines, key = { index, line -> "${line.startSeconds}-$index-${line.text}" }) { index, line ->
+                    val distance = kotlin.math.abs(index - activeIndex)
+                    Text(
+                        line.text,
+                        modifier = Modifier.fillMaxWidth().graphicsLayer {
+                            alpha = when {
+                                index == activeIndex -> 1f
+                                distance == 1 -> .48f
+                                else -> .24f
+                            }
+                            scaleX = if (index == activeIndex) 1f else .97f
+                            scaleY = scaleX
+                        },
+                        style = if (index == activeIndex) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge,
+                        fontWeight = if (index == activeIndex) FontWeight.ExtraBold else FontWeight.SemiBold,
+                        color = if (index == activeIndex) Color.White else Color.White.copy(alpha = .72f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class TimedLyricLine(val startSeconds: Int, val text: String)
+
+private fun coil3.Image.toPaletteBitmap(): Bitmap {
+    val bitmap = toBitmap()
+    return if (bitmap.config == Bitmap.Config.HARDWARE) {
+        bitmap.copy(Bitmap.Config.ARGB_8888, false)
+    } else {
+        bitmap
+    }
+}
+
+private val LrcLinePattern = Regex("""^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]\s*(.+)$""")
+
+private fun parseTimedLyrics(rawLyrics: String, durationSeconds: Int): List<TimedLyricLine> {
+    val cleanLines = rawLyrics.lineSequence()
+        .map(String::trim)
+        .filter { it.isNotBlank() && !it.startsWith("[offset:", ignoreCase = true) }
+        .toList()
+    if (cleanLines.isEmpty()) return emptyList()
+    val timed = cleanLines.mapNotNull { line ->
+        val match = LrcLinePattern.matchEntire(line) ?: return@mapNotNull null
+        val minutes = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
+        val seconds = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+        TimedLyricLine(minutes * 60 + seconds, match.groupValues[4])
+    }
+    if (timed.size >= cleanLines.size / 2) return timed.sortedBy(TimedLyricLine::startSeconds)
+
+    val plainLines = cleanLines.map { LrcLinePattern.matchEntire(it)?.groupValues?.get(4) ?: it }
+    val usableDuration = durationSeconds.coerceAtLeast(plainLines.size * 3)
+    val weights = plainLines.map { it.length.coerceIn(8, 72) }
+    val totalWeight = weights.sum().coerceAtLeast(1)
+    var elapsedWeight = 0
+    return plainLines.mapIndexed { index, text ->
+        val start = ((elapsedWeight.toFloat() / totalWeight) * usableDuration).toInt()
+        elapsedWeight += weights[index]
+        TimedLyricLine(start, text)
+    }
+}
+
+@Composable
+private fun AnimatedPlayerBackground(colors: List<Color>, coverUrl: String) {
     val motion = rememberInfiniteTransition(label = "coverGradient")
     val phase by motion.animateFloat(
         initialValue = -0.25f,
@@ -503,6 +696,16 @@ private fun AnimatedPlayerBackground(colors: List<Color>) {
         label = "coverGradientPhase",
     )
     Box(Modifier.fillMaxSize().background(Color.Black)) {
+        AsyncImage(
+            model = coverUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().graphicsLayer {
+                scaleX = 1.28f
+                scaleY = 1.28f
+                alpha = .24f
+            }.blur(72.dp),
+        )
         Box(
             Modifier.fillMaxSize().background(
                 Brush.radialGradient(

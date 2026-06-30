@@ -118,6 +118,8 @@
     <string name="player_queue_count">%1$d آهنگ در صف</string>
     <string name="media3_pending_note">کنترل‌های نمایشی آماده‌اند. پخش واقعی Media3 در گام‌های بعدی پخش‌کننده اضافه می‌شود.</string>
     <string name="visualizer">ویژوالایزر</string>
+    <string name="live_lyrics">متن زندهٔ آهنگ</string>
+    <string name="lyrics_unavailable">متن این آهنگ در دسترس نیست.</string>
     <string name="social_profile">پروفایل اجتماعی</string>
     <string name="social_profile_empty">پروفایل بارگذاری نشد.</string>
     <string name="social_follow">دنبال کردن</string>
