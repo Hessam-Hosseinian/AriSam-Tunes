@@ -303,6 +303,27 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
+    fun toggleShuffle() {
+        stateRepository.toggleShuffle()
+        val state = stateRepository.state.value
+        state.currentSong?.let { current -> scope.launch { prepareCrossfadeNext(current, state.queue) } }
+    }
+
+    fun cycleRepeatMode() {
+        val mode = (stateRepository.state.value.repeatMode + 1) % 3
+        stateRepository.setRepeatMode(mode)
+        player.repeatMode = if (mode == 2) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        if (mode == 2) {
+            transitionJob?.cancel()
+            player.volume = 1f
+            crossfadeCoordinator.clear()
+            stateRepository.setCrossfadePreview(null)
+        } else {
+            val state = stateRepository.state.value
+            state.currentSong?.let { current -> scope.launch { prepareCrossfadeNext(current, state.queue) } }
+        }
+    }
+
     fun seekTo(seconds: Int) {
         runCatching {
             val positionMillis = seconds * 1000L
@@ -368,7 +389,7 @@ class Media3PlaybackController @Inject constructor(
 
     private fun maybeStartCrossfade() {
         val state = stateRepository.state.value
-        if (!state.isCrossfadeEnabled || transitionJob?.isActive == true) return
+        if (!state.isCrossfadeEnabled || state.repeatMode == 2 || transitionJob?.isActive == true) return
         val current = state.currentSong ?: return
         val next = state.queue.nextAfter(current) ?: return
         val duration = activeDurationMillis()

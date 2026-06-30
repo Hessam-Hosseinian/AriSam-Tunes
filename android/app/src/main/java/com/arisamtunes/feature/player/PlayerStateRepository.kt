@@ -16,6 +16,9 @@ data class PlayerState(
     val crossfadeProgressSeconds: Int = 0,
     val crossfadeProgressMillis: Long = 0L,
     val queue: List<SongDto> = emptyList(),
+    val originalQueue: List<SongDto> = emptyList(),
+    val isShuffleEnabled: Boolean = false,
+    val repeatMode: Int = 0,
     val playbackSpeed: Float = 1f,
     val sleepTimerEndsAtMillis: Long? = null,
     val isCrossfadeEnabled: Boolean = true,
@@ -42,6 +45,7 @@ class PlayerStateRepository @Inject constructor() {
                 crossfadeProgressSeconds = 0,
                 crossfadeProgressMillis = 0L,
                 queue = normalizedQueue,
+                originalQueue = current.originalQueue.ifEmpty { normalizedQueue },
                 playbackError = null,
             )
         }
@@ -108,6 +112,25 @@ class PlayerStateRepository @Inject constructor() {
 
     fun setCrossfadeEnabled(enabled: Boolean) {
         _state.update { state -> state.copy(isCrossfadeEnabled = enabled) }
+    }
+
+    fun toggleShuffle() {
+        _state.update { state ->
+            val current = state.currentSong
+            if (!state.isShuffleEnabled) {
+                state.copy(
+                    queue = listOfNotNull(current) + state.queue.filterNot { it.id == current?.id }.shuffled(),
+                    originalQueue = state.queue,
+                    isShuffleEnabled = true,
+                )
+            } else {
+                state.copy(queue = state.originalQueue.ifEmpty { state.queue }, isShuffleEnabled = false)
+            }
+        }
+    }
+
+    fun setRepeatMode(mode: Int) {
+        _state.update { state -> state.copy(repeatMode = mode.coerceIn(0, 2)) }
     }
 
     fun close() {

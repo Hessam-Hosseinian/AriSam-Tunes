@@ -1,8 +1,12 @@
 package com.arisamtunes.feature.player
 
 import android.graphics.Bitmap
+import android.content.Intent
+import android.media.audiofx.AudioEffect
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -35,6 +39,7 @@ import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Share
@@ -53,6 +58,8 @@ import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +88,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -159,6 +167,10 @@ fun NowPlayingRoute(
         EmptyPlayer()
     } else {
         var showLyrics by remember { mutableStateOf(false) }
+        var showQueue by remember { mutableStateOf(false) }
+        var showMore by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        val isLiked by remember(song.id) { viewModel.observeIsLiked(song.id) }.collectAsState(initial = false)
         var coverColors by remember {
             mutableStateOf(listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95), Color(0xFF06060F)))
         }
@@ -171,6 +183,18 @@ fun NowPlayingRoute(
                     isPlaying = state.isPlaying,
                     onBack = { showLyrics = false },
                     onPalette = { coverColors = it },
+                )
+                return@CompositionLocalProvider
+            }
+            if (showQueue) {
+                PlayerQueueScreen(
+                    currentSong = song,
+                    queue = state.queue,
+                    onBack = { showQueue = false },
+                    onSongClick = {
+                        viewModel.play(it)
+                        showQueue = false
+                    },
                 )
                 return@CompositionLocalProvider
             }
@@ -205,7 +229,7 @@ fun NowPlayingRoute(
                         color = Color.White.copy(alpha = .08f),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
                     ) {
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = { showQueue = true }) {
                             Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(20.dp))
                         }
                     }
@@ -232,7 +256,13 @@ fun NowPlayingRoute(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        IconButton(onClick = {}) { Icon(Icons.Rounded.FavoriteBorder, null, tint = Color.White.copy(alpha = .5f)) }
+                        IconButton(onClick = { viewModel.toggleLike(song) }) {
+                            Icon(
+                                if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                null,
+                                tint = if (isLiked) Color(0xFFF43F5E) else Color.White.copy(alpha = .5f),
+                            )
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         QualityBadge("HI-RES", Color(0xFFA78BFA))
@@ -240,8 +270,36 @@ fun NowPlayingRoute(
                         QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        PlayerTextAction(Icons.Rounded.Share, "Share")
-                        PlayerTextAction(Icons.Rounded.MoreVert, "More")
+                        PlayerTextAction(Icons.Rounded.Share, "Share") {
+                            context.startActivity(
+                                Intent.createChooser(
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, "${song.title} — ${song.artistName}\n${song.audioUrl}")
+                                    },
+                                    song.title,
+                                ),
+                            )
+                        }
+                        Box {
+                            PlayerTextAction(Icons.Rounded.MoreVert, "More") { showMore = true }
+                            DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Download") },
+                                    onClick = {
+                                        viewModel.download(song)
+                                        showMore = false
+                                        Toast.makeText(context, "Download queued", Toast.LENGTH_SHORT).show()
+                                    },
+                                    leadingIcon = { Icon(Icons.Rounded.Download, null) },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Queue") },
+                                    onClick = { showMore = false; showQueue = true },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null) },
+                                )
+                            }
+                        }
                     }
                 }
                 state.playbackError?.let { error ->
@@ -274,7 +332,9 @@ fun NowPlayingRoute(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    IconButton(onClick = {}) { Icon(Icons.Rounded.Shuffle, null, tint = Color.White.copy(alpha = .42f)) }
+                    IconButton(onClick = viewModel::toggleShuffle) {
+                        Icon(Icons.Rounded.Shuffle, null, tint = if (state.isShuffleEnabled) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
+                    }
                     IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(60.dp)) {
                         Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
                     }
@@ -295,12 +355,24 @@ fun NowPlayingRoute(
                     IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(60.dp)) {
                         Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
                     }
-                    IconButton(onClick = {}) { Icon(Icons.Rounded.Repeat, null, tint = Color.White.copy(alpha = .42f)) }
+                    IconButton(onClick = viewModel::cycleRepeatMode) {
+                        Icon(Icons.Rounded.Repeat, null, tint = if (state.repeatMode > 0) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
+                    }
                 }
                 SecondaryPlayerControls(
                     onLyrics = { showLyrics = true },
                     onCrossfade = viewModel::toggleCrossfade,
-                    onSpeed = viewModel::cyclePlaybackSpeed,
+                    onSave = {
+                        viewModel.download(song)
+                        Toast.makeText(context, "Download queued", Toast.LENGTH_SHORT).show()
+                    },
+                    onEq = {
+                        runCatching {
+                            context.startActivity(Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL))
+                        }.onFailure {
+                            Toast.makeText(context, "No system equalizer is available", Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     onSleep = { viewModel.setSleepTimer(if (state.sleepTimerEndsAtMillis == null) 15 else 0) },
                 )
             }
@@ -493,8 +565,16 @@ private fun QualityBadge(label: String, color: Color) {
 }
 
 @Composable
-private fun PlayerTextAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+private fun PlayerTextAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.clickable(onClick = onClick).padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
         Icon(icon, null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = .4f))
         Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .4f))
     }
@@ -504,15 +584,16 @@ private fun PlayerTextAction(icon: androidx.compose.ui.graphics.vector.ImageVect
 private fun SecondaryPlayerControls(
     onLyrics: () -> Unit,
     onCrossfade: () -> Unit,
-    onSpeed: () -> Unit,
+    onSave: () -> Unit,
+    onEq: () -> Unit,
     onSleep: () -> Unit,
 ) {
     val items = listOf(
         Triple(Icons.Rounded.Mic, "Lyrics", onLyrics),
         Triple(Icons.AutoMirrored.Rounded.PlaylistPlay, "Queue", {}),
         Triple(Icons.Rounded.SwapHoriz, "Crossfade", onCrossfade),
-        Triple(Icons.Rounded.Download, "Save", {}),
-        Triple(Icons.Rounded.Tune, "EQ", onSpeed),
+        Triple(Icons.Rounded.Download, "Save", onSave),
+        Triple(Icons.Rounded.Tune, "EQ", onEq),
         Triple(Icons.Rounded.Timer, "Sleep", onSleep),
     )
     Surface(
@@ -537,6 +618,57 @@ private fun SecondaryPlayerControls(
                         }
                     }
                     Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .34f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerQueueScreen(
+    currentSong: SongDto,
+    queue: List<SongDto>,
+    onBack: () -> Unit,
+    onSongClick: (SongDto) -> Unit,
+) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
+            }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("PLAYING QUEUE", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .48f))
+                Text("${queue.size} tracks", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .3f))
+            }
+            Spacer(Modifier.size(48.dp))
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            itemsIndexed(queue, key = { _, item -> item.id }) { index, item ->
+                val active = item.id == currentSong.id
+                Row(
+                    Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium)
+                        .background(if (active) Color.White.copy(alpha = .1f) else Color.Transparent)
+                        .clickable { onSongClick(item) }
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    AsyncImage(
+                        model = item.coverImageUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(52.dp).clip(MaterialTheme.shapes.small),
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Text(item.title, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(item.artistName, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .48f), maxLines = 1)
+                    }
+                    if (active) Icon(Icons.Rounded.GraphicEq, null, tint = Color(0xFFB57BFF))
+                    else Text("${index + 1}", color = Color.White.copy(alpha = .25f), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -580,7 +712,7 @@ private fun LiveLyricsScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = .48f),
             )
-            IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
+            Spacer(Modifier.size(48.dp))
         }
         Row(
             Modifier.fillMaxWidth().padding(vertical = 14.dp),
