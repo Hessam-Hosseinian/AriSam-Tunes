@@ -285,8 +285,6 @@ private fun AudioVisualizer(
     bands: List<Float>,
     compact: Boolean = false,
 ) {
-    val primary = if (compact) Color.White else MaterialTheme.colorScheme.primary
-    val secondary = if (compact) Color.White.copy(alpha = .58f) else MaterialTheme.colorScheme.secondary
     val animatedBands = bands.mapIndexed { index, level ->
         val value by animateFloatAsState(
             targetValue = if (isPlaying) level else level * 0.55f,
@@ -314,18 +312,36 @@ private fun AudioVisualizer(
                     .padding(horizontal = AriSamThemeTokens.spacing.md),
             ) {
                 val bars = animatedBands.size.coerceAtLeast(1)
-                val gap = size.width / (bars * 2.1f)
-                val barWidth = gap.coerceAtLeast(5f)
-                val usableHeight = size.height * .9f
+                val gap = 2.dp.toPx()
+                val barWidth = ((size.width - gap * (bars - 1)) / bars).coerceAtLeast(2.dp.toPx())
+                val usableHeight = size.height - 2.dp.toPx()
                 animatedBands.forEachIndexed { index, normalized ->
-                    val barHeight = (usableHeight * normalized).coerceIn(size.height * .16f, usableHeight)
+                    val level = normalized.coerceIn(0f, 1f)
+                    val barHeight = (usableHeight * level).coerceIn(5.dp.toPx(), usableHeight)
                     val x = index * (barWidth + gap)
-                    drawLine(
-                        color = if (index % 2 == 0) primary else secondary,
-                        start = androidx.compose.ui.geometry.Offset(x, (size.height - barHeight) / 2f),
-                        end = androidx.compose.ui.geometry.Offset(x, (size.height + barHeight) / 2f),
-                        strokeWidth = barWidth,
-                        cap = StrokeCap.Round,
+                    val fraction = if (bars == 1) 0f else index.toFloat() / (bars - 1)
+                    val baseColor = lerp(Color(0xFF8B5CF6), Color(0xFFEC4899), fraction)
+                    val topColor = lerp(baseColor, Color.White, .22f)
+                    val top = size.height - barHeight
+                    if (level > .56f && isPlaying) {
+                        drawLine(
+                            color = baseColor.copy(alpha = .22f),
+                            start = Offset(x + barWidth / 2f, top),
+                            end = Offset(x + barWidth / 2f, size.height),
+                            strokeWidth = barWidth * 2.3f,
+                            cap = StrokeCap.Round,
+                        )
+                    }
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(topColor, baseColor),
+                            startY = top,
+                            endY = size.height,
+                        ),
+                        topLeft = Offset(x, top),
+                        size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+                        alpha = if (isPlaying) .62f + level * .38f else .2f,
                     )
                 }
             }
