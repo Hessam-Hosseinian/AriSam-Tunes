@@ -97,6 +97,12 @@ import com.arisamtunes.data.catalog.SongDto
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 @Composable
 fun MiniPlayer(
@@ -152,8 +158,8 @@ fun NowPlayingRoute(
     if (song == null) {
         EmptyPlayer()
     } else {
-        var showLyrics by remember(song.id) { mutableStateOf(false) }
-        var coverColors by remember(song.id) {
+        var showLyrics by remember { mutableStateOf(false) }
+        var coverColors by remember {
             mutableStateOf(listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95), Color(0xFF06060F)))
         }
         AnimatedPlayerBackground(colors = coverColors, coverUrl = song.coverImageUrl)
@@ -161,7 +167,7 @@ fun NowPlayingRoute(
             if (showLyrics) {
                 LiveLyricsScreen(
                     song = song,
-                    progressSeconds = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds,
+                    progressMillis = if (state.crossfadeSong != null) state.crossfadeProgressMillis else state.progressMillis,
                     isPlaying = state.isPlaying,
                     onBack = { showLyrics = false },
                     onPalette = { coverColors = it },
@@ -540,18 +546,18 @@ private fun SecondaryPlayerControls(
 @Composable
 private fun LiveLyricsScreen(
     song: SongDto,
-    progressSeconds: Int,
+    progressMillis: Long,
     isPlaying: Boolean,
     onBack: () -> Unit,
     onPalette: (List<Color>) -> Unit,
 ) {
     val lines = remember(song.id, song.lyrics, song.durationSeconds) {
-        parseTimedLyrics(song.lyrics.orEmpty(), song.durationSeconds)
+        parseTimedLyrics(song)
     }
-    val activeIndex = lines.indexOfLast { it.startSeconds <= progressSeconds }.coerceAtLeast(0)
+    val activeIndex = lines.indexOfLast { it.startMillis <= progressMillis }
     val listState = rememberLazyListState()
     LaunchedEffect(activeIndex) {
-        if (lines.isNotEmpty()) listState.animateScrollToItem((activeIndex - 2).coerceAtLeast(0))
+        if (activeIndex >= 0) listState.animateScrollToItem((activeIndex - 2).coerceAtLeast(0))
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp)) {
         Row(
@@ -621,7 +627,7 @@ private fun LiveLyricsScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 140.dp),
                 verticalArrangement = Arrangement.spacedBy(22.dp),
             ) {
-                itemsIndexed(lines, key = { index, line -> "${line.startSeconds}-$index-${line.text}" }) { index, line ->
+                itemsIndexed(lines, key = { index, line -> "${line.startMillis}-$index-${line.text}" }) { index, line ->
                     val distance = kotlin.math.abs(index - activeIndex)
                     Text(
                         line.text,
@@ -644,7 +650,7 @@ private fun LiveLyricsScreen(
     }
 }
 
-private data class TimedLyricLine(val startSeconds: Int, val text: String)
+private data class TimedLyricLine(val startMillis: Long, val text: String)
 
 private fun coil3.Image.toPaletteBitmap(): Bitmap {
     val bitmap = toBitmap()
@@ -657,7 +663,14 @@ private fun coil3.Image.toPaletteBitmap(): Bitmap {
 
 private val LrcLinePattern = Regex("""^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]\s*(.+)$""")
 
-private fun parseTimedLyrics(rawLyrics: String, durationSeconds: Int): List<TimedLyricLine> {
+private fun parseTimedLyrics(song: SongDto): List<TimedLyricLine> {
+    val jsonLyrics = parseSyncedLyricsJson(
+        song.extraMetadata["synced_lyrics_json"]?.jsonPrimitive?.contentOrNull,
+    )
+    if (jsonLyrics.isNotEmpty()) return jsonLyrics
+
+    val syncedLrc = song.extraMetadata["synced_lyrics_lrc"]?.jsonPrimitive?.contentOrNull
+    val rawLyrics = syncedLrc?.takeIf(String::isNotBlank) ?: song.lyrics.orEmpty()
     val cleanLines = rawLyrics.lineSequence()
         .map(String::trim)
         .filter { it.isNotBlank() && !it.startsWith("[offset:", ignoreCase = true) }
@@ -667,20 +680,35 @@ private fun parseTimedLyrics(rawLyrics: String, durationSeconds: Int): List<Time
         val match = LrcLinePattern.matchEntire(line) ?: return@mapNotNull null
         val minutes = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
         val seconds = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
-        TimedLyricLine(minutes * 60 + seconds, match.groupValues[4])
+        val fraction = match.groupValues[3].takeIf(String::isNotBlank)?.let { digits ->
+            digits.padEnd(3, '0').take(3).toLongOrNull() ?: 0L
+        } ?: 0L
+        TimedLyricLine((minutes * 60L + seconds) * 1_000L + fraction, match.groupValues[4])
     }
-    if (timed.size >= cleanLines.size / 2) return timed.sortedBy(TimedLyricLine::startSeconds)
+    if (timed.size >= cleanLines.size / 2) return timed.sortedBy(TimedLyricLine::startMillis)
 
     val plainLines = cleanLines.map { LrcLinePattern.matchEntire(it)?.groupValues?.get(4) ?: it }
-    val usableDuration = durationSeconds.coerceAtLeast(plainLines.size * 3)
+    val usableDuration = song.durationSeconds.coerceAtLeast(plainLines.size * 3) * 1_000L
     val weights = plainLines.map { it.length.coerceIn(8, 72) }
     val totalWeight = weights.sum().coerceAtLeast(1)
     var elapsedWeight = 0
     return plainLines.mapIndexed { index, text ->
-        val start = ((elapsedWeight.toFloat() / totalWeight) * usableDuration).toInt()
+        val start = ((elapsedWeight.toDouble() / totalWeight) * usableDuration).toLong()
         elapsedWeight += weights[index]
         TimedLyricLine(start, text)
     }
+}
+
+private fun parseSyncedLyricsJson(rawJson: String?): List<TimedLyricLine> {
+    if (rawJson.isNullOrBlank()) return emptyList()
+    return runCatching {
+        Json.parseToJsonElement(rawJson).jsonArray.mapNotNull { element ->
+            val item = element.jsonObject
+            val time = item["time"]?.jsonPrimitive?.doubleOrNull ?: return@mapNotNull null
+            val text = item["text"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            TimedLyricLine((time * 1_000.0).toLong(), text)
+        }.sortedBy(TimedLyricLine::startMillis)
+    }.getOrDefault(emptyList())
 }
 
 @Composable

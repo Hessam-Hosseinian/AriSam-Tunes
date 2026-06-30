@@ -12,7 +12,9 @@ data class PlayerState(
     val crossfadeSong: SongDto? = null,
     val isPlaying: Boolean = false,
     val progressSeconds: Int = 0,
+    val progressMillis: Long = 0L,
     val crossfadeProgressSeconds: Int = 0,
+    val crossfadeProgressMillis: Long = 0L,
     val queue: List<SongDto> = emptyList(),
     val playbackSpeed: Float = 1f,
     val sleepTimerEndsAtMillis: Long? = null,
@@ -36,7 +38,9 @@ class PlayerStateRepository @Inject constructor() {
                 crossfadeSong = null,
                 isPlaying = true,
                 progressSeconds = 0,
+                progressMillis = 0L,
                 crossfadeProgressSeconds = 0,
+                crossfadeProgressMillis = 0L,
                 queue = normalizedQueue,
                 playbackError = null,
             )
@@ -60,12 +64,27 @@ class PlayerStateRepository @Inject constructor() {
     }
 
     fun setProgress(seconds: Int) {
-        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+        _state.update { state ->
+            val safeSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)
+            state.copy(progressSeconds = safeSeconds, progressMillis = safeSeconds * 1_000L)
+        }
     }
 
-    fun setCrossfadePreview(song: SongDto?, seconds: Int = 0) {
+    fun setProgressMillis(millis: Long) {
         _state.update { state ->
-            state.copy(crossfadeSong = song, crossfadeProgressSeconds = seconds.coerceIn(0, song?.durationSeconds ?: 0))
+            val safeMillis = millis.coerceIn(0L, (state.currentSong?.durationSeconds ?: 0) * 1_000L)
+            state.copy(progressSeconds = (safeMillis / 1_000L).toInt(), progressMillis = safeMillis)
+        }
+    }
+
+    fun setCrossfadePreview(song: SongDto?, seconds: Int = 0, millis: Long = seconds * 1_000L) {
+        _state.update { state ->
+            val safeMillis = millis.coerceIn(0L, (song?.durationSeconds ?: 0) * 1_000L)
+            state.copy(
+                crossfadeSong = song,
+                crossfadeProgressSeconds = (safeMillis / 1_000L).toInt(),
+                crossfadeProgressMillis = safeMillis,
+            )
         }
     }
 

@@ -105,7 +105,7 @@ class Media3PlaybackController @Inject constructor(
         scope.launch {
             while (true) {
                 val activeProgress = activePositionMillis()
-                stateRepository.setProgress(activeProgress.toInt() / 1000)
+                stateRepository.setProgressMillis(activeProgress)
                 updateFallbackVisualizer()
                 maybeStartCrossfade()
                 delay(120)
@@ -454,6 +454,7 @@ class Media3PlaybackController @Inject constructor(
             stateRepository.setCrossfadePreview(
                 stateRepository.state.value.crossfadeSong,
                 seconds = (previewPositionMillis() / 1000L).toInt(),
+                millis = previewPositionMillis(),
             )
             delay(stepDelay)
         }
