@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -138,10 +140,16 @@ fun LibraryCollectionRoute(
                                             model = song.coverImageUrl,
                                             contentDescription = song.title,
                                             contentScale = ContentScale.Crop,
-                                            modifier = Modifier.size(52.dp),
+                                            modifier = Modifier.size(52.dp).clip(MaterialTheme.shapes.small),
                                         )
                                     }
                                 },
+                                trailingContent = {
+                                    IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
+                                },
+                                colors = androidx.compose.material3.ListItemDefaults.colors(
+                                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                ),
                             )
                         }
                     }
