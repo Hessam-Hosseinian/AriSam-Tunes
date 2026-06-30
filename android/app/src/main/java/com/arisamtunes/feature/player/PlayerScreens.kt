@@ -3,11 +3,7 @@ package com.arisamtunes.feature.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -31,6 +28,8 @@ import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,7 +45,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -70,17 +68,20 @@ fun MiniPlayer(
     val state by viewModel.state.collectAsState()
     val song = state.currentSong ?: return
     PressScaleBox(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.sm, vertical = AriSamThemeTokens.spacing.xs),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(AriSamThemeTokens.spacing.sm),
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(horizontal = AriSamThemeTokens.spacing.sm, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     AsyncImage(
                         model = song.coverImageUrl,
                         contentDescription = song.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(48.dp).clip(MaterialTheme.shapes.medium),
+                        modifier = Modifier.size(48.dp).clip(MaterialTheme.shapes.small),
                     )
                     Spacer(Modifier.width(AriSamThemeTokens.spacing.sm))
                     Column(Modifier.weight(1f)) {
@@ -90,11 +91,13 @@ fun MiniPlayer(
                     IconButton(onClick = viewModel::togglePlayPause) {
                         Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (state.isPlaying) R.string.pause else R.string.play))
                     }
-                    IconButton(onClick = viewModel::close) { Icon(Icons.Rounded.Close, stringResource(R.string.close_player)) }
+                    IconButton(onClick = viewModel::skipToNext) {
+                        Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track))
+                    }
                 }
                 LinearProgressIndicator(
                     progress = { playerProgress(state.progressSeconds, song.durationSeconds) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth().height(2.dp),
                 )
             }
         }
@@ -122,7 +125,7 @@ fun NowPlayingRoute(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                RotatingCover(song.coverImageUrl, song.title, state.isPlaying, Modifier.fillMaxWidth(.72f).aspectRatio(1f))
+                AlbumCover(song.coverImageUrl, song.title, Modifier.fillMaxWidth(.78f).aspectRatio(1f))
                 Column(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -137,6 +140,10 @@ fun NowPlayingRoute(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        IconButton(onClick = {}) { Icon(Icons.Rounded.FavoriteBorder, null) }
+                        IconButton(onClick = {}) { Icon(Icons.Rounded.MoreVert, null) }
+                    }
                 }
                 state.playbackError?.let { error ->
                     GlassCard(Modifier.fillMaxWidth()) {
@@ -174,6 +181,9 @@ fun NowPlayingRoute(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceEvenly,
                         ) {
+                            IconButton(onClick = {}, modifier = Modifier.size(44.dp)) {
+                                Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(22.dp))
+                            }
                             IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(58.dp)) {
                                 Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(34.dp))
                             }
@@ -193,6 +203,9 @@ fun NowPlayingRoute(
                             }
                             IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(58.dp)) {
                                 Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(34.dp))
+                            }
+                            IconButton(onClick = {}, modifier = Modifier.size(44.dp)) {
+                                Icon(Icons.Rounded.Repeat, null, modifier = Modifier.size(22.dp))
                             }
                         }
                     }
@@ -274,29 +287,17 @@ private fun AudioVisualizer(
 }
 
 @Composable
-private fun RotatingCover(coverUrl: String, title: String, isPlaying: Boolean, modifier: Modifier = Modifier.size(260.dp)) {
-    val transition = rememberInfiniteTransition(label = "coverRotation")
-    val rotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 22_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "coverRotationDegrees",
-    )
+private fun AlbumCover(coverUrl: String, title: String, modifier: Modifier = Modifier.size(260.dp)) {
     Box(
-        modifier = modifier.clip(MaterialTheme.shapes.extraLarge).background(
-            Brush.radialGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface)),
-        ),
+        modifier = modifier.clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceContainer),
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
             model = coverUrl,
             contentDescription = title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().padding(18.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                .rotate(if (isPlaying) rotation else 0f),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
