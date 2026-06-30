@@ -29,6 +29,8 @@ private val DarkColors = darkColorScheme(
     onSurface = OnDark,
     surfaceVariant = GlassNavy,
     onSurfaceVariant = OnDarkMuted,
+    surfaceContainer = DeepNavy,
+    surfaceContainerHigh = GlassNavy,
     outline = DarkOutline,
     error = ErrorDark,
 )
@@ -44,6 +46,8 @@ private val LightColors = lightColorScheme(
     onSurface = Ink,
     surfaceVariant = Color(0xFFECE9F4),
     onSurfaceVariant = OnLightMuted,
+    surfaceContainer = Color(0xFFF0F0F0),
+    surfaceContainerHigh = Color(0xFFE8E8E8),
     outline = LightOutline,
     error = ErrorLight,
 )

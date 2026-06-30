@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 
 private const val PressedScale = 0.97f
-private const val GlassAlpha = 0.78f
+private const val GlassAlpha = 1f
 
 @Composable
 fun PressScaleBox(
@@ -55,7 +55,7 @@ fun GlassCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = GlassAlpha),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = GlassAlpha),
         ),
     ) {
         Box(Modifier.padding(contentPadding), content = content)
