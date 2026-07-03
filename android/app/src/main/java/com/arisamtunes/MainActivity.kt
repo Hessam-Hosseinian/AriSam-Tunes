@@ -11,6 +11,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -38,7 +39,7 @@ private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltV
     val preferences by preferencesViewModel.preferences.collectAsState()
     val baseContext = LocalContext.current
     val locale = preferences.language.toLocale() ?: Locale.getDefault()
-    val localizedConfiguration = Configuration(baseContext.resources.configuration).apply { setLocale(locale) }
+    val localizedConfiguration = Configuration(LocalConfiguration.current).apply { setLocale(locale) }
     @Suppress("DEPRECATION")
     baseContext.resources.updateConfiguration(localizedConfiguration, baseContext.resources.displayMetrics)
     val darkTheme = when (preferences.theme) {

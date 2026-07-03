@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.arisamtunes.data.catalog.CatalogRepository
 import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.catalog.SongDto
+import com.arisamtunes.data.local.LocalLibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -20,16 +22,19 @@ data class SongDetailUiState(
     val showPlaylistPicker: Boolean = false,
     val isAddingToPlaylist: Boolean = false,
     val playlistActionDone: Boolean = false,
+    val isLiked: Boolean = false,
 )
 
 @HiltViewModel
 class SongDetailViewModel @Inject constructor(
     private val repository: CatalogRepository,
+    private val localLibraryRepository: LocalLibraryRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val songId: String = checkNotNull(savedStateHandle["songId"])
     private val _state = MutableStateFlow(SongDetailUiState())
     val state = _state.asStateFlow()
+    private var likeObserverJob: Job? = null
 
     init { refresh() }
 
@@ -37,9 +42,17 @@ class SongDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, hasError = false)
             runCatching { repository.song(songId) }
-                .onSuccess { _state.value = _state.value.copy(song = it, isLoading = false, hasError = false) }
+                .onSuccess {
+                    _state.value = _state.value.copy(song = it, isLoading = false, hasError = false)
+                    observeLikeState(it.id)
+                }
                 .onFailure { _state.value = SongDetailUiState(isLoading = false, hasError = true) }
         }
+    }
+
+    fun toggleLike() = viewModelScope.launch {
+        val song = _state.value.song ?: return@launch
+        localLibraryRepository.toggleLiked(song)
     }
 
     fun openPlaylistPicker() = viewModelScope.launch {
@@ -64,5 +77,14 @@ class SongDetailViewModel @Inject constructor(
                 )
             }
             .onFailure { _state.value = _state.value.copy(isAddingToPlaylist = false, hasError = true) }
+    }
+
+    private fun observeLikeState(id: String) {
+        likeObserverJob?.cancel()
+        likeObserverJob = viewModelScope.launch {
+            localLibraryRepository.observeIsLiked(id).collect { liked ->
+                _state.value = _state.value.copy(isLiked = liked)
+            }
+        }
     }
 }

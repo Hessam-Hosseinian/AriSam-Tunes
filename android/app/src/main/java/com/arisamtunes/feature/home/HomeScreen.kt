@@ -27,8 +27,10 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,7 +85,7 @@ fun HomeScreen(
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = spacing.xl),
+        contentPadding = PaddingValues(top = spacing.md, bottom = spacing.xl),
         verticalArrangement = Arrangement.spacedBy(spacing.xl),
     ) {
         if (state.hasError) item { ErrorCard(onRetry) }
@@ -133,13 +135,13 @@ private fun HeroCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Unit) {
             pageSpacing = spacing.md,
         ) { page ->
             val song = pages[page]
-            PressScaleBox(onClick = { onSongClick(song) }, modifier = Modifier.fillMaxWidth().height(220.dp)) {
+            PressScaleBox(onClick = { onSongClick(song) }, modifier = Modifier.fillMaxWidth().height(196.dp)) {
                 AsyncImage(
                     model = song.coverImageUrl, contentDescription = song.title,
-                    contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge),
+                    contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.large),
                 )
                 Box(
-                    Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge).background(
+                    Modifier.fillMaxSize().clip(MaterialTheme.shapes.large).background(
                         Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .86f))),
                     ),
                 )
@@ -185,11 +187,17 @@ private fun QuickActions(onClick: (HomeQuickAction) -> Unit) {
 @Composable
 private fun QuickAction(action: HomeQuickAction, label: Int, icon: ImageVector, onClick: (HomeQuickAction) -> Unit) {
     PressScaleBox(onClick = { onClick(action) }, modifier = Modifier.width(128.dp)) {
-        GlassCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(AriSamThemeTokens.spacing.md)) {
-            Column(verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                Text(stringResource(label), style = MaterialTheme.typography.labelLarge, maxLines = 2)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm),
+        ) {
+            Box(
+                Modifier.size(62.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(27.dp))
             }
+            Text(stringResource(label), style = MaterialTheme.typography.labelMedium, maxLines = 1)
         }
     }
 }
@@ -208,9 +216,18 @@ private fun SongSection(title: Int, songs: List<SongDto>, onClick: (SongDto) -> 
 @Composable
 private fun SongCard(song: SongDto, onClick: () -> Unit) {
     val spacing = AriSamThemeTokens.spacing
-    PressScaleBox(onClick, Modifier.width(148.dp)) {
+    PressScaleBox(onClick, Modifier.width(140.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            AsyncImage(song.coverImageUrl, song.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large))
+            Box {
+                AsyncImage(song.coverImageUrl, song.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.medium))
+                Box(
+                    Modifier.align(Alignment.BottomEnd).padding(8.dp).size(34.dp).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = .9f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), modifier = Modifier.size(22.dp))
+                }
+            }
             Text(song.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(song.artistName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -224,10 +241,19 @@ private fun PlaylistSection(title: Int, playlists: List<PlaylistDto>, onClick: (
         Box(Modifier.padding(horizontal = spacing.lg)) { SectionTitle(title) }
         LazyRow(contentPadding = PaddingValues(horizontal = spacing.lg), horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
             items(playlists, key = { it.id }) { playlist ->
-                PressScaleBox({ onClick(playlist) }, Modifier.width(180.dp)) {
-                    GlassCard(Modifier.fillMaxWidth()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-                            Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(34.dp))
+                PressScaleBox({ onClick(playlist) }, Modifier.width(164.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                        Box(
+                            Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surfaceContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
+                            IconButton(onClick = {}, modifier = Modifier.align(Alignment.TopEnd)) {
+                                Icon(Icons.Rounded.MoreVert, null)
+                            }
+                        }
+                        Column {
                             Text(playlist.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(stringResource(R.string.home_song_count, playlist.songCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }

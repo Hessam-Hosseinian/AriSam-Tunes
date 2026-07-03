@@ -9,9 +9,16 @@ import javax.inject.Singleton
 
 data class PlayerState(
     val currentSong: SongDto? = null,
+    val crossfadeSong: SongDto? = null,
     val isPlaying: Boolean = false,
     val progressSeconds: Int = 0,
+    val progressMillis: Long = 0L,
+    val crossfadeProgressSeconds: Int = 0,
+    val crossfadeProgressMillis: Long = 0L,
     val queue: List<SongDto> = emptyList(),
+    val originalQueue: List<SongDto> = emptyList(),
+    val isShuffleEnabled: Boolean = false,
+    val repeatMode: Int = 0,
     val playbackSpeed: Float = 1f,
     val sleepTimerEndsAtMillis: Long? = null,
     val isCrossfadeEnabled: Boolean = true,
@@ -26,7 +33,21 @@ class PlayerStateRepository @Inject constructor() {
 
     fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
         _state.update { current ->
-            current.copy(currentSong = song, isPlaying = true, progressSeconds = 0, queue = queue.ifEmpty { listOf(song) }, playbackError = null)
+            val normalizedQueue = queue
+                .ifEmpty { current.queue.ifEmpty { listOf(song) } }
+                .let { songs -> if (songs.any { it.id == song.id }) songs else listOf(song) + songs }
+            current.copy(
+                currentSong = song,
+                crossfadeSong = null,
+                isPlaying = true,
+                progressSeconds = 0,
+                progressMillis = 0L,
+                crossfadeProgressSeconds = 0,
+                crossfadeProgressMillis = 0L,
+                queue = normalizedQueue,
+                originalQueue = current.originalQueue.ifEmpty { normalizedQueue },
+                playbackError = null,
+            )
         }
     }
 
@@ -47,7 +68,28 @@ class PlayerStateRepository @Inject constructor() {
     }
 
     fun setProgress(seconds: Int) {
-        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+        _state.update { state ->
+            val safeSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)
+            state.copy(progressSeconds = safeSeconds, progressMillis = safeSeconds * 1_000L)
+        }
+    }
+
+    fun setProgressMillis(millis: Long) {
+        _state.update { state ->
+            val safeMillis = millis.coerceIn(0L, (state.currentSong?.durationSeconds ?: 0) * 1_000L)
+            state.copy(progressSeconds = (safeMillis / 1_000L).toInt(), progressMillis = safeMillis)
+        }
+    }
+
+    fun setCrossfadePreview(song: SongDto?, seconds: Int = 0, millis: Long = seconds * 1_000L) {
+        _state.update { state ->
+            val safeMillis = millis.coerceIn(0L, (song?.durationSeconds ?: 0) * 1_000L)
+            state.copy(
+                crossfadeSong = song,
+                crossfadeProgressSeconds = (safeMillis / 1_000L).toInt(),
+                crossfadeProgressMillis = safeMillis,
+            )
+        }
     }
 
     fun setVisualizerBands(bands: List<Float>) {
@@ -70,6 +112,25 @@ class PlayerStateRepository @Inject constructor() {
 
     fun setCrossfadeEnabled(enabled: Boolean) {
         _state.update { state -> state.copy(isCrossfadeEnabled = enabled) }
+    }
+
+    fun toggleShuffle() {
+        _state.update { state ->
+            val current = state.currentSong
+            if (!state.isShuffleEnabled) {
+                state.copy(
+                    queue = listOfNotNull(current) + state.queue.filterNot { it.id == current?.id }.shuffled(),
+                    originalQueue = state.queue,
+                    isShuffleEnabled = true,
+                )
+            } else {
+                state.copy(queue = state.originalQueue.ifEmpty { state.queue }, isShuffleEnabled = false)
+            }
+        }
+    }
+
+    fun setRepeatMode(mode: Int) {
+        _state.update { state -> state.copy(repeatMode = mode.coerceIn(0, 2)) }
     }
 
     fun close() {

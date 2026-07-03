@@ -6,18 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.GraphicEq
-import androidx.compose.material.icons.rounded.NotificationsNone
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,9 +23,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -42,6 +39,7 @@ import com.arisamtunes.feature.downloads.DownloadsRoute
 import com.arisamtunes.feature.chat.ChatDetailRoute
 import com.arisamtunes.feature.chat.ChatListRoute
 import com.arisamtunes.feature.home.HomeRoute
+import com.arisamtunes.feature.library.LibraryCollectionRoute
 import com.arisamtunes.feature.search.SearchRoute
 import com.arisamtunes.feature.playlists.PlaylistDetailRoute
 import com.arisamtunes.feature.playlists.PlaylistsRoute
@@ -60,6 +58,7 @@ private const val NowPlayingRoutePath = "now-playing"
 private const val UserProfileRoutePattern = "social/user/{userId}"
 private const val UserListRoutePattern = "social/users/{userId}/{kind}"
 private const val ChatDetailRoutePattern = "chat/{userId}"
+private const val LibraryCollectionRoutePattern = "library/{kind}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,36 +75,35 @@ fun AriSamAppShell() {
         topBar = {
             if (showMainChrome) {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.app_name)) },
-                    navigationIcon = {
-                        Box(
-                            modifier = Modifier
-                                .padding(start = com.arisamtunes.core.design.theme.AriSamThemeTokens.spacing.sm)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = .16f))
-                                .padding(com.arisamtunes.core.design.theme.AriSamThemeTokens.spacing.sm),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.GraphicEq,
-                                contentDescription = stringResource(R.string.app_logo_description),
-                                tint = MaterialTheme.colorScheme.primary,
+                    title = {
+                        Column {
+                            Text(
+                                currentMainDestination?.let { stringResource(it.labelRes) }
+                                    ?: stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .88f),
+                        containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                         actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     actions = {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.notifications))
-                        }
                         IconButton(onClick = { navController.navigateSingleTop(SettingsRoutePath) }) {
                             Icon(Icons.Rounded.Settings, stringResource(R.string.settings))
                         }
                         IconButton(onClick = { navController.navigateTopLevel(AppDestination.Profile.route) }) {
                             Icon(Icons.Rounded.AccountCircle, stringResource(R.string.profile_picture))
+                        }
+                        IconButton(onClick = { }) {
+                            Icon(Icons.Rounded.MoreVert, null)
                         }
                     },
                 )
@@ -116,8 +114,8 @@ fun AriSamAppShell() {
                 Column {
                     MiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) })
                     NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
-                        tonalElevation = NavigationBarDefaults.Elevation,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
                     ) {
                         MainDestinations.forEach { destination ->
                             NavigationBarItem(
@@ -135,15 +133,7 @@ fun AriSamAppShell() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = .07f),
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.secondary.copy(alpha = .05f),
-                        ),
-                    ),
-                )
+                .background(MaterialTheme.colorScheme.background)
                 .padding(contentPadding),
         ) {
             NavHost(
@@ -152,18 +142,27 @@ fun AriSamAppShell() {
             ) {
                 composable(AppDestination.Home.route) {
                     HomeRoute(
-                        onSongClick = { navController.navigate(songRoute(it.id)) },
+                        onSongClick = {
+                            playerViewModel.play(it)
+                            navController.navigateSingleTop(NowPlayingRoutePath)
+                        },
                         onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
                         onQuickAction = { action ->
                             when (action) {
                                 HomeQuickAction.Playlists -> navController.navigateTopLevel(AppDestination.Playlists.route)
                                 HomeQuickAction.Artists -> navController.navigateTopLevel(AppDestination.Search.route)
-                                HomeQuickAction.Liked, HomeQuickAction.Recent -> navController.navigateTopLevel(AppDestination.Downloads.route)
+                                HomeQuickAction.Liked -> navController.navigate(libraryRoute("liked"))
+                                HomeQuickAction.Recent -> navController.navigate(libraryRoute("recent"))
                             }
                         },
                     )
                 }
-                composable(AppDestination.Search.route) { SearchRoute(onSongClick = { navController.navigate(songRoute(it.id)) }) }
+                composable(AppDestination.Search.route) {
+                    SearchRoute(onSongClick = {
+                        playerViewModel.play(it)
+                        navController.navigateSingleTop(NowPlayingRoutePath)
+                    })
+                }
                 composable(AppDestination.Playlists.route) {
                     PlaylistsRoute(onPlaylistClick = { navController.navigate(playlistRoute(it.id)) })
                 }
@@ -175,7 +174,18 @@ fun AriSamAppShell() {
                     ChatDetailRoute(onBack = navController::popBackStack)
                 }
                 composable(PlaylistDetailRoutePattern) {
-                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate(songRoute(it.id)) })
+                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = {
+                        playerViewModel.play(it)
+                        navController.navigateSingleTop(NowPlayingRoutePath)
+                    })
+                }
+                composable(LibraryCollectionRoutePattern) {
+                    LibraryCollectionRoute(
+                        onBack = navController::popBackStack,
+                        onSongClick = {
+                            navController.navigate(songRoute(it))
+                        },
+                    )
                 }
                 composable(SongDetailRoutePattern) {
                     SongDetailRoute(
@@ -187,7 +197,10 @@ fun AriSamAppShell() {
                     )
                 }
                 composable(NowPlayingRoutePath) {
-                    NowPlayingRoute(onBack = navController::popBackStack)
+                    NowPlayingRoute(
+                        onBack = navController::popBackStack,
+                        onShowSongInfo = { navController.navigate(songRoute(it)) },
+                    )
                 }
                 composable(AppDestination.Profile.route) {
                     SocialProfileRoute(
@@ -245,3 +258,4 @@ private fun playlistRoute(playlistId: String) = "playlist/${Uri.encode(playlistI
 private fun chatRoute(userId: String) = "chat/${Uri.encode(userId)}"
 private fun userProfileRoute(userId: String) = "social/user/${Uri.encode(userId)}"
 private fun userListRoute(userId: String, kind: String) = "social/users/${Uri.encode(userId)}/${Uri.encode(kind)}"
+private fun libraryRoute(kind: String) = "library/${Uri.encode(kind)}"

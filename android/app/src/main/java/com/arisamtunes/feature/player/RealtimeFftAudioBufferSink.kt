@@ -109,50 +109,52 @@ class RealtimeFftAudioBufferSink(
         }
     }
 
-    private fun analyze(now: Long) {
-        var rms = 0f
-        for (i in 0 until WindowSize) {
-            val sample = sampleRing[(ringWriteIndex + i) % WindowSize]
-            rms += sample * sample
-        }
-        rms = sqrt(rms / WindowSize)
-
-        val nyquist = sampleRateHz / 2f
-        val minFrequency = 40f
-        val maxFrequency = min(16_000f, nyquist * 0.92f).coerceAtLeast(minFrequency + 1f)
-        val logMin = log10(minFrequency)
-        val logMax = log10(maxFrequency)
-
-        for (i in 0 until WindowSize) {
-            val sample = sampleRing[(ringWriteIndex + i) % WindowSize]
-            val window = (0.5f - 0.5f * cos((2.0 * PI * i) / (WindowSize - 1))).toFloat()
-            fftReal[i] = sample * window
-            fftImag[i] = 0f
-        }
-        fft(fftReal, fftImag)
-
-        for (band in 0 until BandCount) {
-            val lowerFraction = band / BandCount.toFloat()
-            val upperFraction = (band + 1) / BandCount.toFloat()
-            val lowerFrequency = 10.0.pow((logMin + (logMax - logMin) * lowerFraction).toDouble()).toFloat()
-            val upperFrequency = 10.0.pow((logMin + (logMax - logMin) * upperFraction).toDouble()).toFloat()
-            val magnitude = averageMagnitude(lowerFrequency, upperFrequency)
-            val fraction = band / (BandCount - 1f)
-            val bassLift = 1f + (1f - fraction) * 0.72f
-            val highTrim = 1f - fraction * 0.18f
-            val normalized = (
-                log10(1f + magnitude * 56f * bassLift) * highTrim +
-                    log10(1f + rms * 18f) * 0.20f
-                ).coerceIn(0f, 1f)
-
-            val previous = smoothedBands[band]
-            val attack = if (normalized > previous) 0.74f else 0.34f
-            smoothedBands[band] = (previous + (normalized - previous) * attack).coerceIn(IdleLevel, 1f)
-        }
-
-        lastBandUpdateMillis = now
-        onBands(smoothedBands.toList())
+   private fun analyze(now: Long) {
+    var rms = 0f
+    for (i in 0 until WindowSize) {
+        val sample = sampleRing[(ringWriteIndex + i) % WindowSize]
+        rms += sample * sample
     }
+    rms = sqrt(rms / WindowSize)
+
+    val nyquist = sampleRateHz / 2f
+    val minFrequency = 40f
+    val maxFrequency = min(18_000f, nyquist * 0.95f).coerceAtLeast(minFrequency + 1f)  // افزایش محدوده
+    val logMin = log10(minFrequency)
+    val logMax = log10(maxFrequency)
+
+    for (i in 0 until WindowSize) {
+        val sample = sampleRing[(ringWriteIndex + i) % WindowSize]
+        val window = (0.5f - 0.5f * cos((2.0 * PI * i) / (WindowSize - 1))).toFloat()
+        fftReal[i] = sample * window
+        fftImag[i] = 0f
+    }
+    fft(fftReal, fftImag)
+
+    for (band in 0 until BandCount) {
+        val lowerFraction = band / BandCount.toFloat()
+        val upperFraction = (band + 1) / BandCount.toFloat()
+        val lowerFrequency = 10.0.pow((logMin + (logMax - logMin) * lowerFraction).toDouble()).toFloat()
+        val upperFrequency = 10.0.pow((logMin + (logMax - logMin) * upperFraction).toDouble()).toFloat()
+        val magnitude = averageMagnitude(lowerFrequency, upperFrequency)
+        val fraction = band / (BandCount - 1f)
+
+        // تنظیمات جدید با تأکید بیشتر روی فرکانس‌های بالا
+        val bassLift = 1f + (1f - fraction) * 0.45f  // کاهش Bass Lift
+        val highTrim = 1f - fraction * 0.08f  // کاهش High Trim (افزایش فرکانس‌های بالا)
+        val normalized = (
+            log10(1f + magnitude * 80f * bassLift) * highTrim +  // افزایش حساسیت
+            log10(1f + rms * 25f) * 0.15f
+        ).coerceIn(0f, 1f)
+
+        val previous = smoothedBands[band]
+        val attack = if (normalized > previous) 0.74f else 0.34f
+        smoothedBands[band] = (previous + (normalized - previous) * attack).coerceIn(IdleLevel, 1f)
+    }
+
+    lastBandUpdateMillis = now
+    onBands(smoothedBands.toList())
+}
 
     private fun averageMagnitude(lowerFrequency: Float, upperFrequency: Float): Float {
         val lowerBin = max(1, floor(lowerFrequency * WindowSize / sampleRateHz).toInt())

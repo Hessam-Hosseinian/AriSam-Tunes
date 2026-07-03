@@ -12,10 +12,14 @@ package com.arisamtunes.feature.player
  */
 
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.arisamtunes.data.catalog.SongDto
@@ -24,19 +28,72 @@ import com.arisamtunes.data.catalog.SongDto
 class CrossfadePlaybackCoordinator(
     context: Context,
     cacheDataSourceFactory: CacheDataSource.Factory,
+    renderersFactory: DefaultRenderersFactory,
+    private val onEnded: () -> Unit = {},
 ) {
-    private val secondaryPlayer = ExoPlayer.Builder(context)
+    private val secondaryPlayer = ExoPlayer.Builder(context, renderersFactory)
         .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
         .build()
+    private var preparedSongId: String? = null
 
-    fun prepareNext(song: SongDto, enabled: Boolean) {
+    init {
+        secondaryPlayer.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) onEnded()
+            }
+        })
+    }
+
+    fun prepareNext(song: SongDto, uri: String, enabled: Boolean) {
         if (!enabled) {
-            secondaryPlayer.clearMediaItems()
+            clear()
             return
         }
+        if (preparedSongId == song.id) return
+        preparedSongId = song.id
         secondaryPlayer.volume = 0f
-        secondaryPlayer.setMediaItem(MediaItem.fromUri(song.audioUrl))
+        secondaryPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(uri)))
         secondaryPlayer.prepare()
+    }
+
+    fun startPrepared(song: SongDto): Boolean {
+        if (preparedSongId != song.id) return false
+        secondaryPlayer.seekTo(0L)
+        secondaryPlayer.volume = 0f
+        secondaryPlayer.play()
+        return true
+    }
+
+    fun setVolume(volume: Float) {
+        secondaryPlayer.volume = volume.coerceIn(0f, 1f)
+    }
+
+    fun currentPositionMillis(): Long = secondaryPlayer.currentPosition.coerceAtLeast(0L)
+
+    fun durationMillis(): Long = secondaryPlayer.duration
+
+    fun play() {
+        secondaryPlayer.play()
+    }
+
+    fun pause() {
+        secondaryPlayer.pause()
+    }
+
+    fun seekTo(positionMillis: Long) {
+        secondaryPlayer.seekTo(positionMillis.coerceAtLeast(0L))
+    }
+
+    fun isPlaying(): Boolean = secondaryPlayer.isPlaying
+
+    fun playbackSpeed(speed: Float) {
+        secondaryPlayer.playbackParameters = PlaybackParameters(speed)
+    }
+
+    fun clear() {
+        secondaryPlayer.stop()
+        secondaryPlayer.clearMediaItems()
+        preparedSongId = null
     }
 
     fun release() {
