@@ -142,7 +142,10 @@ fun AriSamAppShell() {
             ) {
                 composable(AppDestination.Home.route) {
                     HomeRoute(
-                        onSongClick = { navController.navigate(songRoute(it.id)) },
+                        onSongClick = {
+                            playerViewModel.play(it)
+                            navController.navigateSingleTop(NowPlayingRoutePath)
+                        },
                         onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
                         onQuickAction = { action ->
                             when (action) {
@@ -154,7 +157,12 @@ fun AriSamAppShell() {
                         },
                     )
                 }
-                composable(AppDestination.Search.route) { SearchRoute(onSongClick = { navController.navigate(songRoute(it.id)) }) }
+                composable(AppDestination.Search.route) {
+                    SearchRoute(onSongClick = {
+                        playerViewModel.play(it)
+                        navController.navigateSingleTop(NowPlayingRoutePath)
+                    })
+                }
                 composable(AppDestination.Playlists.route) {
                     PlaylistsRoute(onPlaylistClick = { navController.navigate(playlistRoute(it.id)) })
                 }
@@ -166,12 +174,17 @@ fun AriSamAppShell() {
                     ChatDetailRoute(onBack = navController::popBackStack)
                 }
                 composable(PlaylistDetailRoutePattern) {
-                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { navController.navigate(songRoute(it.id)) })
+                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = {
+                        playerViewModel.play(it)
+                        navController.navigateSingleTop(NowPlayingRoutePath)
+                    })
                 }
                 composable(LibraryCollectionRoutePattern) {
                     LibraryCollectionRoute(
                         onBack = navController::popBackStack,
-                        onSongClick = { navController.navigate(songRoute(it)) },
+                        onSongClick = {
+                            navController.navigate(songRoute(it))
+                        },
                     )
                 }
                 composable(SongDetailRoutePattern) {
@@ -184,7 +197,10 @@ fun AriSamAppShell() {
                     )
                 }
                 composable(NowPlayingRoutePath) {
-                    NowPlayingRoute(onBack = navController::popBackStack)
+                    NowPlayingRoute(
+                        onBack = navController::popBackStack,
+                        onShowSongInfo = { navController.navigate(songRoute(it)) },
+                    )
                 }
                 composable(AppDestination.Profile.route) {
                     SocialProfileRoute(

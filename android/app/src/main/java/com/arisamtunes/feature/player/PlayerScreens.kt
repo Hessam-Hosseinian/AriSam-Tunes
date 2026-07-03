@@ -1,3 +1,5 @@
+@file:Suppress("PreviewAnnotationInFunctionWithParameters")
+
 package com.arisamtunes.feature.player
 
 import android.graphics.Bitmap
@@ -38,6 +40,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -79,7 +82,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -92,6 +94,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.palette.graphics.Palette
@@ -102,15 +105,13 @@ import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.SongDto
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+
 
 @Composable
 fun MiniPlayer(
@@ -159,6 +160,7 @@ fun MiniPlayer(
 @Composable
 fun NowPlayingRoute(
     onBack: () -> Unit,
+    onShowSongInfo: (String) -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -234,11 +236,10 @@ fun NowPlayingRoute(
                         }
                     }
                 }
-                VinylHero(
+                PremiumAlbumCover(
                     coverUrl = song.coverImageUrl,
                     title = song.title,
                     isPlaying = state.isPlaying,
-                    bands = state.visualizerBands,
                     onPalette = { coverColors = it },
                 )
                 Column(
@@ -264,11 +265,11 @@ fun NowPlayingRoute(
                             )
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        QualityBadge("HI-RES", Color(0xFFA78BFA))
-                        QualityBadge("LOSSLESS", Color(0xFF34D399))
-                        QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
-                    }
+                    // Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    //     QualityBadge("HI-RES", Color(0xFFA78BFA))
+                    //     QualityBadge("LOSSLESS", Color(0xFF34D399))
+                    //     QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
+                    // }
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                         PlayerTextAction(Icons.Rounded.Share, "Share") {
                             context.startActivity(
@@ -284,6 +285,14 @@ fun NowPlayingRoute(
                         Box {
                             PlayerTextAction(Icons.Rounded.MoreVert, "More") { showMore = true }
                             DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.song_information)) },
+                                    onClick = {
+                                        showMore = false
+                                        onShowSongInfo(song.id)
+                                    },
+                                    leadingIcon = { Icon(Icons.Rounded.Info, null) },
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Download") },
                                     onClick = {
@@ -451,71 +460,46 @@ private fun AudioVisualizer(
 }
 
 @Composable
-private fun VinylHero(
+private fun PremiumAlbumCover(
     coverUrl: String,
     title: String,
     isPlaying: Boolean,
-    bands: List<Float>,
     onPalette: (List<Color>) -> Unit = {},
 ) {
-    val motion = rememberInfiniteTransition(label = "vinylMotion")
-    val rotation by motion.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(20_000, easing = LinearEasing)),
-        label = "vinylRotation",
-    )
+    val motion = rememberInfiniteTransition(label = "coverGlow")
     val pulse by motion.animateFloat(
         initialValue = 1f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(tween(1_100), repeatMode = RepeatMode.Reverse),
-        label = "vinylPulse",
+        targetValue = 1.025f,
+        animationSpec = infiniteRepeatable(tween(1_800), repeatMode = RepeatMode.Reverse),
+        label = "coverGlowPulse",
     )
     Box(
-        modifier = Modifier.size(240.dp),
+        modifier = Modifier.size(248.dp),
         contentAlignment = Alignment.Center,
     ) {
-        listOf(236.dp, 214.dp, 192.dp).forEachIndexed { index, diameter ->
-            Box(
-                Modifier.size(diameter)
-                    .graphicsLayer {
-                        val amount = if (isPlaying) (pulse - 1f) * (1f - index * .18f) else 0f
-                        scaleX = 1f + amount
-                        scaleY = 1f + amount
-                        alpha = .38f - index * .08f
-                    }
-                    .border(1.dp, Color(0xFFB57BFF), CircleShape),
-            )
-        }
-        Canvas(Modifier.size(236.dp).rotate(rotation * .08f)) {
-            val center = Offset(size.width / 2f, size.height / 2f)
-            val baseRadius = size.minDimension * .43f
-            val maxBarLength = size.minDimension * .065f
-            val count = 72
-            repeat(count) { index ->
-                val angle = (2f * PI.toFloat() * index / count) - PI.toFloat() / 2f
-                val level = bands.getOrElse(index % bands.size.coerceAtLeast(1)) { .05f }.coerceIn(.04f, 1f)
-                val length = 2.dp.toPx() + maxBarLength * level
-                val direction = Offset(cos(angle), sin(angle))
-                val start = center + direction * baseRadius
-                val end = center + direction * (baseRadius + length)
-                drawLine(
-                    color = lerp(Color(0xFF8B5CF6), Color(0xFFEC4899), index.toFloat() / count)
-                        .copy(alpha = if (isPlaying) .45f + level * .55f else .22f),
-                    start = start,
-                    end = end,
-                    strokeWidth = 1.5.dp.toPx(),
-                    cap = StrokeCap.Round,
-                )
-            }
-        }
+        // Box(
+        //     Modifier.size(230.dp)
+        //         .graphicsLayer {
+        //             val scale = if (isPlaying) pulse else 1f
+        //             scaleX = scale
+        //             scaleY = scale
+        //             alpha = if (isPlaying) .7f else .42f
+        //         }
+        //         .blur(22.dp)
+        //         .clip(MaterialTheme.shapes.extraLarge)
+        //         .background(
+        //             Brush.linearGradient(
+        //                 listOf(Color(0xFF8B5CF6), Color(0xFFEC4899)),
+        //             ),
+        //         ),
+        // )
         AsyncImage(
             model = coverUrl,
             contentDescription = title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(196.dp).rotate(rotation)
-                .clip(CircleShape)
-                .border(2.dp, Color(0xFFB57BFF).copy(alpha = .7f), CircleShape),
+            modifier = Modifier.size(220.dp)
+                .clip(MaterialTheme.shapes.extraLarge)
+                .border(1.dp, Color.White.copy(alpha = .2f), MaterialTheme.shapes.extraLarge),
             onSuccess = { success ->
                 Palette.from(success.result.image.toPaletteBitmap())
                     .maximumColorCount(12)
@@ -541,8 +525,12 @@ private fun VinylHero(
             },
         )
         Box(
-            Modifier.size(14.dp).clip(CircleShape).background(Color(0xFF090916))
-                .border(2.dp, Color(0xFFB57BFF), CircleShape),
+            Modifier.size(220.dp).clip(MaterialTheme.shapes.extraLarge).background(
+                Brush.verticalGradient(
+                    listOf(Color.Transparent, Color.Black.copy(alpha = .2f)),
+                    startY = 110f,
+                ),
+            ),
         )
     }
 }
