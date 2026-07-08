@@ -20,6 +20,10 @@ class AuthRepository @Inject constructor(private val api: AuthApi, private val t
         if (tokenStore.load() == null) return false
         return runCatching { api.me(); true }.getOrElse { tokenStore.clear(); false }
     }
+
+    suspend fun logout() {
+        tokenStore.clear()
+    }
 }
 
 @Module

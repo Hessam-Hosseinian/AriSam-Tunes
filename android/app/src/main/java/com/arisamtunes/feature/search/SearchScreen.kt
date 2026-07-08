@@ -37,16 +37,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
+import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.PressScaleBox
+import com.arisamtunes.core.design.preview.PreviewCatalogData
+import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.SongDto
+import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun SearchRoute(onSongClick: (SongDto) -> Unit, viewModel: SearchViewModel = hiltViewModel()) {
@@ -155,4 +160,34 @@ private fun SearchFilter.labelRes() = when (this) {
     SearchFilter.Artist -> R.string.search_filter_artists
     SearchFilter.Album -> R.string.search_filter_albums
     SearchFilter.Genre -> R.string.search_filter_genres
+}
+
+@Preview(name = "Search - Results", showBackground = true)
+@Composable
+private fun SearchResultsPreview() {
+    val results = flowOf(PagingData.from(PreviewCatalogData.songs)).collectAsLazyPagingItems()
+    AriSamTheme {
+        SearchScreen(
+            state = SearchUiState(query = "tehran", filter = SearchFilter.All),
+            results = results,
+            onQueryChange = {},
+            onFilterChange = {},
+            onSongClick = {},
+        )
+    }
+}
+
+@Preview(name = "Search - Empty Query", showBackground = true)
+@Composable
+private fun SearchEmptyQueryPreview() {
+    val results = flowOf(PagingData.empty<SongDto>()).collectAsLazyPagingItems()
+    AriSamTheme {
+        SearchScreen(
+            state = SearchUiState(),
+            results = results,
+            onQueryChange = {},
+            onFilterChange = {},
+            onSongClick = {},
+        )
+    }
 }

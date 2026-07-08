@@ -103,6 +103,8 @@ import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
+import com.arisamtunes.core.design.preview.PreviewCatalogData
+import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.SongDto
 import kotlinx.serialization.json.Json
@@ -918,4 +920,170 @@ private fun playerGradient(title: String, artist: String): Brush {
     )
     val colors = palettes[Math.floorMod((title + artist).hashCode(), palettes.size)]
     return Brush.verticalGradient(colors)
+}
+
+@Preview(name = "Player - Now Playing", showBackground = true)
+@Composable
+private fun NowPlayingScreenPreview() {
+    AriSamTheme(darkTheme = true) {
+        val song = PreviewCatalogData.songs.first()
+        PlayerPreviewScreen(
+            state = PlayerState(
+                currentSong = song,
+                isPlaying = true,
+                progressSeconds = 86,
+                progressMillis = 86_000L,
+                queue = PreviewCatalogData.songs,
+                isShuffleEnabled = true,
+                repeatMode = 1,
+                visualizerBands = List(32) { index -> .18f + (index % 7) * .1f },
+            ),
+        )
+    }
+}
+
+@Preview(name = "Player - Queue", showBackground = true)
+@Composable
+private fun PlayerQueuePreview() {
+    AriSamTheme(darkTheme = true) {
+        PlayerQueueScreen(
+            currentSong = PreviewCatalogData.songs.first(),
+            queue = PreviewCatalogData.songs,
+            onBack = {},
+            onSongClick = {},
+        )
+    }
+}
+
+@Composable
+private fun PlayerPreviewScreen(state: PlayerState) {
+    val song = state.currentSong ?: return EmptyPlayer()
+    AnimatedPlayerBackground(
+        colors = listOf(Color(0xFF2A1246), Color(0xFF123047), Color(0xFF05060D)),
+        coverUrl = song.coverImageUrl,
+    )
+    CompositionLocalProvider(LocalContentColor provides Color.White) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Surface(
+                    modifier = Modifier.size(38.dp),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = .08f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+                ) {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(20.dp))
+                    }
+                }
+                Text(
+                    stringResource(R.string.now_playing).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = .42f),
+                )
+                Surface(
+                    modifier = Modifier.size(38.dp),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = .08f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+                ) {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+            PremiumAlbumCover(
+                coverUrl = song.coverImageUrl,
+                title = song.title,
+                isPlaying = state.isPlaying,
+            )
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            listOfNotNull(song.artistName, song.album?.takeIf(String::isNotBlank)).joinToString("  ·  "),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = .55f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Rounded.Favorite, null, tint = Color(0xFFF43F5E))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    PlayerTextAction(Icons.Rounded.Share, "Share") {}
+                    PlayerTextAction(Icons.Rounded.MoreVert, "More") {}
+                }
+            }
+            AudioVisualizer(
+                isPlaying = state.isPlaying,
+                bands = state.visualizerBands,
+                compact = true,
+            )
+            Column(Modifier.fillMaxWidth()) {
+                Slider(
+                    value = state.progressSeconds.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
+                    onValueChange = {},
+                    valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = Color(0xFFB45CFF),
+                        inactiveTrackColor = Color.White.copy(alpha = .1f),
+                    ),
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(formatDuration(state.progressSeconds), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
+                    Text("-${formatDuration((song.durationSeconds - state.progressSeconds).coerceAtLeast(0))}", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                IconButton(onClick = {}) {
+                    Icon(Icons.Rounded.Shuffle, null, tint = if (state.isShuffleEnabled) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
+                }
+                IconButton(onClick = {}, modifier = Modifier.size(60.dp)) {
+                    Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
+                }
+                Box(
+                    Modifier.size(68.dp).clip(CircleShape).background(
+                        Brush.linearGradient(listOf(Color(0xFFA855F7), Color(0xFFEC4899))),
+                    ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    IconButton(onClick = {}, modifier = Modifier.fillMaxSize()) {
+                        Icon(Icons.Rounded.Pause, stringResource(R.string.pause), modifier = Modifier.size(40.dp))
+                    }
+                }
+                IconButton(onClick = {}, modifier = Modifier.size(60.dp)) {
+                    Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
+                }
+                IconButton(onClick = {}) {
+                    Icon(Icons.Rounded.Repeat, null, tint = if (state.repeatMode > 0) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
+                }
+            }
+            SecondaryPlayerControls(
+                onLyrics = {},
+                onCrossfade = {},
+                onSave = {},
+                onEq = {},
+                onSleep = {},
+            )
+        }
+    }
 }

@@ -31,12 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
+import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 
 @Composable
@@ -140,4 +142,43 @@ private fun LoadingState() = Box(Modifier.fillMaxWidth().padding(32.dp), content
 @Composable
 private fun ErrorState(onRetry: () -> Unit) = Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
     TextButton(onClick = onRetry) { Icon(Icons.Rounded.Refresh, null); Text(stringResource(R.string.retry)) }
+}
+
+@Preview(name = "Downloads - Premium", showBackground = true)
+@Composable
+private fun DownloadsPremiumPreview() {
+    AriSamTheme {
+        DownloadsScreen(
+            state = DownloadsUiState(isPremium = true),
+            itemCount = 3,
+            isLoading = false,
+            hasError = false,
+            onRetry = {},
+            onEvent = {},
+        ) {
+            items(3) { index ->
+                ListItem(
+                    headlineContent = { Text("Downloaded track ${index + 1}") },
+                    supportingContent = { Text("Ari Sam • READY") },
+                    leadingContent = { Icon(Icons.Rounded.Download, null) },
+                )
+            }
+        }
+    }
+}
+
+@Preview(name = "Downloads - Upgrade", showBackground = true)
+@Composable
+private fun DownloadsUpgradePreview() {
+    AriSamTheme {
+        DownloadsScreen(
+            state = DownloadsUiState(errorCode = DownloadsViewModel.PremiumRequired),
+            itemCount = 0,
+            isLoading = false,
+            hasError = false,
+            onRetry = {},
+            onEvent = {},
+            content = {},
+        )
+    }
 }

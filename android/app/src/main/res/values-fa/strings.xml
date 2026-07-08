@@ -3,6 +3,8 @@
     <string name="app_logo_description">نشان آری‌سام تیونز</string>
     <string name="notifications">اعلان‌ها</string>
     <string name="settings">تنظیمات</string>
+    <string name="logout">خروج از حساب</string>
+    <string name="logout_confirmation">مطمئنید که می‌خواهید از حساب کاربری خود خارج شوید؟</string>
     <string name="profile_picture">تصویر پروفایل</string>
     <string name="nav_home">خانه</string>
     <string name="nav_search">جستجو</string>
@@ -12,6 +14,10 @@
     <string name="nav_profile">پروفایل</string>
     <string name="login_title">خوش برگشتی</string>
     <string name="register_title">ساخت حساب کاربری</string>
+    <string name="auth_login_tagline">دوباره به موسیقی وصل شو</string>
+    <string name="auth_register_tagline">سفر شنیداری‌ات را شروع کن</string>
+    <string name="auth_login_support">موسیقی، فهرست‌ها و گفتگوهایت منتظرت هستند.</string>
+    <string name="auth_register_support">یک پروفایل بساز و آری‌سام تیونز را برای خودت شخصی کن.</string>
     <string name="display_name">نام نمایشی</string>
     <string name="email">ایمیل</string>
     <string name="password">رمز عبور</string>

@@ -3,6 +3,8 @@
     <string name="app_logo_description">AriSam Tunes logo</string>
     <string name="notifications">Notifications</string>
     <string name="settings">Settings</string>
+    <string name="logout">Log out</string>
+    <string name="logout_confirmation">Are you sure you want to log out of your account?</string>
     <string name="profile_picture">Profile picture</string>
     <string name="nav_home">Home</string>
     <string name="nav_search">Search</string>
@@ -12,6 +14,10 @@
     <string name="nav_profile">Profile</string>
     <string name="login_title">Welcome back</string>
     <string name="register_title">Create your account</string>
+    <string name="auth_login_tagline">Tune back in</string>
+    <string name="auth_register_tagline">Start your sound journey</string>
+    <string name="auth_login_support">Your music, playlists, and conversations are waiting.</string>
+    <string name="auth_register_support">Create a profile and make AriSam Tunes yours.</string>
     <string name="display_name">Display name</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
