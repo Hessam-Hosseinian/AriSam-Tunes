@@ -26,7 +26,12 @@ class AuthViewModel @Inject constructor(private val repository: AuthRepository) 
             is AuthEvent.PasswordChanged -> current.copy(password = event.value, validationError = null)
             is AuthEvent.DisplayNameChanged -> current.copy(displayName = event.value, validationError = null)
             AuthEvent.TogglePasswordVisibility -> current.copy(isPasswordVisible = !current.isPasswordVisible)
-            AuthEvent.ToggleMode -> AuthUiState(mode = if (current.mode == AuthMode.Login) AuthMode.Register else AuthMode.Login)
+            AuthEvent.ToggleMode -> current.copy(
+                mode = if (current.mode == AuthMode.Login) AuthMode.Register else AuthMode.Login,
+                isLoading = false,
+                validationError = null,
+                authError = null,
+            )
             AuthEvent.Submit -> current.also { submit(it) }
         }
     }

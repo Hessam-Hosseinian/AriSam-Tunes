@@ -62,7 +62,7 @@ private const val LibraryCollectionRoutePattern = "library/{kind}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AriSamAppShell() {
+fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val navController = rememberNavController()
     val playerViewModel: PlayerViewModel = hiltViewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -223,7 +223,12 @@ fun AriSamAppShell() {
                         onUserClick = { navController.navigate(userProfileRoute(it.id)) },
                     )
                 }
-                composable(SettingsRoutePath) { SettingsRoute(onBack = navController::popBackStack) }
+                composable(SettingsRoutePath) {
+                    SettingsRoute(
+                        onBack = navController::popBackStack,
+                        onLoggedOut = onLoggedOut,
+                    )
+                }
             }
         }
     }

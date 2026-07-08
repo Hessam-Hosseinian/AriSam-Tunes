@@ -6,6 +6,7 @@ import com.arisamtunes.data.preferences.LanguagePreference
 import com.arisamtunes.data.preferences.PreferencesRepository
 import com.arisamtunes.data.preferences.ThemePreference
 import com.arisamtunes.data.preferences.UserPreferences
+import com.arisamtunes.data.auth.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val repository: PreferencesRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
     val preferences = repository.preferences.stateIn(
         scope = viewModelScope,
@@ -32,5 +34,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontScale(fontScale: Float) = viewModelScope.launch {
         repository.setFontScale(fontScale)
+    }
+
+    fun logout(onComplete: () -> Unit) = viewModelScope.launch {
+        authRepository.logout()
+        onComplete()
     }
 }
