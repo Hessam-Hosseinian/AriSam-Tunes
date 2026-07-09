@@ -1,5 +1,6 @@
 package com.arisamtunes.core.navigation
 
+import android.window.SplashScreen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -31,9 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,7 +50,14 @@ import com.arisamtunes.R
 import com.arisamtunes.feature.auth.AuthScreen
 import com.arisamtunes.feature.auth.AuthViewModel
 import com.arisamtunes.feature.auth.AuthEffect
+import io.ktor.client.io.configurePlatform
 import kotlinx.coroutines.delay
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.sp
+
 
 private const val SplashRoute = "splash"
 private const val AuthRoute = "auth"
@@ -65,7 +77,9 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
             SessionState.Checking -> SplashRoute
         }
         navController.navigate(destination) {
-            popUpTo(navController.graph.startDestinationId) { inclusive = destination != SplashRoute }
+            popUpTo(navController.graph.startDestinationId) {
+                inclusive = destination != SplashRoute
+            }
             launchSingleTop = true
         }
     }
@@ -93,13 +107,13 @@ private fun SplashScreen(onFinished: () -> Unit) {
     var phase by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         phase = 1
-        delay(360)
+        delay(720)
         phase = 2
-        delay(360)
+        delay(720)
         phase = 3
-        delay(360)
+        delay(720)
         phase = 4
-        delay(620)
+        delay(1240)
         onFinished()
     }
 
@@ -109,7 +123,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
             phase == 2 -> 70.dp
             else -> 49.dp
         },
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        animationSpec = tween(360, easing = FastOutSlowInEasing),
         label = "splashDotSize",
     )
     val dotOffsetX by animateDpAsState(
@@ -118,12 +132,16 @@ private fun SplashScreen(onFinished: () -> Unit) {
         label = "splashDotOffset",
     )
     val dotOffsetY by animateDpAsState(
-        targetValue = if (phase == 2) (-86).dp else 0.dp,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        targetValue = when {
+            phase < 2 -> 28.dp
+            phase == 2 -> (-86).dp
+            else -> 0.dp
+        },
+        animationSpec = tween(420, easing = FastOutSlowInEasing),
         label = "splashDotOffsetY",
     )
     val dotScale by animateFloatAsState(
-        targetValue = 1f,
+        targetValue = if (phase == 2) 1.08f else 1f,
         animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "splashDotPulse",
     )
@@ -132,6 +150,25 @@ private fun SplashScreen(onFinished: () -> Unit) {
         animationSpec = tween(260, easing = FastOutSlowInEasing),
         label = "splashShadowAlpha",
     )
+    val ovalWidth by animateDpAsState(
+        targetValue =  when {
+            phase < 2 ->230.dp
+            phase == 2 ->145.dp
+            else -> 72.dp
+        },
+        animationSpec =  tween(320,easing = FastOutSlowInEasing ), label = "ovalWidth",
+    )
+
+    val ovalhight by animateDpAsState(
+        targetValue =  when {
+            phase < 2 ->62.dp
+            phase == 2 ->42.dp
+            else -> 18.dp
+        },
+        animationSpec =  tween(320,easing = FastOutSlowInEasing ), label = "ovalHeight",
+    )
+
+
     val markAlpha by animateFloatAsState(
         targetValue = if (phase >= 2) 1f else 0f,
         animationSpec = tween(180, easing = FastOutSlowInEasing),
@@ -150,14 +187,20 @@ private fun SplashScreen(onFinished: () -> Unit) {
     ) {
         val frameScaleX = maxWidth.value / 390f
         val frameScaleY = maxHeight.value / 844f
-        Box(
+        Canvas(
             modifier = Modifier
                 .offset(y = 28.dp * frameScaleY)
-                .size(width = 230.dp * frameScaleX, height = 62.dp * frameScaleY)
+                .size(width = ovalWidth * frameScaleX, height =ovalhight * frameScaleY)
                 .alpha(shadowAlpha)
-                .blur(6.dp)
-                .background(Color(0xFF26364A), RoundedCornerShape(percent = 50)),
-        )
+//                .blur(6.dp)
+
+        ) {
+            drawOval(
+                color = Color(0xFF26364A),
+                topLeft = Offset.Zero,
+                size = Size(size.width, size.height)
+            )
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -176,13 +219,27 @@ private fun SplashScreen(onFinished: () -> Unit) {
                 exit = fadeOut(tween(120)),
             ) {
                 Text(
-                    text = "NEXUS APP",
+                    text = "AriSam Tunes",
                     color = Color.White,
-                    style = MaterialTheme.typography.labelMedium,
+//                    style = MaterialTheme.typography.titleLarge,
+                    fontSize =  35.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.offset(x = (-66).dp * frameScaleX),
+                    modifier = Modifier.offset(x = (0).dp * frameScaleX),
                 )
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(
+
+    showBackground = true,
+    showSystemUi = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+private fun SplashScreenPreview() {
+    MaterialTheme {
+        SplashScreen { }
     }
 }

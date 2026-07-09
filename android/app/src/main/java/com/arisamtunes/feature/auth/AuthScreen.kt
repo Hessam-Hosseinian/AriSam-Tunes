@@ -290,14 +290,14 @@ private fun AuthBrandMark() {
             shadowElevation = 0.dp,
         ) {}
         Image(
-            painter = painterResource(R.drawable.nexus_lion),
+            painter = painterResource(R.drawable.arisam_mark_dark),
             contentDescription = stringResource(R.string.app_logo_description),
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(Color(0xFF081721)),
-            modifier = Modifier
-                .scale(logoScale)
-                .fillMaxWidth(.72f)
-                .aspectRatio(1f),
+//            contentScale = ContentScale.Fit,
+//            colorFilter = ColorFilter.tint(Color(0xFF081721)),
+//            modifier = Modifier
+//                .scale(logoScale)
+//                .fillMaxWidth(.72f)
+//                .aspectRatio(1f),
         )
         Box(
             modifier = Modifier
