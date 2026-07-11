@@ -2,6 +2,8 @@ package com.arisamtunes.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.arisamtunes.data.auth.AuthConnectionFailure
+import com.arisamtunes.data.auth.AuthConnectionIssue
 import com.arisamtunes.data.auth.AuthFailure
 import com.arisamtunes.data.auth.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,11 +22,15 @@ class AuthViewModel @Inject constructor(private val repository: AuthRepository) 
     val effects = _effects.receiveAsFlow()
 
     fun onEvent(event: AuthEvent) {
+        if (event == AuthEvent.Submit) {
+            submit(_state.value)
+            return
+        }
         val current = _state.value
         _state.value = when (event) {
-            is AuthEvent.EmailChanged -> current.copy(email = event.value, validationError = null)
-            is AuthEvent.PasswordChanged -> current.copy(password = event.value, validationError = null)
-            is AuthEvent.DisplayNameChanged -> current.copy(displayName = event.value, validationError = null)
+            is AuthEvent.EmailChanged -> current.copy(email = event.value, validationError = null, authError = null)
+            is AuthEvent.PasswordChanged -> current.copy(password = event.value, validationError = null, authError = null)
+            is AuthEvent.DisplayNameChanged -> current.copy(displayName = event.value, validationError = null, authError = null)
             AuthEvent.TogglePasswordVisibility -> current.copy(isPasswordVisible = !current.isPasswordVisible)
             AuthEvent.ToggleMode -> current.copy(
                 mode = if (current.mode == AuthMode.Login) AuthMode.Register else AuthMode.Login,
@@ -32,11 +38,12 @@ class AuthViewModel @Inject constructor(private val repository: AuthRepository) 
                 validationError = null,
                 authError = null,
             )
-            AuthEvent.Submit -> current.also { submit(it) }
+            AuthEvent.Submit -> current
         }
     }
 
     private fun submit(state: AuthUiState) {
+        if (state.isLoading) return
         val error = when {
             !state.email.matches(Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) -> AuthValidationError.Email
             state.password.length < 8 -> AuthValidationError.Password
@@ -49,12 +56,18 @@ class AuthViewModel @Inject constructor(private val repository: AuthRepository) 
             runCatching { repository.authenticate(state.mode, state.email.trim(), state.password, state.displayName.trim()) }
                 .onSuccess { _state.value = _state.value.copy(isLoading = false); _effects.send(AuthEffect.Authenticated) }
                 .onFailure { failure ->
-                    val errorCode = (failure as? AuthFailure)?.code
-                    val uiError = when (errorCode) {
-                        "AUTH_INVALID_CREDENTIALS" -> AuthUiError.InvalidCredentials
-                        "USER_ALREADY_EXISTS" -> AuthUiError.UserExists
-                        "RATE_LIMITED" -> AuthUiError.RateLimited
-                        null -> AuthUiError.Network
+                    val uiError = when (failure) {
+                        is AuthConnectionFailure -> when (failure.issue) {
+                            AuthConnectionIssue.Offline -> AuthUiError.Offline
+                            AuthConnectionIssue.ServerUnavailable -> AuthUiError.ServerUnavailable
+                            AuthConnectionIssue.TimedOut -> AuthUiError.TimedOut
+                        }
+                        is AuthFailure -> when (failure.code) {
+                            "AUTH_INVALID_CREDENTIALS" -> AuthUiError.InvalidCredentials
+                            "USER_ALREADY_EXISTS" -> AuthUiError.UserExists
+                            "RATE_LIMITED" -> AuthUiError.RateLimited
+                            else -> AuthUiError.Unknown
+                        }
                         else -> AuthUiError.Unknown
                     }
                     _state.value = _state.value.copy(isLoading = false, authError = uiError)

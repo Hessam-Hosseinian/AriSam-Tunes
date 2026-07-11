@@ -1,0 +1,1212 @@
+openapi: 3.0.3
+info:
+  title: AriSam Tunes Backend API
+  version: 1.0.0
+  description: REST and WebSocket API for AriSam Tunes. Use /auth/login or /auth/register to get a bearer access token, then authorize Swagger with it.
+servers:
+  - url: /api/v1
+    description: Versioned REST API
+tags:
+  - name: Health
+  - name: Auth
+  - name: Profile
+  - name: Catalog
+  - name: Media
+  - name: Playlists
+  - name: Social
+  - name: Chat
+security: []
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Check backend health
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created and tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and issue tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh an access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Refreshed tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: Logged out
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+  /users/me:
+    get:
+      tags: [Profile]
+      summary: Get my profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+    put:
+      tags: [Profile]
+      summary: Update my profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /users/me/premium:
+    put:
+      tags: [Profile]
+      summary: Update my premium flag
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PremiumStatusRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /songs:
+    get:
+      tags: [Catalog]
+      summary: List songs
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Song page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongPageResponse"
+  /songs/trending:
+    get:
+      tags: [Catalog]
+      summary: List trending songs
+      responses:
+        "200":
+          description: Trending songs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SongResponse"
+  /songs/new:
+    get:
+      tags: [Catalog]
+      summary: List new songs
+      responses:
+        "200":
+          description: New songs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SongResponse"
+  /songs/popular:
+    get:
+      tags: [Catalog]
+      summary: List popular songs
+      responses:
+        "200":
+          description: Popular songs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SongResponse"
+  /songs/search:
+    get:
+      tags: [Catalog]
+      summary: Search songs
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 200
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, title, artist, album, genre]
+            default: all
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongPageResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+  /songs/{id}:
+    get:
+      tags: [Catalog]
+      summary: Get a song
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Song
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+  /songs/{id}/spectrum:
+    get:
+      tags: [Catalog]
+      summary: Get precomputed song spectrum frames
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Spectrum frames
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongSpectrumResponse"
+  /artists:
+    get:
+      tags: [Catalog]
+      summary: List artists
+      responses:
+        "200":
+          description: Artists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistListResponse"
+  /artists/{id}:
+    get:
+      tags: [Catalog]
+      summary: Get an artist
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Artist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistResponse"
+  /artists/{id}/songs:
+    get:
+      tags: [Catalog]
+      summary: List songs by artist
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Song page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongPageResponse"
+  /playlists/global:
+    get:
+      tags: [Playlists]
+      summary: List global playlists
+      responses:
+        "200":
+          description: Playlists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistListResponse"
+  /playlists/local:
+    get:
+      tags: [Playlists]
+      summary: List local playlists
+      responses:
+        "200":
+          description: Playlists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistListResponse"
+  /playlists:
+    get:
+      tags: [Playlists]
+      summary: List playlists visible to me
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Playlists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistListResponse"
+    post:
+      tags: [Playlists]
+      summary: Create a playlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlaylistRequest"
+      responses:
+        "201":
+          description: Created playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistResponse"
+  /playlists/{id}:
+    get:
+      tags: [Playlists]
+      summary: Get a visible playlist
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistResponse"
+    put:
+      tags: [Playlists]
+      summary: Update my playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlaylistRequest"
+      responses:
+        "200":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistResponse"
+    delete:
+      tags: [Playlists]
+      summary: Delete my playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Deleted
+  /playlists/{id}/songs:
+    get:
+      tags: [Playlists]
+      summary: List songs in a visible playlist
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Playlist songs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistSongsResponse"
+    post:
+      tags: [Playlists]
+      summary: Add a song to my playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistSongRequest"
+      responses:
+        "200":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistResponse"
+  /playlists/{id}/songs/{songId}:
+    delete:
+      tags: [Playlists]
+      summary: Remove a song from my playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistResponse"
+  /users/search:
+    get:
+      tags: [Social]
+      summary: Search public users
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserListResponse"
+  /users/me/following:
+    get:
+      tags: [Social]
+      summary: List users I follow
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserListResponse"
+  /users/me/followers:
+    get:
+      tags: [Social]
+      summary: List my followers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserListResponse"
+  /users/{id}:
+    get:
+      tags: [Social]
+      summary: Get a public user
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserResponse"
+  /users/{id}/follow:
+    post:
+      tags: [Social]
+      summary: Follow a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Follow state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResponse"
+    delete:
+      tags: [Social]
+      summary: Unfollow a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Follow state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResponse"
+  /users/{id}/following:
+    get:
+      tags: [Social]
+      summary: List users followed by a public user
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserListResponse"
+  /users/{id}/followers:
+    get:
+      tags: [Social]
+      summary: List followers of a public user
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserListResponse"
+  /users/{id}/playlists:
+    get:
+      tags: [Social]
+      summary: List public playlists for a user
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Public playlists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPlaylistListResponse"
+  /chat/conversations:
+    get:
+      tags: [Chat]
+      summary: List chat conversations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversationListResponse"
+  /chat/{userId}/messages:
+    get:
+      tags: [Chat]
+      summary: List messages with a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessageListResponse"
+  /media/audio/{path}:
+    get:
+      tags: [Media]
+      summary: Stream an audio file
+      servers:
+        - url: /
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audio bytes
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found
+  /media/covers/{path}:
+    get:
+      tags: [Media]
+      summary: Get a cover image file
+      servers:
+        - url: /
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Image bytes
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found
+  /ws/chat:
+    get:
+      tags: [Chat]
+      summary: WebSocket chat channel
+      description: Connect to /ws/chat?token={access_token}. Client messages use ChatSocketEnvelope with types send_message, typing_start, typing_stop, message_delivered, and message_read.
+      servers:
+        - url: /
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "101":
+          description: WebSocket connection established
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: arisam-tunes-backend
+    RegisterRequest:
+      type: object
+      required: [email, password, display_name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        display_name:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+    LogoutRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, expires_in, user]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          format: int64
+          example: 900
+        user:
+          $ref: "#/components/schemas/UserResponse"
+    UserResponse:
+      type: object
+      required: [id, email, display_name, is_premium]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        is_premium:
+          type: boolean
+    UpdateProfileRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+    PremiumStatusRequest:
+      type: object
+      required: [is_premium]
+      properties:
+        is_premium:
+          type: boolean
+    PaginationMeta:
+      type: object
+      required: [page, size, totalItems, totalPages]
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+    SongResponse:
+      type: object
+      additionalProperties: true
+      required: [id, title, artistName, durationSeconds, popularity, playCount, isLocal, isDemo, tags, audioUrl, coverImageUrl, extraMetadata, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        artistId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        artistName:
+          type: string
+        album:
+          type: string
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        durationSeconds:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        isExplicit:
+          type: boolean
+        popularity:
+          type: integer
+        playCount:
+          type: integer
+          format: int64
+        isLocal:
+          type: boolean
+        isDemo:
+          type: boolean
+        audioUrl:
+          type: string
+        coverImageUrl:
+          type: string
+        extraMetadata:
+          type: object
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    SongPageResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SongResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    ArtistResponse:
+      type: object
+      required: [id, name, songCount, extraMetadata, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        biography:
+          type: string
+          nullable: true
+        songCount:
+          type: integer
+          format: int64
+        extraMetadata:
+          type: object
+        createdAt:
+          type: string
+    ArtistListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistResponse"
+    SongSpectrumResponse:
+      type: object
+      required: [songId, bands, frameDurationMs, frames]
+      properties:
+        songId:
+          type: string
+          format: uuid
+        bands:
+          type: integer
+        frameDurationMs:
+          type: integer
+        frames:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+    PlaylistScope:
+      type: string
+      enum: [GLOBAL, LOCAL, USER]
+    PlaylistResponse:
+      type: object
+      required: [id, name, scope, isPublic, songCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          nullable: true
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageUrl:
+          type: string
+          nullable: true
+        scope:
+          $ref: "#/components/schemas/PlaylistScope"
+        isPublic:
+          type: boolean
+        songCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    PlaylistListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistResponse"
+    PlaylistSongsResponse:
+      type: object
+      required: [playlist, items, pagination]
+      properties:
+        playlist:
+          $ref: "#/components/schemas/PlaylistResponse"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SongResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    CreatePlaylistRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageUrl:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+          default: false
+    UpdatePlaylistRequest:
+      allOf:
+        - $ref: "#/components/schemas/CreatePlaylistRequest"
+    PlaylistSongRequest:
+      type: object
+      required: [songId]
+      properties:
+        songId:
+          type: string
+          format: uuid
+    PublicUserResponse:
+      type: object
+      required: [id, display_name, is_premium, followers_count, following_count, is_following]
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        is_premium:
+          type: boolean
+        followers_count:
+          type: integer
+          format: int64
+        following_count:
+          type: integer
+          format: int64
+        is_following:
+          type: boolean
+    PublicUserListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicUserResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    FollowResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/PublicUserResponse"
+    PublicPlaylistListResponse:
+      type: object
+      required: [owner, items]
+      properties:
+        owner:
+          $ref: "#/components/schemas/PublicUserResponse"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistResponse"
+    ChatMessageType:
+      type: string
+      enum: [TEXT, SONG]
+    ChatMessageStatus:
+      type: string
+      enum: [SENT, DELIVERED, READ]
+    ChatMessageResponse:
+      type: object
+      required: [id, client_message_id, sender_id, recipient_id, message_type, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        client_message_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        recipient_id:
+          type: string
+          format: uuid
+        message_type:
+          $ref: "#/components/schemas/ChatMessageType"
+        content:
+          type: string
+          nullable: true
+        song_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          $ref: "#/components/schemas/ChatMessageStatus"
+        created_at:
+          type: string
+        delivered_at:
+          type: string
+          nullable: true
+        read_at:
+          type: string
+          nullable: true
+    ChatMessageListResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessageResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    ChatConversationResponse:
+      type: object
+      required: [user, latest_message]
+      properties:
+        user:
+          $ref: "#/components/schemas/PublicUserResponse"
+        latest_message:
+          $ref: "#/components/schemas/ChatMessageResponse"
+    ChatConversationListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatConversationResponse"
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - AUTH_INVALID_CREDENTIALS
+            - AUTH_TOKEN_EXPIRED
+            - AUTH_TOKEN_INVALID
+            - AUTH_REFRESH_TOKEN_EXPIRED
+            - AUTH_UNAUTHORIZED
+            - USER_NOT_FOUND
+            - USER_ALREADY_EXISTS
+            - SONG_NOT_FOUND
+            - PLAYLIST_NOT_FOUND
+            - ARTIST_NOT_FOUND
+            - PREMIUM_REQUIRED
+            - VALIDATION_ERROR
+            - RATE_LIMITED
+            - INTERNAL_ERROR
+        message:
+          type: string

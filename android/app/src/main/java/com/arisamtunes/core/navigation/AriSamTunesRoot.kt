@@ -1,6 +1,5 @@
 package com.arisamtunes.core.navigation
 
-import android.window.SplashScreen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -8,16 +7,16 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,16 +30,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.modifier.modifierLocalOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -50,12 +51,7 @@ import com.arisamtunes.R
 import com.arisamtunes.feature.auth.AuthScreen
 import com.arisamtunes.feature.auth.AuthViewModel
 import com.arisamtunes.feature.auth.AuthEffect
-import io.ktor.client.io.configurePlatform
 import kotlinx.coroutines.delay
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.sp
 
 
@@ -104,75 +100,99 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
 @Composable
 private fun SplashScreen(onFinished: () -> Unit) {
+    val finalContentOffsetX = (-22).dp
+    val finalMarkOffsetX = (-88).dp
+    val textStartX = 112.dp
+    val textWidth = 238.dp
+
     var phase by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         phase = 1
-        delay(720)
+        delay(520)
         phase = 2
-        delay(720)
+        delay(620)
         phase = 3
-        delay(720)
+        delay(520)
         phase = 4
-        delay(1240)
+        delay(980)
         onFinished()
     }
 
-    val dotSize by animateDpAsState(
+    val markSize by animateDpAsState(
         targetValue = when {
             phase < 2 -> 0.dp
-            phase == 2 -> 70.dp
-            else -> 49.dp
+            phase == 2 -> 76.dp
+            else -> 52.dp
         },
-        animationSpec = tween(360, easing = FastOutSlowInEasing),
-        label = "splashDotSize",
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "splashMarkSize",
     )
-    val dotOffsetX by animateDpAsState(
-        targetValue = if (phase >= 4) (-94).dp else 0.dp,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "splashDotOffset",
+    val markOffsetX by animateDpAsState(
+        targetValue = if (phase >= 4) finalMarkOffsetX else 0.dp,
+        animationSpec = tween(620, easing = FastOutSlowInEasing),
+        label = "splashMarkOffsetX",
     )
-    val dotOffsetY by animateDpAsState(
+    val markOffsetY by animateDpAsState(
         targetValue = when {
             phase < 2 -> 28.dp
-            phase == 2 -> (-86).dp
+            phase == 2 -> (-78).dp
             else -> 0.dp
         },
-        animationSpec = tween(420, easing = FastOutSlowInEasing),
-        label = "splashDotOffsetY",
+        animationSpec = tween(560, easing = FastOutSlowInEasing),
+        label = "splashMarkOffsetY",
     )
-    val dotScale by animateFloatAsState(
-        targetValue = if (phase == 2) 1.08f else 1f,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "splashDotPulse",
+    val markScale by animateFloatAsState(
+        targetValue = when (phase) {
+            2 -> 1.04f
+            3 -> .98f
+            else -> 1f
+        },
+        animationSpec = tween(520, easing = FastOutSlowInEasing),
+        label = "splashMarkPulse",
     )
     val shadowAlpha by animateFloatAsState(
         targetValue = if (phase == 1) .38f else 0f,
-        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        animationSpec = tween(120, easing = FastOutSlowInEasing),
         label = "splashShadowAlpha",
     )
     val ovalWidth by animateDpAsState(
-        targetValue =  when {
-            phase < 2 ->230.dp
-            phase == 2 ->145.dp
-            else -> 72.dp
-        },
-        animationSpec =  tween(320,easing = FastOutSlowInEasing ), label = "ovalWidth",
+        targetValue = if (phase < 2) 230.dp else 0.dp,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "ovalWidth",
     )
-
-    val ovalhight by animateDpAsState(
-        targetValue =  when {
-            phase < 2 ->62.dp
-            phase == 2 ->42.dp
-            else -> 18.dp
-        },
-        animationSpec =  tween(320,easing = FastOutSlowInEasing ), label = "ovalHeight",
+    val ovalHeight by animateDpAsState(
+        targetValue = if (phase < 2) 62.dp else 0.dp,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "ovalHeight",
     )
-
-
     val markAlpha by animateFloatAsState(
         targetValue = if (phase >= 2) 1f else 0f,
-        animationSpec = tween(180, easing = FastOutSlowInEasing),
+        animationSpec = tween(240, easing = FastOutSlowInEasing),
         label = "splashMarkAlpha",
+    )
+    val markBackgroundAlpha by animateFloatAsState(
+        targetValue = when (phase) {
+            2 -> .92f
+            3 -> .82f
+            else -> 1f
+        },
+        animationSpec = tween(420, easing = FastOutSlowInEasing),
+        label = "splashMarkBackgroundAlpha",
+    )
+    val textRevealWidth by animateDpAsState(
+        targetValue = if (phase >= 4) textWidth else 0.dp,
+        animationSpec = tween(620, easing = FastOutSlowInEasing),
+        label = "splashTextRevealWidth",
+    )
+    val textAlpha by animateFloatAsState(
+        targetValue = if (phase >= 4) 1f else 0f,
+        animationSpec = tween(220, delayMillis = 80, easing = FastOutSlowInEasing),
+        label = "splashTextAlpha",
+    )
+    val contentOffsetX by animateDpAsState(
+        targetValue = if (phase >= 4) finalContentOffsetX else 0.dp,
+        animationSpec = tween(620, easing = FastOutSlowInEasing),
+        label = "splashContentOffsetX",
     )
 
     BoxWithConstraints(
@@ -182,7 +202,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
                 Brush.verticalGradient(
                     listOf(Color(0xFF07151E), Color(0xFF0B1B26), Color(0xFF0C202D)),
                 ),
-            ),
+        ),
         contentAlignment = Alignment.Center,
     ) {
         val frameScaleX = maxWidth.value / 390f
@@ -190,56 +210,86 @@ private fun SplashScreen(onFinished: () -> Unit) {
         Canvas(
             modifier = Modifier
                 .offset(y = 28.dp * frameScaleY)
-                .size(width = ovalWidth * frameScaleX, height =ovalhight * frameScaleY)
-                .alpha(shadowAlpha)
-//                .blur(6.dp)
-
+                .size(width = ovalWidth * frameScaleX, height = ovalHeight * frameScaleY)
+                .alpha(shadowAlpha),
         ) {
             drawOval(
                 color = Color(0xFF26364A),
                 topLeft = Offset.Zero,
-                size = Size(size.width, size.height)
+                size = Size(size.width, size.height),
             )
         }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.alpha(markAlpha),
+        Box(
+            modifier = Modifier
+                .size(width = 330.dp * frameScaleX, height = 92.dp * frameScaleY)
+                .offset(x = contentOffsetX * frameScaleX)
+                .alpha(markAlpha),
+            contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .offset(x = dotOffsetX * frameScaleX, y = dotOffsetY * frameScaleY)
-                    .size(dotSize)
-                    .scale(dotScale)
-                    .background(Color(0xFF0369A1), CircleShape),
-            )
-            AnimatedVisibility(
-                visible = phase >= 4,
-                enter = fadeIn(tween(260, delayMillis = 40, easing = FastOutSlowInEasing)),
-                exit = fadeOut(tween(120)),
+                    .offset(x = markOffsetX * frameScaleX, y = markOffsetY * frameScaleY)
+                    .size(markSize)
+                    .scale(markScale)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF16435A).copy(alpha = markBackgroundAlpha),
+                                Color(0xFF0A2838).copy(alpha = markBackgroundAlpha),
+                                Color(0xFF06131D),
+                            ),
+                        ),
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "AriSam Tunes",
-                    color = Color.White,
-//                    style = MaterialTheme.typography.titleLarge,
-                    fontSize =  35.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.offset(x = (0).dp * frameScaleX),
+                Box(
+                    modifier = Modifier
+                        .size(markSize * .88f)
+                        .clip(CircleShape)
+                        .background(Color(0xFF07151E).copy(alpha = .64f)),
+                )
+                Image(
+                    painter = painterResource(R.drawable.arisam_mark_dark),
+                    contentDescription = stringResource(R.string.app_logo_description),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(markSize * .68f),
                 )
             }
+            AnimatedVisibility(
+                visible = phase >= 4,
+                enter = fadeIn(tween(180, delayMillis = 60, easing = FastOutSlowInEasing)),
+                exit = fadeOut(tween(120)),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = textStartX * frameScaleX),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = textWidth * frameScaleX, height = 46.dp)
+                        .clipToBounds()
+                        .alpha(textAlpha),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = textRevealWidth * frameScaleX, height = 46.dp)
+                            .clipToBounds(),
+                        contentAlignment = Alignment.CenterEnd,
+                    ) {
+                        Text(
+                            text = "AriSam Tunes",
+                            color = Color.White,
+                            fontSize = 35.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip,
+                            modifier = Modifier.requiredSize(width = textWidth * frameScaleX, height = 46.dp),
+                        )
+                    }
+                }
+            }
         }
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(
-
-    showBackground = true,
-    showSystemUi = true,
-    device = "spec:width=411dp,height=891dp"
-)
-@Composable
-private fun SplashScreenPreview() {
-    MaterialTheme {
-        SplashScreen { }
     }
 }

@@ -13,7 +13,15 @@ data class AuthUiState(
 
 enum class AuthMode { Login, Register }
 enum class AuthValidationError { Email, Password, DisplayName }
-enum class AuthUiError { InvalidCredentials, UserExists, RateLimited, Network, Unknown }
+enum class AuthUiError {
+    InvalidCredentials,
+    UserExists,
+    RateLimited,
+    Offline,
+    ServerUnavailable,
+    TimedOut,
+    Unknown,
+}
 
 sealed interface AuthEvent {
     data class EmailChanged(val value: String) : AuthEvent

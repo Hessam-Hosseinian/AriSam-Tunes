@@ -38,6 +38,28 @@ class ApplicationTest {
             Json.decodeFromString<ErrorEnvelope>(response.bodyAsText()).error.code,
         )
     }
+
+    @Test
+    fun `swagger ui is available for api debugging`() = testApplication {
+        environment { config = testConfig() }
+        application { module() }
+
+        val response = client.get("/swagger")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.bodyAsText().contains("Swagger UI"))
+    }
+
+    @Test
+    fun `swagger ui is also available below api v1`() = testApplication {
+        environment { config = testConfig() }
+        application { module() }
+
+        val response = client.get("/api/v1/swagger")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.bodyAsText().contains("Swagger UI"))
+    }
 }
 
 private fun testConfig() = MapApplicationConfig(

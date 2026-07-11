@@ -1,3 +1,5 @@
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.util.Properties
 
 plugins {
@@ -12,7 +14,35 @@ val localProperties = Properties().apply {
     val propertiesFile = rootProject.file("../local.properties")
     if (propertiesFile.exists()) propertiesFile.inputStream().use(::load)
 }
-val apiBaseUrl = localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:8080")
+
+fun detectLanIp(): String? {
+    val ignoredPrefixes = listOf("docker", "br-", "veth", "virbr", "lo")
+    return NetworkInterface.getNetworkInterfaces().asSequence()
+        .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+        .filterNot { network -> ignoredPrefixes.any { network.name.startsWith(it) } }
+        .flatMap { network ->
+            network.inetAddresses.asSequence()
+                .filterIsInstance<Inet4Address>()
+                .filterNot { it.isLoopbackAddress || it.isLinkLocalAddress }
+                .map { address -> network.name to address.hostAddress }
+        }
+        .sortedByDescending { (name, _) ->
+            when {
+                name.startsWith("wlan") || name.startsWith("wl") -> 3
+                name.startsWith("en") || name.startsWith("eth") -> 2
+                else -> 1
+            }
+        }
+        .firstOrNull()
+        ?.second
+}
+
+val apiBaseUrl = localProperties.getProperty("API_BASE_URL")
+    ?.takeIf { it.isNotBlank() }
+    ?: detectLanIp()?.let { "http://$it:8080" }
+    ?: "http://10.0.2.2:8080"
+
+logger.lifecycle("AriSam Tunes API_BASE_URL = ${apiBaseUrl.trimEnd('/')}")
 
 android {
     namespace = "com.arisamtunes"

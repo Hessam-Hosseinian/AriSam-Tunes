@@ -10,6 +10,7 @@ import com.arisamtunes.config.AppConfig
 import com.arisamtunes.playlist.playlistRoutes
 import com.arisamtunes.social.socialRoutes
 import io.ktor.server.application.Application
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
@@ -20,8 +21,10 @@ private const val API_V1 = "/api/v1"
 fun Application.configureRouting() {
     val appConfig = AppConfig.from(environment.config)
     routing {
+        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
         mediaRoutes()
         route(API_V1) {
+            swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
             authRoutes(authService)
             profileRoutes(authService)
             catalogRoutes()

@@ -13,6 +13,7 @@ import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -29,6 +30,11 @@ object AuthNetworkModule {
     fun provideHttpClient(tokenStore: AuthTokenStore): HttpClient = HttpClient(OkHttp) {
         expectSuccess = false
         defaultRequest { url("${BuildConfig.API_BASE_URL}/api/v1/") }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5_000
+            requestTimeoutMillis = 12_000
+            socketTimeoutMillis = 12_000
+        }
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true; explicitNulls = false }) }
         install(WebSockets)
         install(Auth) {

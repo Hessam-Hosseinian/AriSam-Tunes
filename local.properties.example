@@ -1,1 +1,2 @@
-API_BASE_URL=http://172.23.170.58:8080
+# Optional override. If omitted, android/app/build.gradle.kts auto-detects your LAN IP.
+# API_BASE_URL=http://192.168.1.20:8080
