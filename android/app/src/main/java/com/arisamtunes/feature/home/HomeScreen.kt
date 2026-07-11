@@ -1,6 +1,5 @@
 package com.arisamtunes.feature.home
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,16 +28,15 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,7 +46,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,6 +59,7 @@ import com.arisamtunes.core.design.components.ShimmerBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.catalog.SongDto
+import kotlinx.coroutines.delay
 
 enum class HomeQuickAction { Liked, Recent, Playlists, Artists }
 
@@ -98,15 +97,14 @@ fun HomeScreen(
             contentPadding = PaddingValues(top = spacing.md, bottom = spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(spacing.xxl),
         ) {
-            item { HomeBrandHeader() }
             if (state.hasError) item { ErrorCard(onRetry) }
             if (state.trending.isNotEmpty()) item { SpotlightCarousel(state.trending, onSongClick) }
+            if (state.newReleases.isNotEmpty()) {
+                item { NewReleaseSection(state.newReleases, onSongClick) }
+            }
             item { QuickAccess(onQuickAction) }
             if (state.popular.isNotEmpty()) {
                 item { ArtworkSongSection(R.string.home_most_popular, state.popular, onSongClick) }
-            }
-            if (state.newReleases.isNotEmpty()) {
-                item { NewReleaseSection(state.newReleases, onSongClick) }
             }
             if (state.globalPlaylists.isNotEmpty()) {
                 item { PlaylistSection(R.string.home_global_playlists, state.globalPlaylists, onPlaylistClick) }
@@ -114,49 +112,6 @@ fun HomeScreen(
             if (state.localPlaylists.isNotEmpty()) {
                 item { PlaylistSection(R.string.home_local_playlists, state.localPlaylists, onPlaylistClick) }
             }
-        }
-    }
-}
-
-@Composable
-private fun HomeBrandHeader() {
-    val spacing = AriSamThemeTokens.spacing
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing.lg, vertical = spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(spacing.md),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(46.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFF4FBFF))
-                .border(1.dp, Color(0xFF8ED8FF).copy(alpha = .7f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(R.drawable.arisam_mark_dark),
-                contentDescription = stringResource(R.string.app_logo_description),
-                modifier = Modifier.size(31.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = stringResource(R.string.app_name),
-                color = Color.White,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stringResource(R.string.home_welcome),
-                color = Color(0xFF8ED8FF),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        Surface(shape = CircleShape, color = Color(0xFF0797DB).copy(alpha = .18f)) {
-            Box(Modifier.size(12.dp).clip(CircleShape).background(Color(0xFF49D39B)))
         }
     }
 }
@@ -203,7 +158,37 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
     val spacing = AriSamThemeTokens.spacing
     val pages = songs.take(8)
     val pagerState = rememberPagerState(pageCount = { pages.size })
+    LaunchedEffect(pagerState.settledPage, pages.size) {
+        if (pages.size > 1) {
+            delay(5_400)
+            pagerState.animateScrollToPage((pagerState.settledPage + 1) % pages.size)
+        }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+        Row(
+            modifier = Modifier.padding(horizontal = spacing.lg),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.home_spotlight),
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = stringResource(R.string.home_spotlight_hint),
+                    color = Color(0xFF8ED8FF),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Text(
+                text = "${pagerState.settledPage + 1}/${pages.size}",
+                color = Color.White.copy(alpha = .58f),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
         HorizontalPager(
             state = pagerState,
             contentPadding = PaddingValues(horizontal = spacing.lg),
@@ -303,20 +288,13 @@ private fun QuickAccess(onClick: (HomeQuickAction) -> Unit) {
         QuickActionData(HomeQuickAction.Artists, R.string.home_top_artists, Icons.Rounded.Groups),
     )
     val spacing = AriSamThemeTokens.spacing
-    Column(
-        modifier = Modifier.padding(horizontal = spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
-    ) {
-        SectionTitle(R.string.home_quick_actions)
-        actions.chunked(2).forEach { rowActions ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.md),
-            ) {
-                rowActions.forEach { action ->
-                    QuickAction(action, onClick, Modifier.weight(1f))
-                }
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+        Box(Modifier.padding(horizontal = spacing.lg)) { SectionTitle(R.string.home_quick_actions) }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(spacing.md),
+        ) {
+            items(actions, key = { it.action }) { action -> QuickAction(action, onClick) }
         }
     }
 }
@@ -334,15 +312,14 @@ private fun QuickAction(
     modifier: Modifier = Modifier,
 ) {
     val spacing = AriSamThemeTokens.spacing
-    PressScaleBox(onClick = { onClick(data.action) }, modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth().height(86.dp)
-                .clip(RoundedCornerShape(20.dp))
+    PressScaleBox(onClick = { onClick(data.action) }, modifier = modifier.width(122.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().height(122.dp)
+                .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFF0A1D29).copy(alpha = .88f))
-                .border(1.dp, Color.White.copy(alpha = .12f), RoundedCornerShape(20.dp))
+                .border(1.dp, Color.White.copy(alpha = .12f), RoundedCornerShape(22.dp))
                 .padding(spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.md),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(
                 Modifier.size(46.dp).clip(RoundedCornerShape(14.dp))
@@ -372,13 +349,15 @@ private fun ArtworkSongSection(title: Int, songs: List<SongDto>, onClick: (SongD
             contentPadding = PaddingValues(horizontal = spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
-            items(songs, key = { it.id }) { song -> ArtworkSongCard(song) { onClick(song) } }
+            itemsIndexed(songs, key = { _, song -> song.id }) { index, song ->
+                ArtworkSongCard(song, index + 1) { onClick(song) }
+            }
         }
     }
 }
 
 @Composable
-private fun ArtworkSongCard(song: SongDto, onClick: () -> Unit) {
+private fun ArtworkSongCard(song: SongDto, rank: Int, onClick: () -> Unit) {
     val spacing = AriSamThemeTokens.spacing
     PressScaleBox(onClick, Modifier.width(164.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
@@ -401,6 +380,18 @@ private fun ArtworkSongCard(song: SongDto, onClick: () -> Unit) {
                         modifier = Modifier.size(24.dp),
                     )
                 }
+                Text(
+                    text = rank.toString().padStart(2, '0'),
+                    color = Color.White.copy(alpha = .8f),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(spacing.sm)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF07141C).copy(alpha = .68f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
             }
             Text(song.title, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
@@ -417,21 +408,77 @@ private fun ArtworkSongCard(song: SongDto, onClick: () -> Unit) {
 @Composable
 private fun NewReleaseSection(songs: List<SongDto>, onClick: (SongDto) -> Unit) {
     val spacing = AriSamThemeTokens.spacing
+    val leadSong = songs.first()
     Column(
         modifier = Modifier.padding(horizontal = spacing.lg),
         verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
-        SectionTitle(R.string.home_new_releases)
+        SectionTitle(R.string.home_release_radar)
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = Color(0xFF0A1D29).copy(alpha = .9f),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .12f)),
         ) {
-            Column(Modifier.padding(vertical = spacing.xs)) {
-                songs.take(5).forEach { song ->
+            Column(Modifier.padding(spacing.sm), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+                PressScaleBox(onClick = { onClick(leadSong) }, modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(158.dp)
+                            .clip(RoundedCornerShape(18.dp)),
+                    ) {
+                        AsyncImage(
+                            leadSong.coverImageUrl,
+                            leadSong.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(
+                            Modifier.fillMaxSize().background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF07141C).copy(alpha = .12f), Color(0xFF07141C).copy(alpha = .92f)),
+                                ),
+                            ),
+                        )
+                        Column(
+                            modifier = Modifier.align(Alignment.BottomStart).padding(spacing.md),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.home_new_releases),
+                                color = Color(0xFF8ED8FF),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                leadSong.title,
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                leadSong.artistName,
+                                color = Color.White.copy(alpha = .72f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Box(
+                            Modifier.align(Alignment.BottomEnd).padding(spacing.md).size(44.dp)
+                                .clip(CircleShape).background(Color(0xFF0797DB)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = Color.White)
+                        }
+                    }
+                }
+                songs.drop(1).take(3).forEach { song ->
                     PressScaleBox(onClick = { onClick(song) }, modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.md, vertical = spacing.sm),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.sm, vertical = spacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             AsyncImage(
@@ -452,7 +499,7 @@ private fun NewReleaseSection(songs: List<SongDto>, onClick: (SongDto) -> Unit) 
                                 )
                             }
                             Box(
-                                Modifier.size(38.dp).clip(CircleShape)
+                                Modifier.size(34.dp).clip(CircleShape)
                                     .background(Color(0xFF0797DB).copy(alpha = .16f)),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -480,10 +527,9 @@ private fun PlaylistSection(
             horizontalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
             items(playlists, key = { it.id }) { playlist ->
-                PressScaleBox({ onClick(playlist) }, Modifier.width(180.dp)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-                        Box(
-                            Modifier.fillMaxWidth().height(132.dp).clip(MaterialTheme.shapes.large)
+                PressScaleBox({ onClick(playlist) }, Modifier.width(248.dp)) {
+                    Box(
+                        Modifier.fillMaxWidth().height(164.dp).clip(RoundedCornerShape(24.dp))
                                 .background(
                                     Brush.linearGradient(
                                         listOf(
@@ -493,38 +539,39 @@ private fun PlaylistSection(
                                         ),
                                     ),
                                 ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (!playlist.coverImageUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    playlist.coverImageUrl,
-                                    playlist.name,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                                Box(
-                                    Modifier.fillMaxSize().background(
-                                        Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .48f))),
-                                    ),
-                                )
-                            } else {
-                                Icon(
-                                    Icons.AutoMirrored.Rounded.QueueMusic,
-                                    null,
-                                    tint = Color.White.copy(alpha = .92f),
-                                    modifier = Modifier.size(54.dp),
-                                )
-                            }
-                            IconButton(onClick = {}, modifier = Modifier.align(Alignment.TopEnd)) {
-                                Icon(Icons.Rounded.MoreVert, null, tint = Color.White)
-                            }
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!playlist.coverImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                playlist.coverImageUrl,
+                                playlist.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.QueueMusic,
+                                null,
+                                tint = Color.White.copy(alpha = .92f),
+                                modifier = Modifier.size(54.dp),
+                            )
                         }
-                        Text(playlist.name, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            stringResource(R.string.home_song_count, playlist.songCount),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = .62f),
+                        Box(
+                            Modifier.fillMaxSize().background(
+                                Brush.verticalGradient(listOf(Color.Transparent, Color(0xFF07141C).copy(alpha = .92f))),
+                            ),
                         )
+                        Column(
+                            modifier = Modifier.align(Alignment.BottomStart).padding(spacing.md),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(playlist.name, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                stringResource(R.string.home_song_count, playlist.songCount),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = .68f),
+                            )
+                        }
                     }
                 }
             }

@@ -54,6 +54,9 @@
     <string name="error_server_unavailable_hint">Check that the backend is running on this network.</string>
     <string name="error_timeout_hint">Check your Wi-Fi, then try again.</string>
     <string name="home_welcome">Your music, right now</string>
+    <string name="home_spotlight">Tonight\'s spotlight</string>
+    <string name="home_spotlight_hint">A fresh sound picked for this moment</string>
+    <string name="home_release_radar">Release radar</string>
     <string name="home_trending_now">Trending now</string>
     <string name="home_quick_actions">Quick actions</string>
     <string name="home_liked_songs">Liked songs</string>

@@ -1,14 +1,18 @@
 package com.arisamtunes.core.navigation
 
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +27,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -69,6 +77,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val currentRoute = backStackEntry?.destination?.route
     val currentMainDestination = currentRoute?.mainDestination()
     val showMainChrome = currentRoute in MainDestinations.map(AppDestination::route)
+    val showHomeBrand = currentMainDestination == AppDestination.Home
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -76,24 +85,57 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
             if (showMainChrome) {
                 TopAppBar(
                     title = {
-                        Column {
-                            Text(
-                                currentMainDestination?.let { stringResource(it.labelRes) }
-                                    ?: stringResource(R.string.app_name),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                stringResource(R.string.app_name),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        if (showHomeBrand) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFF4FBFF)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.arisam_mark_dark),
+                                        contentDescription = stringResource(R.string.app_logo_description),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                    Text(
+                                        stringResource(R.string.app_name),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        stringResource(R.string.home_welcome),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF8ED8FF),
+                                    )
+                                }
+                            }
+                        } else {
+                            Column {
+                                Text(
+                                    currentMainDestination?.let { stringResource(it.labelRes) }
+                                        ?: stringResource(R.string.app_name),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    stringResource(R.string.app_name),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        containerColor = if (showHomeBrand) Color(0xFF081721) else MaterialTheme.colorScheme.background,
+                        titleContentColor = if (showHomeBrand) Color.White else MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = if (showHomeBrand) Color(0xFFB9E8FF) else MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     actions = {
                         IconButton(onClick = { navController.navigateSingleTop(SettingsRoutePath) }) {
@@ -101,9 +143,6 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         }
                         IconButton(onClick = { navController.navigateTopLevel(AppDestination.Profile.route) }) {
                             Icon(Icons.Rounded.AccountCircle, stringResource(R.string.profile_picture))
-                        }
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Rounded.MoreVert, null)
                         }
                     },
                 )
