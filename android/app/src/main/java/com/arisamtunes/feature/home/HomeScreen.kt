@@ -1,5 +1,6 @@
 package com.arisamtunes.feature.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,25 +88,75 @@ fun HomeScreen(
         HomeLoadingSkeleton()
         return
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = spacing.md, bottom = spacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(spacing.xxl),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF081721), Color(0xFF0B2230), Color(0xFF102B3B)))),
     ) {
-        if (state.hasError) item { ErrorCard(onRetry) }
-        if (state.trending.isNotEmpty()) item { SpotlightCarousel(state.trending, onSongClick) }
-        item { QuickAccess(onQuickAction) }
-        if (state.popular.isNotEmpty()) {
-            item { ArtworkSongSection(R.string.home_most_popular, state.popular, onSongClick) }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = spacing.md, bottom = spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(spacing.xxl),
+        ) {
+            item { HomeBrandHeader() }
+            if (state.hasError) item { ErrorCard(onRetry) }
+            if (state.trending.isNotEmpty()) item { SpotlightCarousel(state.trending, onSongClick) }
+            item { QuickAccess(onQuickAction) }
+            if (state.popular.isNotEmpty()) {
+                item { ArtworkSongSection(R.string.home_most_popular, state.popular, onSongClick) }
+            }
+            if (state.newReleases.isNotEmpty()) {
+                item { NewReleaseSection(state.newReleases, onSongClick) }
+            }
+            if (state.globalPlaylists.isNotEmpty()) {
+                item { PlaylistSection(R.string.home_global_playlists, state.globalPlaylists, onPlaylistClick) }
+            }
+            if (state.localPlaylists.isNotEmpty()) {
+                item { PlaylistSection(R.string.home_local_playlists, state.localPlaylists, onPlaylistClick) }
+            }
         }
-        if (state.newReleases.isNotEmpty()) {
-            item { NewReleaseSection(state.newReleases, onSongClick) }
+    }
+}
+
+@Composable
+private fun HomeBrandHeader() {
+    val spacing = AriSamThemeTokens.spacing
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.lg, vertical = spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(spacing.md),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFF4FBFF))
+                .border(1.dp, Color(0xFF8ED8FF).copy(alpha = .7f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(R.drawable.arisam_mark_dark),
+                contentDescription = stringResource(R.string.app_logo_description),
+                modifier = Modifier.size(31.dp),
+            )
         }
-        if (state.globalPlaylists.isNotEmpty()) {
-            item { PlaylistSection(R.string.home_global_playlists, state.globalPlaylists, onPlaylistClick) }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = stringResource(R.string.app_name),
+                color = Color.White,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = stringResource(R.string.home_welcome),
+                color = Color(0xFF8ED8FF),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
-        if (state.localPlaylists.isNotEmpty()) {
-            item { PlaylistSection(R.string.home_local_playlists, state.localPlaylists, onPlaylistClick) }
+        Surface(shape = CircleShape, color = Color(0xFF0797DB).copy(alpha = .18f)) {
+            Box(Modifier.size(12.dp).clip(CircleShape).background(Color(0xFF49D39B)))
         }
     }
 }
@@ -112,28 +164,34 @@ fun HomeScreen(
 @Composable
 private fun HomeLoadingSkeleton() {
     val spacing = AriSamThemeTokens.spacing
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = spacing.lg, vertical = spacing.md),
-        verticalArrangement = Arrangement.spacedBy(spacing.xxl),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF081721), Color(0xFF0B2230), Color(0xFF102B3B)))),
     ) {
-        item { ShimmerBox(Modifier.fillMaxWidth().height(258.dp)) }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-                ShimmerBox(Modifier.width(154.dp).height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                    repeat(2) { ShimmerBox(Modifier.weight(1f).height(86.dp)) }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                    repeat(2) { ShimmerBox(Modifier.weight(1f).height(86.dp)) }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = spacing.lg, vertical = spacing.md),
+            verticalArrangement = Arrangement.spacedBy(spacing.xxl),
+        ) {
+            item { ShimmerBox(Modifier.fillMaxWidth().height(286.dp)) }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+                    ShimmerBox(Modifier.width(154.dp).height(24.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+                        repeat(2) { ShimmerBox(Modifier.weight(1f).height(86.dp)) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+                        repeat(2) { ShimmerBox(Modifier.weight(1f).height(86.dp)) }
+                    }
                 }
             }
-        }
-        items(2) {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-                ShimmerBox(Modifier.width(170.dp).height(24.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                    items(3) { ShimmerBox(Modifier.width(164.dp).height(210.dp)) }
+            items(2) {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+                    ShimmerBox(Modifier.width(170.dp).height(24.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+                        items(3) { ShimmerBox(Modifier.width(164.dp).height(210.dp)) }
+                    }
                 }
             }
         }
@@ -154,34 +212,35 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
             val song = pages[page]
             PressScaleBox(
                 onClick = { onSongClick(song) },
-                modifier = Modifier.fillMaxWidth().height(258.dp),
+                modifier = Modifier.fillMaxWidth().height(286.dp),
             ) {
                 AsyncImage(
                     model = song.coverImageUrl,
                     contentDescription = song.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge),
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)),
                 )
                 Box(
-                    Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge).background(
+                    Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)).background(
                         Brush.verticalGradient(
-                            0f to Color(0xFF0369A1).copy(alpha = .08f),
-                            .48f to Color(0xFF0C1821).copy(alpha = .18f),
-                            1f to Color(0xFF0C1821).copy(alpha = .96f),
+                            0f to Color(0xFF0369A1).copy(alpha = .14f),
+                            .44f to Color(0xFF0C1821).copy(alpha = .16f),
+                            1f to Color(0xFF07141C).copy(alpha = .96f),
                         ),
                     ),
                 )
                 Surface(
                     modifier = Modifier.align(Alignment.TopStart).padding(spacing.lg),
                     shape = CircleShape,
-                    color = AriSamThemeTokens.tehranAmber,
-                    contentColor = Color(0xFF0C1821),
+                    color = Color(0xFF07141C).copy(alpha = .76f),
+                    contentColor = Color(0xFFB9E8FF),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF8ED8FF).copy(alpha = .44f)),
                 ) {
                     Text(
                         text = stringResource(R.string.home_trending_now),
                         modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.sm),
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
                 Column(
@@ -206,13 +265,13 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                 }
                 Box(
                     Modifier.align(Alignment.BottomEnd).padding(spacing.lg).size(54.dp)
-                        .clip(CircleShape).background(AriSamThemeTokens.tehranAmber),
+                        .clip(CircleShape).background(Color(0xFF0797DB)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
                         stringResource(R.string.play),
-                        tint = Color(0xFF0C1821),
+                        tint = Color.White,
                         modifier = Modifier.size(30.dp),
                     )
                 }
@@ -226,8 +285,8 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                         .height(6.dp)
                         .clip(CircleShape)
                         .background(
-                            if (index == pagerState.currentPage) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant,
+                            if (index == pagerState.currentPage) Color(0xFF8ED8FF)
+                            else Color.White.copy(alpha = .22f),
                         ),
                 )
             }
@@ -277,23 +336,24 @@ private fun QuickAction(
     val spacing = AriSamThemeTokens.spacing
     PressScaleBox(onClick = { onClick(data.action) }, modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(82.dp)
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
+            modifier = Modifier.fillMaxWidth().height(86.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF0A1D29).copy(alpha = .88f))
+                .border(1.dp, Color.White.copy(alpha = .12f), RoundedCornerShape(20.dp))
                 .padding(spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
             Box(
                 Modifier.size(46.dp).clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = .12f)),
+                    .background(Color(0xFF0797DB).copy(alpha = .16f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(data.icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(25.dp))
+                Icon(data.icon, null, tint = Color(0xFF8ED8FF), modifier = Modifier.size(25.dp))
             }
             Text(
                 stringResource(data.label),
+                color = Color.White,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
@@ -327,26 +387,26 @@ private fun ArtworkSongCard(song: SongDto, onClick: () -> Unit) {
                     song.coverImageUrl,
                     song.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large),
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(20.dp)),
                 )
                 Box(
                     Modifier.align(Alignment.BottomEnd).padding(spacing.sm).size(38.dp)
-                        .clip(CircleShape).background(AriSamThemeTokens.tehranAmber),
+                        .clip(CircleShape).background(Color(0xFF0797DB)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
                         stringResource(R.string.play),
-                        tint = Color(0xFF0C1821),
+                        tint = Color.White,
                         modifier = Modifier.size(24.dp),
                     )
                 }
             }
-            Text(song.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(song.title, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 song.artistName,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = .62f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -363,9 +423,9 @@ private fun NewReleaseSection(songs: List<SongDto>, onClick: (SongDto) -> Unit) 
     ) {
         SectionTitle(R.string.home_new_releases)
         Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(24.dp),
+            color = Color(0xFF0A1D29).copy(alpha = .9f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .12f)),
         ) {
             Column(Modifier.padding(vertical = spacing.xs)) {
                 songs.take(5).forEach { song ->
@@ -382,21 +442,21 @@ private fun NewReleaseSection(songs: List<SongDto>, onClick: (SongDto) -> Unit) 
                             )
                             Spacer(Modifier.width(spacing.md))
                             Column(Modifier.weight(1f)) {
-                                Text(song.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(song.title, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(
                                     song.artistName,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = Color.White.copy(alpha = .62f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
                             Box(
                                 Modifier.size(38.dp).clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = .12f)),
+                                    .background(Color(0xFF0797DB).copy(alpha = .16f)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = Color(0xFF8ED8FF))
                             }
                         }
                     }
@@ -427,9 +487,9 @@ private fun PlaylistSection(
                                 .background(
                                     Brush.linearGradient(
                                         listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.primaryContainer,
-                                            Color(0xFF0C1821),
+                            Color(0xFF0A6FA5),
+                            Color(0xFF0797DB),
+                            Color(0xFF07141C),
                                         ),
                                     ),
                                 ),
@@ -459,11 +519,11 @@ private fun PlaylistSection(
                                 Icon(Icons.Rounded.MoreVert, null, tint = Color.White)
                             }
                         }
-                        Text(playlist.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(playlist.name, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             stringResource(R.string.home_song_count, playlist.songCount),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color.White.copy(alpha = .62f),
                         )
                     }
                 }
@@ -474,7 +534,7 @@ private fun PlaylistSection(
 
 @Composable
 private fun SectionTitle(title: Int) {
-    Text(stringResource(title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Text(stringResource(title), color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 }
 
 @Composable
