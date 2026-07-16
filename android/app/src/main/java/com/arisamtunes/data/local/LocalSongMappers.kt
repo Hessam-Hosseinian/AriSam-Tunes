@@ -80,6 +80,15 @@ fun SongDto.toDownloadedSongEntity(localFilePath: String, state: String, downloa
     downloadedAt = downloadedAt,
 )
 
+fun DownloadedSongEntity.toSongDto() = SongDto(
+    id = songId,
+    title = title,
+    artistName = artistName,
+    album = album,
+    audioUrl = audioUrl,
+    coverImageUrl = coverImageUrl.orEmpty(),
+)
+
 fun CachedSongEntity.toSongDto() = SongDto(
     id = id,
     title = title,

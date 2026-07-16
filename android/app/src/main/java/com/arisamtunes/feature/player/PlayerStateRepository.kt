@@ -31,11 +31,13 @@ class PlayerStateRepository @Inject constructor() {
     private val _state = MutableStateFlow(PlayerState())
     val state = _state.asStateFlow()
 
-    fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
+    fun play(song: SongDto, queue: List<SongDto> = emptyList(), replaceQueue: Boolean = false) {
         _state.update { current ->
-            val normalizedQueue = queue
-                .ifEmpty { current.queue.ifEmpty { listOf(song) } }
-                .let { songs -> if (songs.any { it.id == song.id }) songs else listOf(song) + songs }
+            val playbackQueue = when {
+                replaceQueue -> queue.normalizeQueue(song)
+                current.queue.isNotEmpty() -> current.queue
+                else -> queue.normalizeQueue(song)
+            }
             current.copy(
                 currentSong = song,
                 crossfadeSong = null,
@@ -44,8 +46,9 @@ class PlayerStateRepository @Inject constructor() {
                 progressMillis = 0L,
                 crossfadeProgressSeconds = 0,
                 crossfadeProgressMillis = 0L,
-                queue = normalizedQueue,
-                originalQueue = current.originalQueue.ifEmpty { normalizedQueue },
+                queue = playbackQueue,
+                originalQueue = if (replaceQueue || current.originalQueue.isEmpty()) playbackQueue else current.originalQueue,
+                isShuffleEnabled = if (replaceQueue) false else current.isShuffleEnabled,
                 playbackError = null,
             )
         }
@@ -64,7 +67,14 @@ class PlayerStateRepository @Inject constructor() {
     }
 
     fun seekTo(seconds: Int) {
-        _state.update { state -> state.copy(progressSeconds = seconds.coerceIn(0, state.currentSong?.durationSeconds ?: 0)) }
+        seekToMillis(seconds.toLong() * 1_000L)
+    }
+
+    fun seekToMillis(positionMillis: Long) {
+        _state.update { state ->
+            val safeMillis = positionMillis.coerceIn(0L, state.currentSong.durationMillis())
+            state.copy(progressSeconds = (safeMillis / 1_000L).toInt(), progressMillis = safeMillis)
+        }
     }
 
     fun setProgress(seconds: Int) {
@@ -139,6 +149,36 @@ class PlayerStateRepository @Inject constructor() {
 
     companion object {
         fun emptyVisualizerBands(): List<Float> = List(32) { 0.05f }
-        private const val VisualizerUpdateThreshold = 0.012f
+        private const val VisualizerUpdateThreshold = 0.003f
     }
 }
+
+internal fun List<SongDto>.normalizeQueue(current: SongDto): List<SongDto> =
+    (listOf(current) + this).distinctBy(SongDto::id)
+
+internal fun List<SongDto>.nextFor(song: SongDto, repeatMode: Int): SongDto? {
+    if (isEmpty()) return null
+    if (repeatMode == 2) return song
+    val currentIndex = indexOfFirst { it.id == song.id }
+    if (currentIndex < 0) return null
+    return when {
+        currentIndex < lastIndex -> this[currentIndex + 1]
+        repeatMode == 1 -> first()
+        else -> null
+    }
+}
+
+internal fun List<SongDto>.previousFor(song: SongDto, repeatMode: Int): SongDto? {
+    if (isEmpty()) return null
+    if (repeatMode == 2) return song
+    val currentIndex = indexOfFirst { it.id == song.id }
+    if (currentIndex < 0) return null
+    return when {
+        currentIndex > 0 -> this[currentIndex - 1]
+        repeatMode == 1 -> last()
+        else -> null
+    }
+}
+
+private fun SongDto?.durationMillis(): Long =
+    (this?.durationSeconds ?: 0).toLong().coerceAtLeast(0L) * 1_000L

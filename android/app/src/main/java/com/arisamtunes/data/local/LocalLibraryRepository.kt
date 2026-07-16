@@ -52,7 +52,12 @@ class LocalLibraryRepository @Inject constructor(
     suspend fun deleteDownload(songId: String) = downloadedSongDao.delete(songId)
 
     suspend fun playbackSource(song: SongDto): String =
-        downloadedSongDao.completedPath(song.id)?.let { File(it).toURI().toString() } ?: song.audioUrl
+        downloadedSongDao.completedPath(song.id)
+            ?.let(::File)
+            ?.takeIf(File::isFile)
+            ?.toURI()
+            ?.toString()
+            ?: song.audioUrl
 
     fun recentlyPlayed(): PagingSource<Int, RecentlyPlayedEntity> = recentlyPlayedDao.pagingSource()
 

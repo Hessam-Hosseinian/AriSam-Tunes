@@ -22,6 +22,8 @@ class PlayerViewModel @Inject constructor(
 
     fun play(song: SongDto) = playbackController.play(song)
 
+    fun play(song: SongDto, queue: List<SongDto>) = playbackController.play(song, queue)
+
     fun play(songId: String, onPlayed: () -> Unit) = viewModelScope.launch {
         runCatching { catalogRepository.song(songId) }
             .onSuccess {
@@ -50,11 +52,15 @@ class PlayerViewModel @Inject constructor(
 
     fun observeIsLiked(songId: String) = localLibraryRepository.observeIsLiked(songId)
 
+    fun observeDownload(songId: String) = localLibraryRepository.observeDownload(songId)
+
     fun toggleLike(song: SongDto) = viewModelScope.launch { localLibraryRepository.toggleLiked(song) }
 
     fun download(song: SongDto) = downloadWorkScheduler.enqueue(song)
 
     fun seekTo(seconds: Int) = playbackController.seekTo(seconds)
+
+    fun seekToMillis(positionMillis: Long) = playbackController.seekToMillis(positionMillis)
 
     fun close() = playbackController.close()
 }

@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.arisamtunes.data.local.AriSamDatabase
 import com.arisamtunes.data.local.LocalLibraryRepository
 import com.arisamtunes.data.local.entity.DownloadedSongEntity
+import java.io.IOException
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,7 +31,8 @@ class DownloadSongWorker(
         val dao = database.downloadedSongDao()
         val downloadsDir = File(appContext.filesDir, "downloads").apply { mkdirs() }
         val output = File(downloadsDir, "$songId.audio")
-        runCatching {
+        val temporaryOutput = File(downloadsDir, "$songId.audio.part")
+        val outcome = runCatching {
             dao.upsert(
                 DownloadedSongEntity(
                     songId = songId,
@@ -44,29 +46,40 @@ class DownloadSongWorker(
                     downloadedAt = System.currentTimeMillis(),
                 ),
             )
-            val response = client.newCall(Request.Builder().url(audioUrl).build()).execute()
-            if (!response.isSuccessful) error("Download failed with HTTP ${response.code}")
-            response.body.byteStream().use { input -> output.outputStream().use { input.copyTo(it) } }
-            dao.upsert(
-                DownloadedSongEntity(
-                    songId = songId,
-                    title = title,
-                    artistName = artistName,
-                    album = album,
-                    audioUrl = audioUrl,
-                    coverImageUrl = coverImageUrl,
-                    localFilePath = output.absolutePath,
-                    mimeType = response.body.contentType()?.toString(),
-                    fileSizeBytes = output.length(),
-                    downloadState = LocalLibraryRepository.DownloadStateCompleted,
-                    downloadedAt = System.currentTimeMillis(),
-                ),
-            )
-        }.fold(
+            temporaryOutput.delete()
+            client.newCall(Request.Builder().url(audioUrl).build()).execute().use { response ->
+                if (!response.isSuccessful) throw DownloadHttpException(response.code)
+                val body = response.body ?: throw IOException("Download response had no body")
+                body.byteStream().use { input ->
+                    temporaryOutput.outputStream().use { outputStream -> input.copyTo(outputStream) }
+                }
+                if (!temporaryOutput.renameTo(output)) {
+                    temporaryOutput.copyTo(output, overwrite = true)
+                    temporaryOutput.delete()
+                }
+                dao.upsert(
+                    DownloadedSongEntity(
+                        songId = songId,
+                        title = title,
+                        artistName = artistName,
+                        album = album,
+                        audioUrl = audioUrl,
+                        coverImageUrl = coverImageUrl,
+                        localFilePath = output.absolutePath,
+                        mimeType = body.contentType()?.toString(),
+                        fileSizeBytes = output.length(),
+                        downloadState = LocalLibraryRepository.DownloadStateCompleted,
+                        downloadedAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
+        }
+        outcome.fold(
             onSuccess = { Result.success() },
-            onFailure = {
+            onFailure = { error ->
+                temporaryOutput.delete()
                 dao.updateState(songId, LocalLibraryRepository.DownloadStateFailed)
-                Result.retry()
+                if (error is IOException) Result.retry() else Result.failure()
             },
         )
     }
@@ -98,3 +111,5 @@ class DownloadSongWorker(
             .build()
     }
 }
+
+private class DownloadHttpException(statusCode: Int) : RuntimeException("Download failed with HTTP $statusCode")

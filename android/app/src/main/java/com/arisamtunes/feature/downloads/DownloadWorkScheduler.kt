@@ -6,6 +6,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import com.arisamtunes.data.catalog.SongDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -16,6 +17,7 @@ class DownloadWorkScheduler @Inject constructor(@param:ApplicationContext privat
     fun enqueue(song: SongDto) {
         val request = OneTimeWorkRequestBuilder<DownloadSongWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setBackoffCriteria(androidx.work.BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
             .setInputData(
                 DownloadSongWorker.input(
                     songId = song.id,

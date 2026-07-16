@@ -9,6 +9,7 @@ import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.ln
 import kotlin.math.log10
 import kotlin.math.max
 import kotlin.math.min
@@ -109,67 +110,60 @@ class RealtimeFftAudioBufferSink(
         }
     }
 
-   private fun analyze(now: Long) {
-    var rms = 0f
-    for (i in 0 until WindowSize) {
-        val sample = sampleRing[(ringWriteIndex + i) % WindowSize]
-        rms += sample * sample
-    }
-    rms = sqrt(rms / WindowSize)
+    private fun analyze(now: Long) {
+        var mean = 0f
+        for (i in 0 until WindowSize) {
+            mean += sampleRing[(ringWriteIndex + i) % WindowSize]
+        }
+        mean /= WindowSize
 
-    val nyquist = sampleRateHz / 2f
-    val minFrequency = 40f
-    val maxFrequency = min(18_000f, nyquist * 0.95f).coerceAtLeast(minFrequency + 1f)  // افزایش محدوده
-    val logMin = log10(minFrequency)
-    val logMax = log10(maxFrequency)
+        for (i in 0 until WindowSize) {
+            val sample = sampleRing[(ringWriteIndex + i) % WindowSize] - mean
+            val window = (0.5f - 0.5f * cos((2.0 * PI * i) / (WindowSize - 1))).toFloat()
+            fftReal[i] = sample * window
+            fftImag[i] = 0f
+        }
+        fft(fftReal, fftImag)
 
-    for (i in 0 until WindowSize) {
-        val sample = sampleRing[(ringWriteIndex + i) % WindowSize]
-        val window = (0.5f - 0.5f * cos((2.0 * PI * i) / (WindowSize - 1))).toFloat()
-        fftReal[i] = sample * window
-        fftImag[i] = 0f
-    }
-    fft(fftReal, fftImag)
+        val nyquist = sampleRateHz / 2f
+        val maxFrequency = min(MaxFrequencyHz, nyquist * 0.94f).coerceAtLeast(MinFrequencyHz + 1f)
+        val logMin = ln(MinFrequencyHz)
+        val logMax = ln(maxFrequency)
 
-    for (band in 0 until BandCount) {
-        val lowerFraction = band / BandCount.toFloat()
-        val upperFraction = (band + 1) / BandCount.toFloat()
-        val lowerFrequency = 10.0.pow((logMin + (logMax - logMin) * lowerFraction).toDouble()).toFloat()
-        val upperFrequency = 10.0.pow((logMin + (logMax - logMin) * upperFraction).toDouble()).toFloat()
-        val magnitude = averageMagnitude(lowerFrequency, upperFrequency)
-        val fraction = band / (BandCount - 1f)
+        for (band in 0 until BandCount) {
+            val lowerFraction = band / BandCount.toFloat()
+            val upperFraction = (band + 1) / BandCount.toFloat()
+            val lowerFrequency = kotlin.math.exp(logMin + (logMax - logMin) * lowerFraction)
+            val upperFrequency = kotlin.math.exp(logMin + (logMax - logMin) * upperFraction)
+            val magnitude = bandRootMeanSquare(lowerFrequency, upperFrequency)
+            val decibels = 20f * log10(max(MinMagnitude, magnitude))
+            val normalized = ((decibels - NoiseFloorDb) / (CeilingDb - NoiseFloorDb)).coerceIn(0f, 1f)
 
-        // تنظیمات جدید با تأکید بیشتر روی فرکانس‌های بالا
-        val bassLift = 1f + (1f - fraction) * 0.45f  // کاهش Bass Lift
-        val highTrim = 1f - fraction * 0.08f  // کاهش High Trim (افزایش فرکانس‌های بالا)
-        val normalized = (
-            log10(1f + magnitude * 80f * bassLift) * highTrim +  // افزایش حساسیت
-            log10(1f + rms * 25f) * 0.15f
-        ).coerceIn(0f, 1f)
+            val previous = smoothedBands[band]
+            val smoothing = if (normalized > previous) AttackSmoothing else ReleaseSmoothing
+            smoothedBands[band] = (previous + (normalized - previous) * smoothing).coerceIn(IdleLevel, 1f)
+        }
 
-        val previous = smoothedBands[band]
-        val attack = if (normalized > previous) 0.74f else 0.34f
-        smoothedBands[band] = (previous + (normalized - previous) * attack).coerceIn(IdleLevel, 1f)
+        lastBandUpdateMillis = now
+        onBands(smoothedBands.toList())
     }
 
-    lastBandUpdateMillis = now
-    onBands(smoothedBands.toList())
-}
-
-    private fun averageMagnitude(lowerFrequency: Float, upperFrequency: Float): Float {
+    private fun bandRootMeanSquare(lowerFrequency: Float, upperFrequency: Float): Float {
         val lowerBin = max(1, floor(lowerFrequency * WindowSize / sampleRateHz).toInt())
         val upperBin = min(WindowSize / 2 - 1, ceil(upperFrequency * WindowSize / sampleRateHz).toInt())
         if (upperBin < lowerBin) return 0f
 
-        var sum = 0f
+        var squaredSum = 0f
         var count = 0
         for (bin in lowerBin..upperBin) {
             val real = fftReal[bin]
             val imaginary = fftImag[bin]
-            sum += sqrt(real * real + imaginary * imaginary)
+            squaredSum += real * real + imaginary * imaginary
             count++
         }
-        return if (count == 0) 0f else sum / count / WindowSize
+        if (count == 0) return 0f
+        val coherentGain = WindowSize * HannCoherentGain
+        return sqrt(squaredSum / count) / coherentGain
     }
 
     private fun fft(real: FloatArray, imaginary: FloatArray) {
@@ -227,12 +221,20 @@ class RealtimeFftAudioBufferSink(
 
     private companion object {
         const val BandCount = 32
-        const val WindowSize = 1024
-        const val AnalysisHopSamples = 512
-        const val MinUpdateIntervalMillis = 32L
-        const val IdleLevel = 0.05f
+        const val WindowSize = 2048
+        const val AnalysisHopSamples = 384
+        const val MinUpdateIntervalMillis = 24L
+        const val IdleLevel = 0.025f
         const val DefaultSampleRateHz = 44_100
         const val ShortBytes = 2
         const val FloatBytes = 4
+        const val MinFrequencyHz = 35f
+        const val MaxFrequencyHz = 19_000f
+        const val HannCoherentGain = 0.5f
+        const val NoiseFloorDb = -76f
+        const val CeilingDb = -14f
+        const val MinMagnitude = 0.000_000_1f
+        const val AttackSmoothing = 0.82f
+        const val ReleaseSmoothing = 0.28f
     }
 }

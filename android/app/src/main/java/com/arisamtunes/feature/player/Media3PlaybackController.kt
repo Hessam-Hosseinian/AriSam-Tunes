@@ -2,6 +2,7 @@ package com.arisamtunes.feature.player
 
 import android.content.Context
 import android.content.Intent
+import android.app.PendingIntent
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
@@ -14,6 +15,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -56,7 +58,9 @@ class Media3PlaybackController @Inject constructor(
     )
     private val cacheDataSourceFactory = CacheDataSource.Factory()
         .setCache(streamCache)
-        .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(OkHttpClient()))
+        // DefaultDataSource handles file:// downloads while delegating network
+        // streams to OkHttp. Using OkHttp directly made local files fail offline.
+        .setUpstreamDataSourceFactory(DefaultDataSource.Factory(appContext, OkHttpDataSource.Factory(OkHttpClient())))
         .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     private val realtimeVisualizers = CopyOnWriteArrayList<RealtimeFftAudioBufferSink>()
     private val renderersFactory = FftRenderersFactory(
@@ -116,7 +120,7 @@ class Media3PlaybackController @Inject constructor(
     fun play(song: SongDto, queue: List<SongDto> = emptyList()) {
         scope.launch {
             val playbackQueue = resolvePlaybackQueue(song, queue)
-            playResolved(song, playbackQueue, startPositionMillis = 0L, cancelTransition = true)
+            playResolved(song, playbackQueue, startPositionMillis = 0L, cancelTransition = true, replaceQueue = true)
         }
     }
 
@@ -126,8 +130,9 @@ class Media3PlaybackController @Inject constructor(
         startPositionMillis: Long,
         cancelTransition: Boolean,
         initialVolume: Float = 1f,
+        replaceQueue: Boolean = false,
     ) {
-        stateRepository.play(song, queue)
+        stateRepository.play(song, queue, replaceQueue = replaceQueue)
         runCatching {
             if (cancelTransition) {
                 transitionJob?.cancel()
@@ -175,7 +180,8 @@ class Media3PlaybackController @Inject constructor(
     }
 
     fun retry() {
-        stateRepository.state.value.currentSong?.let(::play)
+        val state = stateRepository.state.value
+        state.currentSong?.let { play(it, state.queue) }
     }
 
     fun refreshPlaybackState() {
@@ -229,7 +235,7 @@ class Media3PlaybackController @Inject constructor(
         val state = stateRepository.state.value
         val current = state.currentSong ?: return
         val queue = state.queue
-        val next = queue.nextAfter(current) ?: return
+        val next = queue.nextFor(current, state.repeatMode) ?: return
         scope.launch { playResolved(next, queue, startPositionMillis = 0L, cancelTransition = true) }
     }
 
@@ -241,9 +247,7 @@ class Media3PlaybackController @Inject constructor(
             return
         }
         val queue = state.queue
-        val currentIndex = queue.indexOfFirst { it.id == current.id }
-        if (queue.size <= 1 || currentIndex < 0) return
-        val previous = queue[Math.floorMod(currentIndex - 1, queue.size)]
+        val previous = queue.previousFor(current, state.repeatMode) ?: return
         scope.launch { playResolved(previous, queue, startPositionMillis = 0L, cancelTransition = true) }
     }
 
@@ -325,17 +329,24 @@ class Media3PlaybackController @Inject constructor(
     }
 
     fun seekTo(seconds: Int) {
+        seekToMillis(seconds.toLong() * 1_000L)
+    }
+
+    fun seekToMillis(positionMillis: Long) {
         runCatching {
-            val positionMillis = seconds * 1000L
-            val previewOnSecondary = stateRepository.state.value.crossfadeSong != null && secondaryActiveSong == null
-            val previewOnPrimary = stateRepository.state.value.crossfadeSong != null && secondaryActiveSong != null
+            val state = stateRepository.state.value
+            val safePositionMillis = positionMillis.coerceIn(0L, (state.crossfadeSong ?: state.currentSong).durationMillis())
+            val previewOnSecondary = state.crossfadeSong != null && secondaryActiveSong == null
+            val previewOnPrimary = state.crossfadeSong != null && secondaryActiveSong != null
             if (previewOnSecondary || secondaryActiveSong != null && !previewOnPrimary) {
-                crossfadeCoordinator.seekTo(positionMillis)
-                stateRepository.state.value.crossfadeSong?.let { stateRepository.setCrossfadePreview(it, seconds) }
+                crossfadeCoordinator.seekTo(safePositionMillis)
+                state.crossfadeSong?.let {
+                    stateRepository.setCrossfadePreview(it, millis = safePositionMillis)
+                }
             } else {
-                player.seekTo(positionMillis)
+                player.seekTo(safePositionMillis)
             }
-            stateRepository.seekTo(seconds)
+            stateRepository.seekToMillis(safePositionMillis)
         }.onFailure {
             stateRepository.setPlaybackError(it.localizedMessage ?: "Seek failed")
         }
@@ -357,8 +368,19 @@ class Media3PlaybackController @Inject constructor(
     fun mediaSession(context: Context): MediaSession =
         mediaSession ?: MediaSession.Builder(context, player)
             .setId(MediaSessionId)
+            .setSessionActivity(
+                PendingIntent.getActivity(
+                    context,
+                    0,
+                    Intent(context, com.arisamtunes.MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
             .build()
             .also { mediaSession = it }
+
+    fun currentMediaSession(): MediaSession? = mediaSession
 
     fun releaseMediaSession() {
         mediaSession?.release()
@@ -368,11 +390,7 @@ class Media3PlaybackController @Inject constructor(
     private fun startPlaybackServiceSafely() {
         val intent = Intent(appContext, AriSamPlaybackService::class.java)
         runCatching {
-            // Avoid startForegroundService here: MediaSessionService may not promote
-            // itself within Android's 5s window when playback starts from Compose,
-            // which can crash the app. A normal start keeps foreground playback
-            // stable while the MediaSession remains available to system controls.
-            appContext.startService(intent)
+            androidx.core.content.ContextCompat.startForegroundService(appContext, intent)
         }.onFailure { error ->
             Log.w("Media3PlaybackController", "Playback service could not be started", error)
         }
@@ -391,7 +409,7 @@ class Media3PlaybackController @Inject constructor(
         val state = stateRepository.state.value
         if (!state.isCrossfadeEnabled || state.repeatMode == 2 || transitionJob?.isActive == true) return
         val current = state.currentSong ?: return
-        val next = state.queue.nextAfter(current) ?: return
+        val next = state.queue.nextFor(current, state.repeatMode) ?: return
         val duration = activeDurationMillis()
         val position = activePositionMillis()
         val isPlaying = if (secondaryActiveSong != null) crossfadeCoordinator.isPlaying() else player.isPlaying
@@ -434,7 +452,7 @@ class Media3PlaybackController @Inject constructor(
 
     private suspend fun prepareCrossfadeNext(current: SongDto, queue: List<SongDto>) {
         if (!stateRepository.state.value.isCrossfadeEnabled || secondaryActiveSong != null) return
-        val next = queue.nextAfter(current) ?: return
+        val next = queue.nextFor(current, stateRepository.state.value.repeatMode) ?: return
         val nextSource = localLibraryRepository.playbackSource(next)
         crossfadeCoordinator.prepareNext(next, nextSource, enabled = true)
     }
@@ -524,9 +542,5 @@ class Media3PlaybackController @Inject constructor(
     }
 }
 
-private fun List<SongDto>.nextAfter(song: SongDto): SongDto? {
-    if (size <= 1) return null
-    val currentIndex = indexOfFirst { it.id == song.id }
-    if (currentIndex < 0) return null
-    return this[(currentIndex + 1) % size]
-}
+private fun SongDto?.durationMillis(): Long =
+    (this?.durationSeconds ?: 0).toLong().coerceAtLeast(0L) * 1_000L

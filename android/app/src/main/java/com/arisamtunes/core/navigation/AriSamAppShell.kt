@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,6 +26,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -46,12 +52,16 @@ import com.arisamtunes.feature.home.HomeQuickAction
 import com.arisamtunes.feature.downloads.DownloadsRoute
 import com.arisamtunes.feature.chat.ChatDetailRoute
 import com.arisamtunes.feature.chat.ChatListRoute
+import com.arisamtunes.feature.chat.ChatConnectionViewModel
+import com.arisamtunes.feature.chat.ShareSongRoute
 import com.arisamtunes.feature.home.HomeRoute
+import com.arisamtunes.feature.artist.ArtistRoute
 import com.arisamtunes.feature.library.LibraryCollectionRoute
 import com.arisamtunes.feature.search.SearchRoute
 import com.arisamtunes.feature.playlists.PlaylistDetailRoute
 import com.arisamtunes.feature.playlists.PlaylistsRoute
 import com.arisamtunes.feature.player.MiniPlayer
+import com.arisamtunes.feature.player.ChatMiniPlayer
 import com.arisamtunes.feature.player.NowPlayingRoute
 import com.arisamtunes.feature.player.PlayerViewModel
 import com.arisamtunes.feature.settings.SettingsRoute
@@ -66,13 +76,33 @@ private const val NowPlayingRoutePath = "now-playing"
 private const val UserProfileRoutePattern = "social/user/{userId}"
 private const val UserListRoutePattern = "social/users/{userId}/{kind}"
 private const val ChatDetailRoutePattern = "chat/{userId}"
+private const val ShareSongRoutePattern = "chat/share/{songId}"
 private const val LibraryCollectionRoutePattern = "library/{kind}"
+private const val ArtistRoutePattern = "artist/{artistId}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val navController = rememberNavController()
     val playerViewModel: PlayerViewModel = hiltViewModel()
+    val playerState by playerViewModel.state.collectAsState()
+    val chatConnectionViewModel: ChatConnectionViewModel = hiltViewModel()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(chatConnectionViewModel, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> chatConnectionViewModel.start()
+                Lifecycle.Event.ON_STOP -> chatConnectionViewModel.stop()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) chatConnectionViewModel.start()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            chatConnectionViewModel.stop()
+        }
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val currentMainDestination = currentRoute?.mainDestination()
@@ -81,6 +111,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (showMainChrome) {
                 TopAppBar(
@@ -173,7 +204,10 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(contentPadding),
+                .then(
+                    if (currentRoute == NowPlayingRoutePath) Modifier
+                    else Modifier.padding(contentPadding),
+                ),
         ) {
             NavHost(
                 navController = navController,
@@ -189,7 +223,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onQuickAction = { action ->
                             when (action) {
                                 HomeQuickAction.Playlists -> navController.navigateTopLevel(AppDestination.Playlists.route)
-                                HomeQuickAction.Artists -> navController.navigateTopLevel(AppDestination.Search.route)
+                                HomeQuickAction.Artists -> navController.navigate(artistRoute(DefaultArtistId))
                                 HomeQuickAction.Liked -> navController.navigate(libraryRoute("liked"))
                                 HomeQuickAction.Recent -> navController.navigate(libraryRoute("recent"))
                             }
@@ -200,21 +234,34 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                     SearchRoute(onSongClick = {
                         playerViewModel.play(it)
                         navController.navigateSingleTop(NowPlayingRoutePath)
-                    })
+                    }, onArtistClick = { navController.navigate(artistRoute(it)) })
                 }
                 composable(AppDestination.Playlists.route) {
                     PlaylistsRoute(onPlaylistClick = { navController.navigate(playlistRoute(it.id)) })
                 }
-                composable(AppDestination.Downloads.route) { DownloadsRoute() }
+                composable(AppDestination.Downloads.route) {
+                    DownloadsRoute(onSongClick = { playerViewModel.play(it) })
+                }
                 composable(AppDestination.Chat.route) {
-                    ChatListRoute(onConversationClick = { navController.navigate(chatRoute(it)) })
+                    ChatListRoute(
+                        onConversationClick = { navController.navigate(chatRoute(it)) },
+                        onUserProfileClick = { navController.navigate(userProfileRoute(it)) },
+                    )
                 }
                 composable(ChatDetailRoutePattern) {
-                    ChatDetailRoute(onBack = navController::popBackStack)
+                    ChatDetailRoute(
+                        onBack = navController::popBackStack,
+                        onPlaySong = playerViewModel::play,
+                        currentSong = playerState.currentSong,
+                        miniPlayer = { ChatMiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) }) },
+                    )
+                }
+                composable(ShareSongRoutePattern) {
+                    ShareSongRoute(onBack = navController::popBackStack)
                 }
                 composable(PlaylistDetailRoutePattern) {
-                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = {
-                        playerViewModel.play(it)
+                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { song, queue ->
+                        playerViewModel.play(song, queue)
                         navController.navigateSingleTop(NowPlayingRoutePath)
                     })
                 }
@@ -226,6 +273,13 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         },
                     )
                 }
+                composable(ArtistRoutePattern) {
+                    ArtistRoute(
+                        onBack = navController::popBackStack,
+                        onArtistClick = { navController.navigate(artistRoute(it)) },
+                        onSongClick = { navController.navigate(songRoute(it)) },
+                    )
+                }
                 composable(SongDetailRoutePattern) {
                     SongDetailRoute(
                         onBack = navController::popBackStack,
@@ -233,12 +287,15 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                             playerViewModel.play(it)
                             navController.navigate(NowPlayingRoutePath)
                         },
+                        onShare = { navController.navigate(shareSongRoute(it.id)) },
                     )
                 }
                 composable(NowPlayingRoutePath) {
                     NowPlayingRoute(
                         onBack = navController::popBackStack,
                         onShowSongInfo = { navController.navigate(songRoute(it)) },
+                        onArtistClick = { navController.navigate(artistRoute(it)) },
+                        onShareSong = { navController.navigate(shareSongRoute(it)) },
                     )
                 }
                 composable(AppDestination.Profile.route) {
@@ -246,6 +303,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
                         onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
                         onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
+                        onMessageClick = { navController.navigate(chatRoute(it)) },
                     )
                 }
                 composable(UserProfileRoutePattern) {
@@ -254,6 +312,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
                         onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
                         onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
+                        onMessageClick = { navController.navigate(chatRoute(it)) },
                     )
                 }
                 composable(UserListRoutePattern) {
@@ -300,6 +359,10 @@ private fun String.mainDestination(): AppDestination? = when (this) {
 private fun songRoute(songId: String) = "song/${Uri.encode(songId)}"
 private fun playlistRoute(playlistId: String) = "playlist/${Uri.encode(playlistId)}"
 private fun chatRoute(userId: String) = "chat/${Uri.encode(userId)}"
+private fun shareSongRoute(songId: String) = "chat/share/${Uri.encode(songId)}"
 private fun userProfileRoute(userId: String) = "social/user/${Uri.encode(userId)}"
 private fun userListRoute(userId: String, kind: String) = "social/users/${Uri.encode(userId)}/${Uri.encode(kind)}"
 private fun libraryRoute(kind: String) = "library/${Uri.encode(kind)}"
+private fun artistRoute(artistId: String) = "artist/${Uri.encode(artistId)}"
+
+private const val DefaultArtistId = "7yOZJB"

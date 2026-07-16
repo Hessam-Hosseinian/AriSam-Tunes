@@ -3,12 +3,12 @@
 package com.arisamtunes.feature.player
 
 import android.graphics.Bitmap
-import android.content.Intent
-import android.media.audiofx.AudioEffect
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -29,6 +29,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,6 +41,7 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Info
@@ -46,29 +50,26 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -77,17 +78,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -107,6 +111,7 @@ import com.arisamtunes.core.design.preview.PreviewCatalogData
 import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.SongDto
+import com.arisamtunes.data.local.LocalLibraryRepository
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -160,9 +165,70 @@ fun MiniPlayer(
 }
 
 @Composable
+fun ChatMiniPlayer(
+    onOpen: () -> Unit,
+    viewModel: PlayerViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    val song = state.currentSong ?: return
+    var dismissedSongId by rememberSaveable { mutableStateOf<String?>(null) }
+    if (dismissedSongId == song.id) return
+    val rotation by rememberInfiniteTransition(label = "chat-cover-spin").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(8_000, easing = LinearEasing)),
+        label = "chat-cover-rotation",
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 5.dp,
+    ) {
+        Column {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                AsyncImage(
+                    model = song.coverImageUrl,
+                    contentDescription = song.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(42.dp)
+                        .then(if (state.isPlaying) Modifier.rotate(rotation) else Modifier)
+                        .clip(CircleShape)
+                        .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                )
+                Column(Modifier.weight(1f)) {
+                    Text(song.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(song.artistName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    LinearProgressIndicator(
+                        progress = { playerProgress(state.progressSeconds, song.durationSeconds) },
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp).height(3.dp).clip(CircleShape),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    )
+                }
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
+                    IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(40.dp)) {
+                        Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (state.isPlaying) R.string.pause else R.string.play))
+                    }
+                }
+                IconButton(onClick = { dismissedSongId = song.id }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Rounded.Close, stringResource(R.string.dismiss), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun NowPlayingRoute(
     onBack: () -> Unit,
     onShowSongInfo: (String) -> Unit,
+    onArtistClick: (String) -> Unit,
+    onShareSong: (String) -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -171,15 +237,16 @@ fun NowPlayingRoute(
         EmptyPlayer()
     } else {
         var showLyrics by remember { mutableStateOf(false) }
-        var showQueue by remember { mutableStateOf(false) }
-        var showMore by remember { mutableStateOf(false) }
         val context = LocalContext.current
         val isLiked by remember(song.id) { viewModel.observeIsLiked(song.id) }.collectAsState(initial = false)
+        val download by remember(song.id) { viewModel.observeDownload(song.id) }.collectAsState(initial = null)
+        val isSaved = download?.downloadState == LocalLibraryRepository.DownloadStateCompleted
         var coverColors by remember {
             mutableStateOf(listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95), Color(0xFF06060F)))
         }
         AnimatedPlayerBackground(colors = coverColors, coverUrl = song.coverImageUrl)
-        CompositionLocalProvider(LocalContentColor provides Color.White) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+          CompositionLocalProvider(LocalContentColor provides Color.White) {
             if (showLyrics) {
                 LiveLyricsScreen(
                     song = song,
@@ -187,18 +254,7 @@ fun NowPlayingRoute(
                     isPlaying = state.isPlaying,
                     onBack = { showLyrics = false },
                     onPalette = { coverColors = it },
-                )
-                return@CompositionLocalProvider
-            }
-            if (showQueue) {
-                PlayerQueueScreen(
-                    currentSong = song,
-                    queue = state.queue,
-                    onBack = { showQueue = false },
-                    onSongClick = {
-                        viewModel.play(it)
-                        showQueue = false
-                    },
+                    onSeek = viewModel::seekToMillis,
                 )
                 return@CompositionLocalProvider
             }
@@ -227,16 +283,7 @@ fun NowPlayingRoute(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = .42f),
                     )
-                    Surface(
-                        modifier = Modifier.size(38.dp),
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = .08f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
-                    ) {
-                        IconButton(onClick = { showQueue = true }) {
-                            Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(20.dp))
-                        }
-                    }
+                    Spacer(Modifier.size(38.dp))
                 }
                 PremiumAlbumCover(
                     coverUrl = song.coverImageUrl,
@@ -252,12 +299,16 @@ fun NowPlayingRoute(
                         Column(Modifier.weight(1f)) {
                             Text(song.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
-                                listOfNotNull(song.artistName, song.album?.takeIf(String::isNotBlank)).joinToString("  ·  "),
+                                song.artistName,
+                                modifier = Modifier.clickable { onArtistClick(song.artistName) },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White.copy(alpha = .55f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            song.album?.takeIf(String::isNotBlank)?.let { album ->
+                                Text(album, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .38f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                         IconButton(onClick = { viewModel.toggleLike(song) }) {
                             Icon(
@@ -273,43 +324,9 @@ fun NowPlayingRoute(
                     //     QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
                     // }
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        PlayerTextAction(Icons.Rounded.Share, "Share") {
-                            context.startActivity(
-                                Intent.createChooser(
-                                    Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, "${song.title} — ${song.artistName}\n${song.audioUrl}")
-                                    },
-                                    song.title,
-                                ),
-                            )
-                        }
-                        Box {
-                            PlayerTextAction(Icons.Rounded.MoreVert, "More") { showMore = true }
-                            DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.song_information)) },
-                                    onClick = {
-                                        showMore = false
-                                        onShowSongInfo(song.id)
-                                    },
-                                    leadingIcon = { Icon(Icons.Rounded.Info, null) },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Download") },
-                                    onClick = {
-                                        viewModel.download(song)
-                                        showMore = false
-                                        Toast.makeText(context, "Download queued", Toast.LENGTH_SHORT).show()
-                                    },
-                                    leadingIcon = { Icon(Icons.Rounded.Download, null) },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Queue") },
-                                    onClick = { showMore = false; showQueue = true },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null) },
-                                )
-                            }
+                        PlayerTextAction(Icons.Rounded.Share, stringResource(R.string.chat_share_song)) { onShareSong(song.id) }
+                        PlayerTextAction(Icons.Rounded.Info, stringResource(R.string.song_information)) {
+                            onShowSongInfo(song.id)
                         }
                     }
                 }
@@ -323,16 +340,7 @@ fun NowPlayingRoute(
                 )
                 val displayedProgress = if (state.crossfadeSong != null) state.crossfadeProgressSeconds else state.progressSeconds
                 Column(Modifier.fillMaxWidth()) {
-                    Slider(
-                        value = displayedProgress.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
-                        onValueChange = { viewModel.seekTo(it.toInt()) },
-                        valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color(0xFFB45CFF),
-                            inactiveTrackColor = Color.White.copy(alpha = .1f),
-                        ),
-                    )
+                    PlayerSeekBar(displayedProgress, song.durationSeconds, viewModel::seekTo)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
                         Text("-${formatDuration((song.durationSeconds - displayedProgress).coerceAtLeast(0))}", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
@@ -343,9 +351,12 @@ fun NowPlayingRoute(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    IconButton(onClick = viewModel::toggleShuffle) {
-                        Icon(Icons.Rounded.Shuffle, null, tint = if (state.isShuffleEnabled) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
-                    }
+                    PlaybackModeButton(
+                        icon = Icons.Rounded.Shuffle,
+                        selected = state.isShuffleEnabled,
+                        contentDescription = "Shuffle",
+                        onClick = viewModel::toggleShuffle,
+                    )
                     IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(60.dp)) {
                         Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
                     }
@@ -366,28 +377,76 @@ fun NowPlayingRoute(
                     IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(60.dp)) {
                         Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
                     }
-                    IconButton(onClick = viewModel::cycleRepeatMode) {
-                        Icon(Icons.Rounded.Repeat, null, tint = if (state.repeatMode > 0) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
-                    }
+                    PlaybackModeButton(
+                        icon = if (state.repeatMode == 2) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                        selected = state.repeatMode > 0,
+                        contentDescription = "Repeat",
+                        onClick = viewModel::cycleRepeatMode,
+                    )
                 }
                 SecondaryPlayerControls(
                     onLyrics = { showLyrics = true },
                     onCrossfade = viewModel::toggleCrossfade,
+                    isCrossfadeEnabled = state.isCrossfadeEnabled,
                     onSave = {
-                        viewModel.download(song)
-                        Toast.makeText(context, "Download queued", Toast.LENGTH_SHORT).show()
-                    },
-                    onEq = {
-                        runCatching {
-                            context.startActivity(Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL))
-                        }.onFailure {
-                            Toast.makeText(context, "No system equalizer is available", Toast.LENGTH_SHORT).show()
+                        if (!isSaved) {
+                            viewModel.download(song)
+                            Toast.makeText(context, "Download queued", Toast.LENGTH_SHORT).show()
                         }
                     },
+                    isSaved = isSaved,
                     onSleep = { viewModel.setSleepTimer(if (state.sleepTimerEndsAtMillis == null) 15 else 0) },
+                    isSleepEnabled = state.sleepTimerEndsAtMillis != null,
                 )
             }
+          }
         }
+    }
+}
+
+@Composable
+private fun PlayerSeekBar(
+    progressSeconds: Int,
+    durationSeconds: Int,
+    onSeek: (Int) -> Unit,
+) {
+    val duration = durationSeconds.coerceAtLeast(1)
+    val fraction = (progressSeconds.toFloat() / duration).coerceIn(0f, 1f)
+    Canvas(
+        modifier = Modifier.fillMaxWidth().height(28.dp).pointerInput(duration) {
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                fun seekTo(x: Float) {
+                    onSeek(((x / size.width.coerceAtLeast(1)) * duration).toInt().coerceIn(0, duration))
+                }
+                seekTo(down.position.x)
+                do {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.first()
+                    seekTo(change.position.x)
+                    change.consume()
+                } while (event.changes.any { it.pressed })
+            }
+        },
+    ) {
+        val centerY = size.height / 2f
+        val padding = 9.dp.toPx()
+        val startX = padding
+        val endX = size.width - padding
+        val thumbX = startX + (endX - startX) * fraction
+        drawLine(Color.White.copy(alpha = .10f), Offset(startX, centerY), Offset(endX, centerY), 4.dp.toPx(), StrokeCap.Round)
+        if (fraction > 0f) {
+            drawLine(
+                brush = Brush.horizontalGradient(listOf(Color(0xFFA855F7), Color(0xFFEC4899)), startX, endX),
+                start = Offset(startX, centerY),
+                end = Offset(thumbX, centerY),
+                strokeWidth = 5.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+        }
+        drawCircle(Color(0xFFEC4899).copy(alpha = .20f), 9.dp.toPx(), Offset(thumbX, centerY))
+        drawCircle(Color.White, 5.dp.toPx(), Offset(thumbX, centerY))
+        drawCircle(Color(0xFFEC4899), 2.dp.toPx(), Offset(thumbX, centerY))
     }
 }
 
@@ -400,7 +459,7 @@ private fun AudioVisualizer(
     val animatedBands = bands.mapIndexed { index, level ->
         val value by animateFloatAsState(
             targetValue = if (isPlaying) level else level * 0.55f,
-            animationSpec = tween(durationMillis = 42 + (index % 3) * 8, easing = LinearEasing),
+            animationSpec = tween(durationMillis = 26 + (index % 3) * 4, easing = LinearEasing),
             label = "visualizerBand$index",
         )
         value
@@ -574,17 +633,17 @@ private fun PlayerTextAction(
 private fun SecondaryPlayerControls(
     onLyrics: () -> Unit,
     onCrossfade: () -> Unit,
+    isCrossfadeEnabled: Boolean,
     onSave: () -> Unit,
-    onEq: () -> Unit,
+    isSaved: Boolean,
     onSleep: () -> Unit,
+    isSleepEnabled: Boolean,
 ) {
     val items = listOf(
-        Triple(Icons.Rounded.Mic, "Lyrics", onLyrics),
-        Triple(Icons.AutoMirrored.Rounded.PlaylistPlay, "Queue", {}),
-        Triple(Icons.Rounded.SwapHoriz, "Crossfade", onCrossfade),
-        Triple(Icons.Rounded.Download, "Save", onSave),
-        Triple(Icons.Rounded.Tune, "EQ", onEq),
-        Triple(Icons.Rounded.Timer, "Sleep", onSleep),
+        PlayerSecondaryAction(Icons.Rounded.Mic, "Lyrics", false, onLyrics),
+        PlayerSecondaryAction(Icons.Rounded.SwapHoriz, "Crossfade", isCrossfadeEnabled, onCrossfade),
+        PlayerSecondaryAction(if (isSaved) Icons.Rounded.CheckCircle else Icons.Rounded.Download, if (isSaved) "Saved" else "Save", isSaved, onSave),
+        PlayerSecondaryAction(Icons.Rounded.Timer, "Sleep", isSleepEnabled, onSleep),
     )
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -596,23 +655,49 @@ private fun SecondaryPlayerControls(
             Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            items.forEach { (icon, label, action) ->
+            items.forEach { item ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Surface(
                         modifier = Modifier.size(34.dp),
                         shape = MaterialTheme.shapes.small,
-                        color = Color.White.copy(alpha = .07f),
+                        color = if (item.isSelected) Color(0xFFB57BFF).copy(alpha = .28f) else Color.White.copy(alpha = .07f),
                     ) {
-                        IconButton(onClick = action) {
-                            Icon(icon, null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = .6f))
+                        IconButton(onClick = item.onClick) {
+                            Icon(item.icon, null, modifier = Modifier.size(16.dp), tint = if (item.isSelected) Color(0xFFD8B4FE) else Color.White.copy(alpha = .6f))
                         }
                     }
-                    Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .34f))
+                    Text(item.label, style = MaterialTheme.typography.labelMedium, color = if (item.isSelected) Color(0xFFD8B4FE) else Color.White.copy(alpha = .34f))
                 }
             }
         }
     }
 }
+
+@Composable
+private fun PlaybackModeButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.size(42.dp),
+        shape = CircleShape,
+        color = if (selected) Color(0xFFB57BFF).copy(alpha = .22f) else Color.White.copy(alpha = .06f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) Color(0xFFB57BFF).copy(alpha = .65f) else Color.White.copy(alpha = .08f)),
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(icon, contentDescription, modifier = Modifier.size(20.dp), tint = if (selected) Color(0xFFD8B4FE) else Color.White.copy(alpha = .42f))
+        }
+    }
+}
+
+private data class PlayerSecondaryAction(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val label: String,
+    val isSelected: Boolean,
+    val onClick: () -> Unit,
+)
 
 @Composable
 private fun PlayerQueueScreen(
@@ -672,6 +757,7 @@ private fun LiveLyricsScreen(
     isPlaying: Boolean,
     onBack: () -> Unit,
     onPalette: (List<Color>) -> Unit,
+    onSeek: (Long) -> Unit,
 ) {
     val lines = remember(song.id, song.lyrics, song.durationSeconds) {
         parseTimedLyrics(song)
@@ -753,7 +839,11 @@ private fun LiveLyricsScreen(
                     val distance = kotlin.math.abs(index - activeIndex)
                     Text(
                         line.text,
-                        modifier = Modifier.fillMaxWidth().graphicsLayer {
+                        modifier = Modifier.fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable { onSeek(line.startMillis) }
+                            .padding(vertical = 6.dp)
+                            .graphicsLayer {
                             alpha = when {
                                 index == activeIndex -> 1f
                                 distance == 1 -> .48f
@@ -772,7 +862,7 @@ private fun LiveLyricsScreen(
     }
 }
 
-private data class TimedLyricLine(val startMillis: Long, val text: String)
+internal data class TimedLyricLine(val startMillis: Long, val text: String)
 
 private fun coil3.Image.toPaletteBitmap(): Bitmap {
     val bitmap = toBitmap()
@@ -785,7 +875,7 @@ private fun coil3.Image.toPaletteBitmap(): Bitmap {
 
 private val LrcLinePattern = Regex("""^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]\s*(.+)$""")
 
-private fun parseTimedLyrics(song: SongDto): List<TimedLyricLine> {
+internal fun parseTimedLyrics(song: SongDto): List<TimedLyricLine> {
     val jsonLyrics = parseSyncedLyricsJson(
         song.extraMetadata["synced_lyrics_json"]?.jsonPrimitive?.contentOrNull,
     )
@@ -821,14 +911,23 @@ private fun parseTimedLyrics(song: SongDto): List<TimedLyricLine> {
     }
 }
 
-private fun parseSyncedLyricsJson(rawJson: String?): List<TimedLyricLine> {
+internal fun parseSyncedLyricsJson(rawJson: String?): List<TimedLyricLine> {
     if (rawJson.isNullOrBlank()) return emptyList()
     return runCatching {
-        Json.parseToJsonElement(rawJson).jsonArray.mapNotNull { element ->
+        val root = Json.parseToJsonElement(rawJson)
+        val lines = when (root) {
+            is kotlinx.serialization.json.JsonArray -> root
+            else -> root.jsonObject["lines"]?.jsonArray ?: return@runCatching emptyList()
+        }
+        lines.mapNotNull { element ->
             val item = element.jsonObject
-            val time = item["time"]?.jsonPrimitive?.doubleOrNull ?: return@mapNotNull null
-            val text = item["text"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
-            TimedLyricLine((time * 1_000.0).toLong(), text)
+            val startMillis = item["startTimeMs"]?.jsonPrimitive?.doubleOrNull?.toLong()
+                ?: item["start_time_ms"]?.jsonPrimitive?.doubleOrNull?.toLong()
+                ?: item["time"]?.jsonPrimitive?.doubleOrNull?.times(1_000.0)?.toLong()
+                ?: return@mapNotNull null
+            val text = (item["text"] ?: item["words"])
+                ?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            TimedLyricLine(startMillis, text)
         }.sortedBy(TimedLyricLine::startMillis)
     }.getOrDefault(emptyList())
 }
@@ -1025,7 +1124,7 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     PlayerTextAction(Icons.Rounded.Share, "Share") {}
-                    PlayerTextAction(Icons.Rounded.MoreVert, "More") {}
+                    PlayerTextAction(Icons.Rounded.Info, stringResource(R.string.song_information)) {}
                 }
             }
             AudioVisualizer(
@@ -1034,16 +1133,7 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                 compact = true,
             )
             Column(Modifier.fillMaxWidth()) {
-                Slider(
-                    value = state.progressSeconds.coerceAtMost(song.durationSeconds.coerceAtLeast(1)).toFloat(),
-                    onValueChange = {},
-                    valueRange = 0f..song.durationSeconds.coerceAtLeast(1).toFloat(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color.White,
-                        activeTrackColor = Color(0xFFB45CFF),
-                        inactiveTrackColor = Color.White.copy(alpha = .1f),
-                    ),
-                )
+                PlayerSeekBar(state.progressSeconds, song.durationSeconds) {}
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(formatDuration(state.progressSeconds), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
                     Text("-${formatDuration((song.durationSeconds - state.progressSeconds).coerceAtLeast(0))}", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
@@ -1080,9 +1170,11 @@ private fun PlayerPreviewScreen(state: PlayerState) {
             SecondaryPlayerControls(
                 onLyrics = {},
                 onCrossfade = {},
+                isCrossfadeEnabled = state.isCrossfadeEnabled,
                 onSave = {},
-                onEq = {},
+                isSaved = false,
                 onSleep = {},
+                isSleepEnabled = state.sleepTimerEndsAtMillis != null,
             )
         }
     }

@@ -12,10 +12,16 @@ import javax.inject.Inject
 class AriSamPlaybackService : MediaSessionService() {
     @Inject lateinit var playbackController: Media3PlaybackController
 
+    override fun onCreate() {
+        super.onCreate()
+        addSession(playbackController.mediaSession(this))
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession =
         playbackController.mediaSession(this)
 
     override fun onDestroy() {
+        playbackController.currentMediaSession()?.let(::removeSession)
         playbackController.releaseMediaSession()
         super.onDestroy()
     }
