@@ -25,10 +25,13 @@ class AuthRepository @Inject constructor(private val api: AuthApi, private val t
         tokenStore.save(tokens)
     }
 
-    override suspend fun restoreOrRefreshSession(): Boolean {
-        if (tokenStore.load() == null) return false
-        return runCatching { api.me(); true }.getOrElse { tokenStore.clear(); false }
-    }
+    /**
+     * A saved session is enough to open the app. Verifying it here made an
+     * offline launch look like a logout because the request to /auth/me could
+     * not reach the server. Requests refresh their bearer token when a network
+     * connection is available; only an explicit logout removes local tokens.
+     */
+    override suspend fun restoreOrRefreshSession(): Boolean = tokenStore.load() != null
 
     suspend fun logout() {
         tokenStore.clear()

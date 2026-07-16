@@ -57,22 +57,44 @@ data class RecentlyPlayedEntity(
 
 @Entity(
     tableName = "chat_messages",
-    indices = [Index("conversationUserId"), Index("createdAt"), Index(value = ["conversationUserId", "createdAt"])],
+    primaryKeys = ["ownerUserId", "messageId"],
+    indices = [
+        Index(value = ["ownerUserId", "conversationUserId", "createdAt"]),
+        Index(value = ["ownerUserId", "clientMessageId"], unique = true),
+        Index(value = ["ownerUserId", "deliveryState"]),
+    ],
 )
 data class ChatMessageEntity(
-    @PrimaryKey val messageId: String,
+    val ownerUserId: String,
+    val messageId: String,
+    val clientMessageId: String,
     val conversationUserId: String,
     val senderUserId: String,
     val receiverUserId: String,
     val body: String,
     val messageType: String = "TEXT",
+    val songId: String? = null,
     val deliveryState: String = "PENDING",
     val isMine: Boolean,
     val createdAt: String,
     val sentAt: String? = null,
     val deliveredAt: String? = null,
     val readAt: String? = null,
+    val readReceiptPending: Boolean = false,
+    val updatedAt: String,
     val cachedAt: Long,
+)
+
+@Entity(
+    tableName = "chat_remote_keys",
+    primaryKeys = ["ownerUserId", "conversationUserId"],
+)
+data class ChatRemoteKeyEntity(
+    val ownerUserId: String,
+    val conversationUserId: String,
+    val nextCursor: String?,
+    val reachedEnd: Boolean,
+    val updatedAt: Long,
 )
 
 @Entity(tableName = "cached_user_profiles", indices = [Index("displayName"), Index("cachedAt")])

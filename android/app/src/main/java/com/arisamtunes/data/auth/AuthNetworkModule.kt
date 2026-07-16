@@ -39,6 +39,10 @@ object AuthNetworkModule {
         install(WebSockets)
         install(Auth) {
             bearer {
+                // Tokens can change after logout/login while this singleton
+                // HttpClient is still alive. Always load the current account's
+                // token instead of reusing the previous account in memory.
+                cacheTokens = false
                 loadTokens { tokenStore.load() }
                 sendWithoutRequest { request ->
                     request.url.toString().let { path ->
@@ -55,7 +59,7 @@ object AuthNetworkModule {
                         }.body<TokenDto>()
                         tokenStore.save(tokens)
                         BearerTokens(tokens.accessToken, tokens.refreshToken)
-                    }.getOrElse { tokenStore.clear(); null }
+                    }.getOrNull()
                 }
             }
         }

@@ -14,6 +14,7 @@ import com.arisamtunes.data.local.dao.SearchHistoryDao
 import com.arisamtunes.data.local.entity.CachedSongEntity
 import com.arisamtunes.data.local.entity.CachedUserProfileEntity
 import com.arisamtunes.data.local.entity.ChatMessageEntity
+import com.arisamtunes.data.local.entity.ChatRemoteKeyEntity
 import com.arisamtunes.data.local.entity.DownloadedSongEntity
 import com.arisamtunes.data.local.entity.LikedSongEntity
 import com.arisamtunes.data.local.entity.RecentlyPlayedEntity
@@ -27,11 +28,12 @@ import com.arisamtunes.data.local.entity.SearchHistoryEntity
         DownloadedSongEntity::class,
         RecentlyPlayedEntity::class,
         ChatMessageEntity::class,
+        ChatRemoteKeyEntity::class,
         CachedUserProfileEntity::class,
         CachedSongEntity::class,
         RemoteKeyEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 @TypeConverters(AriSamTypeConverters::class)
