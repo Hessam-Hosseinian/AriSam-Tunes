@@ -26,7 +26,11 @@ class ChatConnectionRegistry(private val json: Json) {
         val encoded = json.encodeToString(envelope)
         var delivered = 0
         sessions[userId]?.toList().orEmpty().forEach { session ->
-            if (runCatching { session.send(Frame.Text(encoded)) }.isSuccess) delivered++
+            if (runCatching { session.send(Frame.Text(encoded)) }.isSuccess) {
+                delivered++
+            } else {
+                unregister(userId, session)
+            }
         }
         return delivered
     }

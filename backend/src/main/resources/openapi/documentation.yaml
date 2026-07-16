@@ -627,6 +627,8 @@ paths:
         - {}
       parameters:
         - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
       responses:
         "200":
           description: Public playlists
@@ -640,6 +642,12 @@ paths:
       summary: List chat conversations
       security:
         - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Size"
       responses:
         "200":
           description: Conversations
@@ -667,6 +675,11 @@ paths:
             format: date-time
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Size"
+        - name: cursor
+          in: query
+          description: Stable cursor pagination. Send an empty cursor for the first cursor-based page.
+          schema:
+            type: string
       responses:
         "200":
           description: Messages
@@ -674,6 +687,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChatMessageListResponse"
+  /chat/sync:
+    get:
+      tags: [Chat]
+      summary: Synchronize message and receipt changes after reconnect
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Ordered chat changes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatSyncResponse"
   /media/audio/{path}:
     get:
       tags: [Media]
@@ -722,15 +754,9 @@ paths:
     get:
       tags: [Chat]
       summary: WebSocket chat channel
-      description: Connect to /ws/chat?token={access_token}. Client messages use ChatSocketEnvelope with types send_message, typing_start, typing_stop, message_delivered, and message_read.
-      servers:
-        - url: /
-      parameters:
-        - name: token
-          in: query
-          required: true
-          schema:
-            type: string
+      description: Connect with the access token in the Authorization Bearer header. Protocol version 1 supports send_message, typing_start, typing_stop, message_delivered, and message_read.
+      security:
+        - bearerAuth: []
       responses:
         "101":
           description: WebSocket connection established
@@ -991,12 +1017,12 @@ components:
       enum: [GLOBAL, LOCAL, USER]
     PlaylistResponse:
       type: object
-      required: [id, name, scope, isPublic, songCount, createdAt, updatedAt]
+      required: [id, name, scope, is_public, can_edit, song_count, created_at, updated_at]
       properties:
         id:
           type: string
           format: uuid
-        ownerId:
+        owner_id:
           type: string
           nullable: true
         name:
@@ -1004,19 +1030,22 @@ components:
         description:
           type: string
           nullable: true
-        coverImageUrl:
+        cover_image_url:
           type: string
           nullable: true
         scope:
           $ref: "#/components/schemas/PlaylistScope"
-        isPublic:
+        is_public:
           type: boolean
-        songCount:
+        can_edit:
+          type: boolean
+          description: Whether the authenticated viewer may modify this playlist
+        song_count:
           type: integer
           format: int64
-        createdAt:
+        created_at:
           type: string
-        updatedAt:
+        updated_at:
           type: string
     PlaylistListResponse:
       type: object
@@ -1047,20 +1076,26 @@ components:
         description:
           type: string
           nullable: true
-        coverImageUrl:
+        cover_image_url:
           type: string
           nullable: true
-        isPublic:
+        is_public:
           type: boolean
           default: false
     UpdatePlaylistRequest:
       allOf:
         - $ref: "#/components/schemas/CreatePlaylistRequest"
+        - type: object
+          properties:
+            clear_cover_image:
+              type: boolean
+              default: false
+              description: Clear the existing cover when coverImageUrl is omitted
     PlaylistSongRequest:
       type: object
-      required: [songId]
+      required: [song_id]
       properties:
-        songId:
+        song_id:
           type: string
           format: uuid
     PublicUserResponse:
@@ -1106,7 +1141,7 @@ components:
           $ref: "#/components/schemas/PublicUserResponse"
     PublicPlaylistListResponse:
       type: object
-      required: [owner, items]
+      required: [owner, items, pagination]
       properties:
         owner:
           $ref: "#/components/schemas/PublicUserResponse"
@@ -1114,6 +1149,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlaylistResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
     ChatMessageType:
       type: string
       enum: [TEXT, SONG]
@@ -1122,7 +1159,7 @@ components:
       enum: [SENT, DELIVERED, READ]
     ChatMessageResponse:
       type: object
-      required: [id, client_message_id, sender_id, recipient_id, message_type, status, created_at]
+      required: [id, client_message_id, sender_id, recipient_id, message_type, status, created_at, updated_at]
       properties:
         id:
           type: string
@@ -1155,9 +1192,11 @@ components:
         read_at:
           type: string
           nullable: true
+        updated_at:
+          type: string
     ChatMessageListResponse:
       type: object
-      required: [items, pagination]
+      required: [items]
       properties:
         items:
           type: array
@@ -1165,14 +1204,37 @@ components:
             $ref: "#/components/schemas/ChatMessageResponse"
         pagination:
           $ref: "#/components/schemas/PaginationMeta"
+          nullable: true
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    ChatSyncResponse:
+      type: object
+      required: [items, has_more]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessageResponse"
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
     ChatConversationResponse:
       type: object
-      required: [user, latest_message]
+      required: [user, latest_message, unread_count]
       properties:
         user:
           $ref: "#/components/schemas/PublicUserResponse"
         latest_message:
           $ref: "#/components/schemas/ChatMessageResponse"
+        unread_count:
+          type: integer
+          format: int64
+          minimum: 0
     ChatConversationListResponse:
       type: object
       required: [items]
@@ -1181,6 +1243,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChatConversationResponse"
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
     ErrorEnvelope:
       type: object
       required: [error]

@@ -30,4 +30,5 @@ data class FollowResponse(val user: PublicUserResponse)
 data class PublicPlaylistListResponse(
     val owner: PublicUserResponse,
     val items: List<PlaylistResponse>,
+    val pagination: PaginationMeta,
 )

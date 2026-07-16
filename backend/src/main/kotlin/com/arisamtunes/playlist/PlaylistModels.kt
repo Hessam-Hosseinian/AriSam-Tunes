@@ -16,6 +16,7 @@ data class PlaylistResponse(
     val coverImageUrl: String?,
     val scope: PlaylistScope,
     val isPublic: Boolean,
+    val canEdit: Boolean = false,
     val songCount: Long,
     val createdAt: String,
     val updatedAt: String,
@@ -44,6 +45,7 @@ data class UpdatePlaylistRequest(
     val name: String,
     val description: String? = null,
     val coverImageUrl: String? = null,
+    val clearCoverImage: Boolean = false,
     val isPublic: Boolean = false,
 )
 

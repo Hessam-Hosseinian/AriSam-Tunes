@@ -4,11 +4,26 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import com.arisamtunes.social.PublicUserResponse
 
+const val CHAT_PROTOCOL_VERSION = 1
+
 @Serializable
 enum class ChatMessageType { TEXT, SONG }
 
 @Serializable
 enum class ChatMessageStatus { SENT, DELIVERED, READ }
+
+@Serializable
+enum class ChatSocketType {
+    @SerialName("connected") CONNECTED,
+    @SerialName("send_message") SEND_MESSAGE,
+    @SerialName("message_sent") MESSAGE_SENT,
+    @SerialName("message_received") MESSAGE_RECEIVED,
+    @SerialName("message_delivered") MESSAGE_DELIVERED,
+    @SerialName("message_read") MESSAGE_READ,
+    @SerialName("typing_start") TYPING_START,
+    @SerialName("typing_stop") TYPING_STOP,
+    @SerialName("error") ERROR,
+}
 
 @Serializable
 data class ChatMessageResponse(
@@ -23,11 +38,13 @@ data class ChatMessageResponse(
     @SerialName("created_at") val createdAt: String,
     @SerialName("delivered_at") val deliveredAt: String? = null,
     @SerialName("read_at") val readAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String,
 )
 
 @Serializable
 data class ChatSocketEnvelope(
-    val type: String,
+    val type: ChatSocketType,
+    @SerialName("protocol_version") val protocolVersion: Int = CHAT_PROTOCOL_VERSION,
     @SerialName("message_id") val messageId: String? = null,
     @SerialName("sender_id") val senderId: String? = null,
     @SerialName("client_message_id") val clientMessageId: String? = null,
@@ -42,14 +59,28 @@ data class ChatSocketEnvelope(
 @Serializable
 data class ChatMessageListResponse(
     val items: List<ChatMessageResponse>,
-    val pagination: com.arisamtunes.model.PaginationMeta,
+    val pagination: com.arisamtunes.model.PaginationMeta? = null,
+    @SerialName("next_cursor") val nextCursor: String? = null,
+    @SerialName("has_more") val hasMore: Boolean = false,
+)
+
+@Serializable
+data class ChatSyncResponse(
+    val items: List<ChatMessageResponse>,
+    @SerialName("next_cursor") val nextCursor: String? = null,
+    @SerialName("has_more") val hasMore: Boolean = false,
 )
 
 @Serializable
 data class ChatConversationResponse(
     val user: PublicUserResponse,
     @SerialName("latest_message") val latestMessage: ChatMessageResponse,
+    @SerialName("unread_count") val unreadCount: Long = 0,
 )
 
 @Serializable
-data class ChatConversationListResponse(val items: List<ChatConversationResponse>)
+data class ChatConversationListResponse(
+    val items: List<ChatConversationResponse>,
+    @SerialName("next_cursor") val nextCursor: String? = null,
+    @SerialName("has_more") val hasMore: Boolean = false,
+)

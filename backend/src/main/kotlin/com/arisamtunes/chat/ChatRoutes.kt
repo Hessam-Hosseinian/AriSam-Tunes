@@ -1,7 +1,5 @@
 package com.arisamtunes.chat
 
-import com.arisamtunes.auth.JwtService
-import com.arisamtunes.config.JwtConfig
 import com.arisamtunes.model.ApiException
 import com.arisamtunes.model.ErrorCode
 import com.arisamtunes.model.PaginationMeta
@@ -19,7 +17,6 @@ import io.ktor.server.routing.route
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.Frame
-import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
@@ -29,6 +26,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import java.time.Instant
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val chatJson = Json {
     ignoreUnknownKeys = true
@@ -52,17 +51,22 @@ fun Application.configureChatWebSockets() {
 fun Route.chatRoutes(
     repository: ChatRepository = ChatRepository(),
     socialRepository: SocialRepository = SocialRepository(),
-    jwtConfig: JwtConfig,
 ) {
-    val jwtService = JwtService(jwtConfig)
     authenticate("auth-jwt") {
         route("/chat") {
             get("/conversations") {
                 val viewerId = call.userId()
-                val conversations = repository.conversationPeers(viewerId).mapNotNull { (peerId, latest) ->
-                    socialRepository.user(peerId, viewerId)?.let { peer -> ChatConversationResponse(peer, latest) }
+                val size = call.pageSize(default = 30)
+                val cursor = call.optionalCursor()
+                val page = repository.conversationPeers(viewerId, cursor, size)
+                val conversations = withContext(Dispatchers.IO) {
+                    page.items.mapNotNull { conversation ->
+                        socialRepository.user(conversation.peerId, viewerId)?.let { peer ->
+                            ChatConversationResponse(peer, conversation.latestMessage, conversation.unreadCount)
+                        }
+                    }
                 }
-                call.respond(ChatConversationListResponse(conversations))
+                call.respond(ChatConversationListResponse(conversations, page.nextCursor, page.hasMore))
             }
             get("/{userId}/messages") {
                 val peerId = call.pathUserId()
@@ -70,44 +74,57 @@ fun Route.chatRoutes(
                 val since = call.request.queryParameters["since"]?.let {
                     runCatching { Instant.parse(it) }.getOrElse { throw validation("since must be an ISO-8601 timestamp") }
                 }
-                val (items, total) = repository.conversation(call.userId(), peerId, page, size, since)
-                call.respond(ChatMessageListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
-            }
-        }
-    }
-    webSocket("/ws/chat") {
-        val userId = call.request.queryParameters["token"]
-            ?.let { token -> runCatching { jwtService.verifier.verify(token) }.getOrNull() }
-            ?.takeIf { payload -> payload.getClaim("type").asString() == "access" }
-            ?.subject
-            ?.let { subject -> runCatching { UUID.fromString(subject) }.getOrNull() }
-
-        if (userId == null) {
-            sendError("AUTH_TOKEN_INVALID")
-            close()
-            return@webSocket
-        }
-
-        chatConnections.register(userId, this)
-        sendEnvelope(ChatSocketEnvelope(type = "connected"))
-        try {
-            for (frame in incoming) {
-                if (frame !is Frame.Text) continue
-                val envelope = runCatching { chatJson.decodeFromString<ChatSocketEnvelope>(frame.readText()) }
-                    .getOrElse {
-                        sendError(if (it is SerializationException) "VALIDATION_ERROR" else "INTERNAL_ERROR")
-                        continue
-                    }
-                when (envelope.type) {
-                    "send_message" -> handleSendMessage(userId, envelope, repository)
-                    "typing_start", "typing_stop" -> forwardTyping(userId, envelope)
-                    "message_delivered" -> handleReceipt(userId, envelope, repository, read = false)
-                    "message_read" -> handleReceipt(userId, envelope, repository, read = true)
-                    else -> sendError("UNSUPPORTED_MESSAGE_TYPE")
+                val cursorRequested = call.request.queryParameters.contains("cursor")
+                if (cursorRequested) {
+                    val result = repository.conversationBefore(call.userId(), peerId, call.optionalCursor(), size)
+                    call.respond(ChatMessageListResponse(result.items, nextCursor = result.nextCursor, hasMore = result.hasMore))
+                } else {
+                    val (items, total) = repository.conversation(call.userId(), peerId, page, size, since)
+                    call.respond(ChatMessageListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
                 }
             }
-        } finally {
-            chatConnections.unregister(userId, this)
+            get("/sync") {
+                val size = call.pageSize(default = 100)
+                val result = repository.syncChanges(call.userId(), call.optionalCursor(), size)
+                call.respond(ChatSyncResponse(result.items, result.nextCursor, result.hasMore))
+            }
+        }
+        webSocket("/ws/chat") {
+            val userId = call.userId()
+            chatConnections.register(userId, this)
+            sendEnvelope(ChatSocketEnvelope(type = ChatSocketType.CONNECTED))
+            repository.markPendingDelivered(userId).forEach { delivered ->
+                val receipt = ChatSocketEnvelope(
+                    type = ChatSocketType.MESSAGE_DELIVERED,
+                    messageId = delivered.id,
+                    message = delivered,
+                )
+                chatConnections.sendTo(UUID.fromString(delivered.senderId), receipt)
+                chatConnections.sendTo(userId, receipt)
+            }
+            try {
+                for (frame in incoming) {
+                    if (frame !is Frame.Text) continue
+                    val envelope = runCatching { chatJson.decodeFromString<ChatSocketEnvelope>(frame.readText()) }
+                        .getOrElse {
+                            sendError(if (it is SerializationException) "VALIDATION_ERROR" else "INTERNAL_ERROR")
+                            continue
+                        }
+                    if (envelope.protocolVersion != CHAT_PROTOCOL_VERSION) {
+                        sendError("UNSUPPORTED_PROTOCOL_VERSION")
+                        continue
+                    }
+                    when (envelope.type) {
+                        ChatSocketType.SEND_MESSAGE -> handleSendMessage(userId, envelope, repository)
+                        ChatSocketType.TYPING_START, ChatSocketType.TYPING_STOP -> forwardTyping(userId, envelope)
+                        ChatSocketType.MESSAGE_DELIVERED -> handleReceipt(userId, envelope, repository, read = false)
+                        ChatSocketType.MESSAGE_READ -> handleReceipt(userId, envelope, repository, read = true)
+                        else -> sendError("UNSUPPORTED_MESSAGE_TYPE")
+                    }
+                }
+            } finally {
+                chatConnections.unregister(userId, this)
+            }
         }
     }
 }
@@ -122,29 +139,38 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handl
     val type = envelope.messageType ?: ChatMessageType.TEXT
     val songId = envelope.songId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
     val content = envelope.content?.trim()
+    val persistedContent = content.takeIf { type == ChatMessageType.TEXT }
 
     if (clientMessageId == null || recipientId == null || recipientId == senderId) {
-        sendError("VALIDATION_ERROR")
+        sendError("VALIDATION_ERROR", envelope.clientMessageId)
         return
     }
-    if ((type == ChatMessageType.TEXT && content.isNullOrBlank()) || (type == ChatMessageType.SONG && songId == null)) {
-        sendError("VALIDATION_ERROR")
+    if ((type == ChatMessageType.TEXT && (content.isNullOrBlank() || content.length > MaxMessageLength)) ||
+        (type == ChatMessageType.SONG && songId == null)
+    ) {
+        sendError("VALIDATION_ERROR", envelope.clientMessageId)
         return
     }
 
-    val message = runCatching { repository.saveMessage(senderId, clientMessageId, recipientId, type, content, songId) }
+    val result = runCatching { repository.saveMessage(senderId, clientMessageId, recipientId, type, persistedContent, songId) }
         .getOrElse {
-            sendError("INTERNAL_ERROR")
+            sendError("INTERNAL_ERROR", envelope.clientMessageId)
             return
         }
-
-    val sent = ChatSocketEnvelope(type = "message_sent", message = message)
-    sendEnvelope(sent)
-    val recipientSessions = chatConnections.sendTo(recipientId, ChatSocketEnvelope(type = "message_received", message = message))
+    val saved = when (result) {
+        is SaveMessageResult.Success -> result
+        SaveMessageResult.RecipientNotFound -> return sendError("USER_NOT_FOUND", envelope.clientMessageId)
+        SaveMessageResult.SongNotFound -> return sendError("SONG_NOT_FOUND", envelope.clientMessageId)
+        SaveMessageResult.IdempotencyConflict -> return sendError("MESSAGE_ID_CONFLICT", envelope.clientMessageId)
+    }
+    val message = saved.message
+    chatConnections.sendTo(senderId, ChatSocketEnvelope(type = ChatSocketType.MESSAGE_SENT, message = message))
+    if (!saved.isNew) return
+    val recipientSessions = chatConnections.sendTo(recipientId, ChatSocketEnvelope(type = ChatSocketType.MESSAGE_RECEIVED, message = message))
     if (recipientSessions > 0) {
         repository.markDelivered(UUID.fromString(message.id), recipientId)?.let { delivered ->
-            val receipt = ChatSocketEnvelope(type = "message_delivered", messageId = delivered.id, message = delivered)
-            sendEnvelope(receipt)
+            val receipt = ChatSocketEnvelope(type = ChatSocketType.MESSAGE_DELIVERED, messageId = delivered.id, message = delivered)
+            chatConnections.sendTo(senderId, receipt)
             chatConnections.sendTo(recipientId, receipt)
         }
     }
@@ -186,8 +212,8 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handl
         sendError("MESSAGE_NOT_FOUND")
         return
     }
-    val event = ChatSocketEnvelope(type = if (read) "message_read" else "message_delivered", messageId = updated.id, message = updated)
-    sendEnvelope(event)
+    val event = ChatSocketEnvelope(type = if (read) ChatSocketType.MESSAGE_READ else ChatSocketType.MESSAGE_DELIVERED, messageId = updated.id, message = updated)
+    chatConnections.sendTo(recipientId, event)
     chatConnections.sendTo(UUID.fromString(updated.senderId), event)
 }
 
@@ -195,8 +221,8 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.sendE
     send(Frame.Text(chatJson.encodeToString(envelope)))
 }
 
-private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.sendError(code: String) {
-    sendEnvelope(ChatSocketEnvelope(type = "error", error = code))
+private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.sendError(code: String, clientMessageId: String? = null) {
+    sendEnvelope(ChatSocketEnvelope(type = ChatSocketType.ERROR, error = code, clientMessageId = clientMessageId))
 }
 
 private fun io.ktor.server.application.ApplicationCall.userId(): UUID =
@@ -212,5 +238,17 @@ private fun io.ktor.server.application.ApplicationCall.pageRequest(): Pair<Int, 
     return page to size
 }
 
+private fun io.ktor.server.application.ApplicationCall.pageSize(default: Int): Int {
+    val size = request.queryParameters["size"]?.toIntOrNull() ?: default
+    if (size !in 1..100) throw validation("size must be between 1 and 100")
+    return size
+}
+
+private fun io.ktor.server.application.ApplicationCall.optionalCursor(): ChatCursor? {
+    val raw = request.queryParameters["cursor"]?.takeIf(String::isNotBlank) ?: return null
+    return ChatCursor.decode(raw) ?: throw validation("cursor is invalid")
+}
+
 private fun pages(total: Long, size: Int) = if (total == 0L) 0 else ((total - 1) / size + 1).toInt()
 private fun validation(message: String) = ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, message)
+private const val MaxMessageLength = 4_000

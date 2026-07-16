@@ -117,8 +117,15 @@ class SocialRepository {
             size = size,
         )
 
-    fun publicPlaylists(ownerId: UUID): List<PlaylistResponse> = DatabaseProvider.dataSource.connection.use { c ->
-        c.prepareStatement(
+    fun publicPlaylists(ownerId: UUID, viewerId: UUID?, page: Int, size: Int): Pair<List<PlaylistResponse>, Long> =
+        DatabaseProvider.dataSource.connection.use { c ->
+        val total = c.prepareStatement(
+            "SELECT COUNT(*) FROM playlists WHERE owner_id = ? AND is_public = TRUE",
+        ).use { s ->
+            s.setObject(1, ownerId)
+            s.executeQuery().use { results -> results.next(); results.getLong(1) }
+        }
+        val items = c.prepareStatement(
             """
             SELECT p.*, COUNT(ps.song_id) AS song_count
             FROM playlists p
@@ -126,11 +133,23 @@ class SocialRepository {
             WHERE p.owner_id = ? AND p.is_public = TRUE
             GROUP BY p.id
             ORDER BY p.updated_at DESC
+            LIMIT ? OFFSET ?
             """.trimIndent(),
         ).use { s ->
             s.setObject(1, ownerId)
-            s.executeQuery().use { results -> buildList { while (results.next()) add(results.toPlaylist()) } }
-        }.also { c.commit() }
+            s.setInt(2, size)
+            s.setLong(3, page.toLong() * size)
+            s.executeQuery().use { results ->
+                buildList {
+                    while (results.next()) {
+                        val playlist = results.toPlaylist()
+                        add(playlist.copy(canEdit = viewerId == ownerId && playlist.scope == PlaylistScope.USER))
+                    }
+                }
+            }
+        }
+        c.commit()
+        items to total
     }
 
     private fun queryUser(sql: String, viewerId: UUID?, value: UUID): PublicUserResponse? =

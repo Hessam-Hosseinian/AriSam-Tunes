@@ -14,30 +14,34 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 fun Route.socialRoutes(repository: SocialRepository = SocialRepository()) {
     route("/users") {
         authenticate("auth-jwt") {
             get("/me/following") {
                 val (page, size) = call.pageRequest()
-                val (items, total) = repository.following(call.userId(), call.userId(), page, size)
+                val userId = call.userId()
+                val (items, total) = blockingDb { repository.following(userId, userId, page, size) }
                 call.respond(PublicUserListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
             }
             get("/me/followers") {
                 val (page, size) = call.pageRequest()
-                val (items, total) = repository.followers(call.userId(), call.userId(), page, size)
+                val userId = call.userId()
+                val (items, total) = blockingDb { repository.followers(userId, userId, page, size) }
                 call.respond(PublicUserListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
             }
             post("/{id}/follow") {
                 val targetId = call.userPathId()
                 if (targetId == call.userId()) throw validation("You cannot follow yourself")
-                val user = repository.follow(call.userId(), targetId) ?: throw notFound()
+                val user = blockingDb { repository.follow(call.userId(), targetId) } ?: throw notFound()
                 call.respond(FollowResponse(user))
             }
             delete("/{id}/follow") {
                 val targetId = call.userPathId()
                 if (targetId == call.userId()) throw validation("You cannot unfollow yourself")
-                val user = repository.unfollow(call.userId(), targetId) ?: throw notFound()
+                val user = blockingDb { repository.unfollow(call.userId(), targetId) } ?: throw notFound()
                 call.respond(FollowResponse(user))
             }
         }
@@ -46,33 +50,42 @@ fun Route.socialRoutes(repository: SocialRepository = SocialRepository()) {
                 val query = call.request.queryParameters["q"]?.trim().orEmpty()
                 if (query.length !in 1..100) throw validation("q must be between 1 and 100 characters")
                 val (page, size) = call.pageRequest()
-                val (items, total) = repository.searchUsers(query, call.optionalUserId(), page, size)
+                val viewerId = call.optionalUserId()
+                val (items, total) = blockingDb { repository.searchUsers(query, viewerId, page, size) }
                 call.respond(PublicUserListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
             }
             get("/{id}") {
                 call.rejectReservedUserAlias()
-                call.respond(repository.user(call.userPathId(), call.optionalUserId()) ?: throw notFound())
+                val id = call.userPathId()
+                val viewerId = call.optionalUserId()
+                call.respond(blockingDb { repository.user(id, viewerId) } ?: throw notFound())
             }
             get("/{id}/following") {
                 call.rejectReservedUserAlias()
                 val id = call.userPathId()
-                if (repository.user(id, call.optionalUserId()) == null) throw notFound()
+                val viewerId = call.optionalUserId()
+                if (blockingDb { repository.user(id, viewerId) } == null) throw notFound()
                 val (page, size) = call.pageRequest()
-                val (items, total) = repository.following(id, call.optionalUserId(), page, size)
+                val (items, total) = blockingDb { repository.following(id, viewerId, page, size) }
                 call.respond(PublicUserListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
             }
             get("/{id}/followers") {
                 call.rejectReservedUserAlias()
                 val id = call.userPathId()
-                if (repository.user(id, call.optionalUserId()) == null) throw notFound()
+                val viewerId = call.optionalUserId()
+                if (blockingDb { repository.user(id, viewerId) } == null) throw notFound()
                 val (page, size) = call.pageRequest()
-                val (items, total) = repository.followers(id, call.optionalUserId(), page, size)
+                val (items, total) = blockingDb { repository.followers(id, viewerId, page, size) }
                 call.respond(PublicUserListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
             }
             get("/{id}/playlists") {
                 call.rejectReservedUserAlias()
-                val owner = repository.user(call.userPathId(), call.optionalUserId()) ?: throw notFound()
-                call.respond(PublicPlaylistListResponse(owner, repository.publicPlaylists(UUID.fromString(owner.id))))
+                val viewerId = call.optionalUserId()
+                val ownerId = call.userPathId()
+                val owner = blockingDb { repository.user(ownerId, viewerId) } ?: throw notFound()
+                val (page, size) = call.pageRequest()
+                val (items, total) = blockingDb { repository.publicPlaylists(UUID.fromString(owner.id), viewerId, page, size) }
+                call.respond(PublicPlaylistListResponse(owner, items, PaginationMeta(page, size, total, pages(total, size))))
             }
         }
     }
@@ -103,3 +116,5 @@ private fun io.ktor.server.application.ApplicationCall.rejectReservedUserAlias()
 private fun pages(total: Long, size: Int) = if (total == 0L) 0 else ((total - 1) / size + 1).toInt()
 private fun notFound() = ApiException(HttpStatusCode.NotFound, ErrorCode.USER_NOT_FOUND, "User does not exist")
 private fun validation(message: String) = ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, message)
+
+private suspend fun <T> blockingDb(block: () -> T): T = withContext(Dispatchers.IO) { block() }

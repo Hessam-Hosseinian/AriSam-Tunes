@@ -51,7 +51,11 @@ fun Route.playlistRoutes(repository: PlaylistRepository = PlaylistRepository()) 
             }
             post("/{id}/songs") {
                 val request = call.receive<PlaylistSongRequest>().validated()
-                call.respond(repository.addSong(call.playlistId(), call.userId(), UUID.fromString(request.songId)) ?: throw notFound())
+                when (val result = repository.addSong(call.playlistId(), call.userId(), UUID.fromString(request.songId))) {
+                    is AddSongResult.Success -> call.respond(result.playlist)
+                    AddSongResult.PlaylistNotFound -> throw notFound()
+                    AddSongResult.SongNotFound -> throw ApiException(HttpStatusCode.NotFound, ErrorCode.SONG_NOT_FOUND, "Song does not exist")
+                }
             }
             delete("/{id}/songs/{songId}") {
                 call.respond(repository.removeSong(call.playlistId(), call.userId(), call.songId()) ?: throw notFound())
@@ -66,6 +70,9 @@ private fun CreatePlaylistRequest.validated(): CreatePlaylistRequest {
 }
 private fun UpdatePlaylistRequest.validated(): UpdatePlaylistRequest {
     validateFields(name, description, coverImageUrl)
+    if (clearCoverImage && !coverImageUrl.isNullOrBlank()) {
+        throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "Provide either coverImageUrl or clearCoverImage, not both")
+    }
     return this
 }
 private fun PlaylistSongRequest.validated(): PlaylistSongRequest {
