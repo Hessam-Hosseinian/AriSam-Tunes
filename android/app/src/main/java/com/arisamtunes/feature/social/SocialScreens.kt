@@ -1,6 +1,7 @@
 package com.arisamtunes.feature.social
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,14 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Chat
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Refresh
@@ -34,16 +38,23 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +64,7 @@ import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
+import com.arisamtunes.core.design.components.ShimmerBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.social.PublicUserDto
@@ -63,16 +75,22 @@ fun SocialProfileRoute(
     onFollowersClick: (String) -> Unit,
     onFollowingClick: (String) -> Unit,
     onPlaylistClick: (PlaylistDto) -> Unit,
+    onMessageClick: (String) -> Unit,
     viewModel: SocialProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val playlists = viewModel.playlists.collectAsLazyPagingItems()
+    val snackbar = remember { SnackbarHostState() }
+    val actionFailed = stringResource(R.string.social_action_failed)
+    LaunchedEffect(Unit) { viewModel.effects.collect { snackbar.showSnackbar(actionFailed) } }
+    Box(Modifier.fillMaxSize()) {
     when {
         state.isLoading -> Loading()
         state.hasError && state.user == null -> ErrorState(viewModel::refresh)
         else -> state.user?.let { user ->
             SocialProfileContent(
                 user = user,
-                playlists = state.playlists,
+                playlists = playlists,
                 isUpdatingFollow = state.isUpdatingFollow,
                 isOwnProfile = state.isOwnProfile,
                 onBack = onBack,
@@ -80,15 +98,18 @@ fun SocialProfileRoute(
                 onFollowersClick = { onFollowersClick(user.id) },
                 onFollowingClick = { onFollowingClick(user.id) },
                 onPlaylistClick = onPlaylistClick,
+                onMessageClick = { onMessageClick(user.id) },
             )
         } ?: EmptyState(R.string.social_profile_empty)
+    }
+    SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
 private fun SocialProfileContent(
     user: PublicUserDto,
-    playlists: List<PlaylistDto>,
+    playlists: LazyPagingItems<PlaylistDto>,
     isUpdatingFollow: Boolean,
     isOwnProfile: Boolean,
     onBack: (() -> Unit)?,
@@ -96,78 +117,126 @@ private fun SocialProfileContent(
     onFollowersClick: () -> Unit,
     onFollowingClick: () -> Unit,
     onPlaylistClick: (PlaylistDto) -> Unit,
+    onMessageClick: () -> Unit,
 ) {
     val spacing = AriSamThemeTokens.spacing
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.background)),
+        ),
         contentPadding = PaddingValues(bottom = spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
         item {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                onBack?.let { IconButton(onClick = it) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) } }
-                Text(stringResource(R.string.social_profile), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
+            ProfileHero(user, onBack)
         }
         item {
-            GlassCard(Modifier.fillMaxWidth().padding(horizontal = spacing.lg)) {
-                Column(Modifier.padding(spacing.lg), verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                        Avatar(user, Modifier.size(88.dp))
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(user.displayName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                if (user.isPremium) Icon(Icons.Rounded.Verified, stringResource(R.string.premium_active), tint = MaterialTheme.colorScheme.primary)
-                            }
-                            user.bio?.takeIf(String::isNotBlank)?.let {
-                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
-                        ElevatedAssistChip(onClick = onFollowersClick, label = { Text(stringResource(R.string.social_followers_count, user.followersCount)) }, leadingIcon = { Icon(Icons.Rounded.Groups, null) })
-                        AssistChip(onClick = onFollowingClick, label = { Text(stringResource(R.string.social_following_count, user.followingCount)) })
-                    }
-                    if (!user.isFollowing && user.followersCount == 0L && user.followingCount == 0L) {
-                        Text(stringResource(R.string.social_new_profile_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (isOwnProfile) {
-                        Text(stringResource(R.string.social_own_profile_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    } else if (user.isFollowing) {
-                        OutlinedButton(onClick = onFollowClick, enabled = !isUpdatingFollow, modifier = Modifier.fillMaxWidth()) {
+            ProfileStats(user, onFollowersClick, onFollowingClick)
+        }
+        item {
+            Column(Modifier.padding(horizontal = spacing.lg), verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                user.bio?.takeIf(String::isNotBlank)?.let {
+                    Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                }
+                if (isOwnProfile) {
+                    Text(stringResource(R.string.social_own_profile_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                } else {
+                    if (user.isFollowing) {
+                        OutlinedButton(onClick = onFollowClick, enabled = !isUpdatingFollow, modifier = Modifier.fillMaxWidth().height(50.dp), shape = MaterialTheme.shapes.large) {
                             Text(stringResource(R.string.social_unfollow))
                         }
                     } else {
-                        Button(onClick = onFollowClick, enabled = !isUpdatingFollow, modifier = Modifier.fillMaxWidth()) {
-                            Text(stringResource(R.string.social_follow))
+                        Button(onClick = onFollowClick, enabled = !isUpdatingFollow, modifier = Modifier.fillMaxWidth().height(50.dp), shape = MaterialTheme.shapes.large) {
+                            if (isUpdatingFollow) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            else Text(stringResource(R.string.social_follow), fontWeight = FontWeight.Bold)
                         }
+                    }
+                    OutlinedButton(onClick = onMessageClick, modifier = Modifier.fillMaxWidth().height(50.dp), shape = MaterialTheme.shapes.large) {
+                        Icon(Icons.Rounded.Chat, null)
+                        Text(stringResource(R.string.chat_tap_to_message))
                     }
                 }
             }
         }
         item {
-            Text(
-                stringResource(R.string.social_public_playlists),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = spacing.lg),
-            )
+            Row(Modifier.fillMaxWidth().padding(horizontal = spacing.lg, vertical = spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.social_public_playlists), color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                    Text(pluralStringResource(R.plurals.social_playlist_count, playlists.itemCount, playlists.itemCount), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                }
+                Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
+            }
         }
-        if (playlists.isEmpty()) {
+        if (playlists.loadState.refresh is LoadState.Loading) {
+            items(4) { ShimmerBox(Modifier.fillMaxWidth().padding(horizontal = spacing.lg).height(180.dp)) }
+        } else if (playlists.itemCount == 0) {
             item { EmptyState(R.string.social_no_public_playlists) }
         } else {
-            item {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(150.dp),
-                    modifier = Modifier.fillMaxWidth().height(260.dp).padding(horizontal = spacing.lg),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(spacing.md),
-                ) {
-                    items(playlists, key = PlaylistDto::id) { playlist ->
-                        PressScaleBox({ onPlaylistClick(playlist) }) { PlaylistCard(playlist) }
+            items((playlists.itemCount + 1) / 2) { rowIndex ->
+                val firstIndex = rowIndex * 2
+                val secondIndex = firstIndex + 1
+                val rowPlaylists = listOfNotNull(
+                    playlists[firstIndex],
+                    if (secondIndex < playlists.itemCount) playlists[secondIndex] else null,
+                )
+                Row(Modifier.fillMaxWidth().padding(horizontal = spacing.lg), horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+                    rowPlaylists.forEach { playlist ->
+                        PressScaleBox({ onPlaylistClick(playlist) }, Modifier.weight(1f)) { PlaylistCard(playlist) }
+                    }
+                    if (rowPlaylists.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileHero(user: PublicUserDto, onBack: (() -> Unit)?) {
+    Box(Modifier.fillMaxWidth().height(280.dp)) {
+        Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.background))))
+        Box(Modifier.size(190.dp).align(Alignment.TopEnd).background(MaterialTheme.colorScheme.primary.copy(alpha = .08f), CircleShape))
+        Box(Modifier.size(130.dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.secondary.copy(alpha = .1f), CircleShape))
+        onBack?.let {
+            Surface(Modifier.padding(12.dp).size(42.dp), CircleShape, Color.Black.copy(alpha = .25f)) {
+                IconButton(onClick = it) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Color.White) }
+            }
+        }
+        Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box {
+                Avatar(user, Modifier.size(118.dp).border(4.dp, Color.White.copy(alpha = .92f), CircleShape))
+                if (user.isPremium) {
+                    Surface(Modifier.align(Alignment.BottomEnd).size(32.dp), CircleShape, AriSamThemeTokens.tehranAmber, border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.surface)) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Verified, stringResource(R.string.premium_active), tint = MaterialTheme.colorScheme.background, modifier = Modifier.size(18.dp)) }
                     }
                 }
             }
+            Text(user.displayName, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun ProfileStats(user: PublicUserDto, onFollowersClick: () -> Unit, onFollowingClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            ProfileStat(user.followersCount, stringResource(R.string.social_followers), onFollowersClick)
+            Box(Modifier.width(1.dp).height(42.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            ProfileStat(user.followingCount, stringResource(R.string.social_following), onFollowingClick)
+        }
+    }
+}
+
+@Composable
+private fun ProfileStat(value: Long, label: String, onClick: () -> Unit) {
+    PressScaleBox(onClick) {
+        Column(Modifier.padding(horizontal = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(value.toString(), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            Text(label, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -179,6 +248,11 @@ fun SocialUsersRoute(
     viewModel: SocialUsersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val users = viewModel.users.collectAsLazyPagingItems()
+    val snackbar = remember { SnackbarHostState() }
+    val actionFailed = stringResource(R.string.social_action_failed)
+    LaunchedEffect(Unit) { viewModel.effects.collect { snackbar.showSnackbar(actionFailed) } }
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
@@ -189,32 +263,40 @@ fun SocialUsersRoute(
             )
         }
         when {
-            state.isLoading -> Loading()
-            state.hasError -> ErrorState(viewModel::refresh)
-            state.users.isEmpty() -> EmptyState(R.string.social_users_empty)
+            users.loadState.refresh is LoadState.Loading -> Loading()
+            users.loadState.refresh is LoadState.Error -> ErrorState(users::retry)
+            users.itemCount == 0 -> EmptyState(R.string.social_users_empty)
             else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = AriSamThemeTokens.spacing.xl)) {
-                items(state.users, key = PublicUserDto::id) { user ->
+                items(users.itemCount, key = { users.peek(it)?.id ?: it }) { index ->
+                    val user = users[index] ?: return@items
                     PressScaleBox({ onUserClick(user) }, Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = { Text(user.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             supportingContent = { Text(stringResource(R.string.social_followers_count, user.followersCount), maxLines = 1) },
                             leadingContent = { Avatar(user, Modifier.size(52.dp)) },
-                            trailingContent = { if (user.isFollowing) Text(stringResource(R.string.social_following_badge), color = MaterialTheme.colorScheme.primary) },
+                            trailingContent = {
+                                TextButton(onClick = { viewModel.toggleFollow(user) }, enabled = user.id !in state.updatingUserIds) {
+                                    if (user.id in state.updatingUserIds) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    else Text(stringResource(if (user.isFollowing) R.string.social_unfollow else R.string.social_follow))
+                                }
+                            },
                         )
                     }
                 }
             }
         }
     }
+    SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+    }
 }
 
 @Composable
 private fun Avatar(user: PublicUserDto, modifier: Modifier) {
     if (!user.avatarUrl.isNullOrBlank()) {
-        AsyncImage(user.avatarUrl, user.displayName, contentScale = ContentScale.Crop, modifier = modifier.clip(MaterialTheme.shapes.extraLarge))
+        AsyncImage(user.avatarUrl, user.displayName, contentScale = ContentScale.Crop, modifier = modifier.clip(CircleShape))
     } else {
         Box(
-            modifier.clip(MaterialTheme.shapes.extraLarge).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary))),
+            modifier.clip(CircleShape).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))),
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Rounded.Person, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(34.dp)) }
     }
@@ -222,7 +304,12 @@ private fun Avatar(user: PublicUserDto, modifier: Modifier) {
 
 @Composable
 private fun PlaylistCard(playlist: PlaylistDto) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+      Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (!playlist.coverImageUrl.isNullOrBlank()) {
             AsyncImage(playlist.coverImageUrl, playlist.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.large))
         } else {
@@ -232,8 +319,9 @@ private fun PlaylistCard(playlist: PlaylistDto) {
                 contentAlignment = Alignment.Center,
             ) { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(42.dp)) }
         }
-        Text(playlist.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(stringResource(R.string.home_song_count, playlist.songCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(playlist.name, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(stringResource(R.string.home_song_count, playlist.songCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+      }
     }
 }
 

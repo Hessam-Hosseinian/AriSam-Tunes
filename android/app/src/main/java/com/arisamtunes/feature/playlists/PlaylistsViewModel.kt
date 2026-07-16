@@ -22,6 +22,7 @@ data class PlaylistsUiState(
     val isSaving: Boolean = false,
     val editingPlaylist: PlaylistDto? = null,
     val showEditor: Boolean = false,
+    val actionFailed: Boolean = false,
 )
 
 @HiltViewModel
@@ -30,55 +31,63 @@ class PlaylistsViewModel @Inject constructor(private val repository: CatalogRepo
     val state = _state.asStateFlow()
     init { refresh() }
     fun refresh() = viewModelScope.launch {
-        _state.value = _state.value.copy(isLoading = true, hasError = false)
+        _state.value = _state.value.copy(isLoading = true, hasError = false, actionFailed = false)
         runCatching { repository.playlists() }
             .onSuccess { _state.value = _state.value.copy(isLoading = false, items = it, hasError = false) }
             .onFailure { _state.value = _state.value.copy(isLoading = false, hasError = true) }
     }
 
     fun openCreate() {
-        _state.value = _state.value.copy(showEditor = true, editingPlaylist = null)
+        _state.value = _state.value.copy(showEditor = true, editingPlaylist = null, actionFailed = false)
     }
 
     fun openEdit(playlist: PlaylistDto) {
-        _state.value = _state.value.copy(showEditor = true, editingPlaylist = playlist)
+        if (!playlist.canEdit) return
+        _state.value = _state.value.copy(showEditor = true, editingPlaylist = playlist, actionFailed = false)
     }
 
     fun closeEditor() {
-        _state.value = _state.value.copy(showEditor = false, editingPlaylist = null, isSaving = false)
+        _state.value = _state.value.copy(showEditor = false, editingPlaylist = null, isSaving = false, actionFailed = false)
     }
 
     fun savePlaylist(name: String, description: String?, isPublic: Boolean) = viewModelScope.launch {
         val safeName = name.trim()
         if (safeName.isBlank()) return@launch
         val current = _state.value
-        _state.value = current.copy(isSaving = true, hasError = false)
+        _state.value = current.copy(isSaving = true, actionFailed = false)
         runCatching {
             current.editingPlaylist?.let { playlist ->
                 repository.updatePlaylist(playlist.id, safeName, description?.trim(), isPublic)
             } ?: repository.createPlaylist(safeName, description?.trim(), isPublic)
             repository.playlists()
         }.onSuccess { playlists ->
-            _state.value = _state.value.copy(items = playlists, isSaving = false, showEditor = false, editingPlaylist = null)
+            _state.value = _state.value.copy(items = playlists, isSaving = false, showEditor = false, editingPlaylist = null, actionFailed = false)
         }.onFailure {
-            _state.value = _state.value.copy(isSaving = false, hasError = true)
+            _state.value = _state.value.copy(isSaving = false, actionFailed = true)
         }
     }
 
     fun deletePlaylist(playlist: PlaylistDto) = viewModelScope.launch {
-        _state.value = _state.value.copy(isSaving = true, hasError = false)
+        if (!playlist.canEdit) return@launch
+        _state.value = _state.value.copy(isSaving = true, actionFailed = false)
         runCatching {
             repository.deletePlaylist(playlist.id)
             repository.playlists()
         }.onSuccess { playlists ->
-            _state.value = _state.value.copy(items = playlists, isSaving = false, showEditor = false, editingPlaylist = null)
+            _state.value = _state.value.copy(items = playlists, isSaving = false, showEditor = false, editingPlaylist = null, actionFailed = false)
         }.onFailure {
-            _state.value = _state.value.copy(isSaving = false, hasError = true)
+            _state.value = _state.value.copy(isSaving = false, actionFailed = true)
         }
     }
 }
 
-data class PlaylistDetailUiState(val playlist: PlaylistDto? = null, val isLoading: Boolean = true, val hasError: Boolean = false)
+data class PlaylistDetailUiState(
+    val playlist: PlaylistDto? = null,
+    val playbackQueue: List<SongDto> = emptyList(),
+    val isLoading: Boolean = true,
+    val hasError: Boolean = false,
+    val actionFailed: Boolean = false,
+)
 
 @HiltViewModel
 class PlaylistDetailViewModel @Inject constructor(
@@ -91,18 +100,28 @@ class PlaylistDetailViewModel @Inject constructor(
     val songs = repository.playlistSongsPager(playlistId).cachedIn(viewModelScope)
     init { refresh() }
     fun refresh() = viewModelScope.launch {
-        _state.value = _state.value.copy(isLoading = true, hasError = false)
-        runCatching { repository.playlist(playlistId) }
-            .onSuccess { _state.value = PlaylistDetailUiState(playlist = it, isLoading = false) }
+        _state.value = _state.value.copy(isLoading = true, hasError = false, actionFailed = false)
+        runCatching { repository.playlist(playlistId) to repository.playlistSongs(playlistId) }
+            .onSuccess { (playlist, playbackQueue) ->
+                _state.value = PlaylistDetailUiState(
+                    playlist = playlist,
+                    playbackQueue = playbackQueue,
+                    isLoading = false,
+                )
+            }
             .onFailure { _state.value = PlaylistDetailUiState(isLoading = false, hasError = true) }
     }
 
     fun removeSong(songId: String, onDone: () -> Unit = {}) = viewModelScope.launch {
         runCatching { repository.removeSongFromPlaylist(playlistId, songId) }
             .onSuccess { updated ->
-                _state.value = _state.value.copy(playlist = updated)
+                _state.value = _state.value.copy(
+                    playlist = updated,
+                    playbackQueue = _state.value.playbackQueue.filterNot { it.id == songId },
+                    actionFailed = false,
+                )
                 onDone()
             }
-            .onFailure { _state.value = _state.value.copy(hasError = true) }
+            .onFailure { _state.value = _state.value.copy(actionFailed = true) }
     }
 }

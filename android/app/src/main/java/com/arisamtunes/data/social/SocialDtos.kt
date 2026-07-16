@@ -1,6 +1,7 @@
 package com.arisamtunes.data.social
 
 import com.arisamtunes.data.catalog.PlaylistDto
+import com.arisamtunes.data.catalog.PaginationDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -19,6 +20,7 @@ data class PublicUserDto(
 @Serializable
 data class PublicUserListDto(
     val items: List<PublicUserDto>,
+    val pagination: PaginationDto,
 )
 
 @Serializable
@@ -28,4 +30,5 @@ data class FollowDto(val user: PublicUserDto)
 data class PublicPlaylistListDto(
     val owner: PublicUserDto,
     val items: List<PlaylistDto>,
+    val pagination: PaginationDto,
 )

@@ -144,6 +144,17 @@ class CatalogRepository @Inject constructor(
             parameter("size", size)
         }.body<PlaylistSongsDto>().normalized()
 
+    suspend fun playlistSongs(id: String): List<SongDto> {
+        val songs = mutableListOf<SongDto>()
+        var page = 0
+        do {
+            val response = playlistSongs(id, page, PlaylistPlaybackPageSize)
+            songs += response.items
+            page++
+        } while (page < response.pagination.totalPages)
+        return songs.distinctBy(SongDto::id)
+    }
+
     fun playlistSongsPager(id: String) = Pager(
         config = PagingConfig(pageSize = 20, initialLoadSize = 20, prefetchDistance = 5),
         pagingSourceFactory = { PlaylistSongsPagingSource(id, this) },
@@ -171,6 +182,7 @@ class CatalogRepository @Inject constructor(
         const val ScopeSongs = "songs"
         const val ScopeSearch = "song_search"
         const val CacheKeyAllSongs = "all"
+        const val PlaylistPlaybackPageSize = 100
     }
 }
 

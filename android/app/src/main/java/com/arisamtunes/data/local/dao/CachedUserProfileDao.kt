@@ -20,6 +20,12 @@ interface CachedUserProfileDao {
     @Upsert
     suspend fun upsertAll(profiles: List<CachedUserProfileEntity>)
 
+    @Query("SELECT * FROM cached_user_profiles WHERE userId IN (:userIds)")
+    suspend fun profiles(userIds: List<String>): List<CachedUserProfileEntity>
+
+    @Query("SELECT * FROM cached_user_profiles WHERE userId = :userId LIMIT 1")
+    suspend fun profile(userId: String): CachedUserProfileEntity?
+
     @Query("DELETE FROM cached_user_profiles WHERE cachedAt < :olderThan")
     suspend fun prune(olderThan: Long)
 }

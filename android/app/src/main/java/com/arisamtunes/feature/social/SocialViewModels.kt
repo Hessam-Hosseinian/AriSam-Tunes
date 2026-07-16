@@ -3,72 +3,78 @@ package com.arisamtunes.feature.social
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.social.PublicUserDto
 import com.arisamtunes.data.social.SocialRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
+import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+
+sealed interface SocialEffect { data object ActionFailed : SocialEffect }
 
 data class SocialProfileUiState(
     val isLoading: Boolean = true,
     val user: PublicUserDto? = null,
-    val playlists: List<PlaylistDto> = emptyList(),
     val hasError: Boolean = false,
     val isUpdatingFollow: Boolean = false,
     val isOwnProfile: Boolean = false,
 )
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class SocialProfileViewModel @Inject constructor(
     private val repository: SocialRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    private val userId: String? = savedStateHandle["userId"]
+    private val requestedUserId: String? = savedStateHandle["userId"]
     private val _state = MutableStateFlow(SocialProfileUiState())
     val state = _state.asStateFlow()
+    private val loadedUserId = MutableStateFlow<String?>(null)
+    val playlists: Flow<PagingData<PlaylistDto>> = loadedUserId.filterNotNull()
+        .flatMapLatest(repository::publicPlaylistsPager)
+        .cachedIn(viewModelScope)
+    private val _effects = Channel<SocialEffect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     init { refresh() }
 
     fun refresh() = viewModelScope.launch {
         _state.value = _state.value.copy(isLoading = true, hasError = false)
-        runCatching {
-            val user = if (userId.isNullOrBlank()) repository.currentUser() else repository.user(userId)
-            val playlists = async { repository.publicPlaylists(user.id) }
-            user to playlists.await()
-        }.onSuccess { (user, playlists) ->
-            _state.value = SocialProfileUiState(
-                isLoading = false,
-                user = user,
-                playlists = playlists,
-                isOwnProfile = userId.isNullOrBlank(),
-            )
-        }.onFailure {
-            _state.value = _state.value.copy(isLoading = false, hasError = true)
-        }
+        runCatching { if (requestedUserId.isNullOrBlank()) repository.currentUser() else repository.user(requestedUserId) }
+            .onSuccess { user ->
+                loadedUserId.value = user.id
+                _state.value = SocialProfileUiState(user = user, isLoading = false, isOwnProfile = requestedUserId.isNullOrBlank())
+            }
+            .onFailure { _state.value = _state.value.copy(isLoading = false, hasError = true) }
     }
 
     fun toggleFollow() = viewModelScope.launch {
         val user = _state.value.user ?: return@launch
-        if (_state.value.isOwnProfile) return@launch
-        if (_state.value.isUpdatingFollow) return@launch
+        if (_state.value.isOwnProfile || _state.value.isUpdatingFollow) return@launch
         _state.value = _state.value.copy(isUpdatingFollow = true)
         runCatching { if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id) }
-            .onSuccess { updated -> _state.value = _state.value.copy(user = updated, isUpdatingFollow = false) }
-            .onFailure { _state.value = _state.value.copy(isUpdatingFollow = false, hasError = true) }
+            .onSuccess { _state.value = _state.value.copy(user = it, isUpdatingFollow = false) }
+            .onFailure { _state.value = _state.value.copy(isUpdatingFollow = false); _effects.send(SocialEffect.ActionFailed) }
     }
 }
 
 enum class SocialListKind { Following, Followers }
 
 data class SocialUsersUiState(
-    val isLoading: Boolean = true,
     val title: SocialListKind = SocialListKind.Following,
-    val users: List<PublicUserDto> = emptyList(),
-    val hasError: Boolean = false,
+    val updatingUserIds: Set<String> = emptySet(),
 )
 
 @HiltViewModel
@@ -77,26 +83,23 @@ class SocialUsersViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val userId: String? = savedStateHandle["userId"]
-    private val kind = when (savedStateHandle.get<String>("kind")) {
-        "followers" -> SocialListKind.Followers
-        else -> SocialListKind.Following
-    }
+    private val kind = if (savedStateHandle.get<String>("kind") == "followers") SocialListKind.Followers else SocialListKind.Following
     private val _state = MutableStateFlow(SocialUsersUiState(title = kind))
     val state = _state.asStateFlow()
+    private val overrides = MutableStateFlow<Map<String, PublicUserDto>>(emptyMap())
+    private val source = if (kind == SocialListKind.Followers) repository.followersPager(userId) else repository.followingPager(userId)
+    val users: Flow<PagingData<PublicUserDto>> = source.combine(overrides) { page, updates ->
+        page.map { updates[it.id] ?: it }
+    }.cachedIn(viewModelScope)
+    private val _effects = Channel<SocialEffect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
-    init { refresh() }
-
-    fun refresh() = viewModelScope.launch {
-        _state.value = _state.value.copy(isLoading = true, hasError = false)
-        runCatching {
-            when (kind) {
-                SocialListKind.Following -> repository.following(userId)
-                SocialListKind.Followers -> repository.followers(userId)
-            }
-        }.onSuccess { users ->
-            _state.value = SocialUsersUiState(isLoading = false, title = kind, users = users)
-        }.onFailure {
-            _state.value = _state.value.copy(isLoading = false, hasError = true)
-        }
+    fun toggleFollow(user: PublicUserDto) = viewModelScope.launch {
+        if (user.id in _state.value.updatingUserIds) return@launch
+        _state.value = _state.value.copy(updatingUserIds = _state.value.updatingUserIds + user.id)
+        runCatching { if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id) }
+            .onSuccess { updated -> overrides.value = overrides.value + (updated.id to updated) }
+            .onFailure { _effects.send(SocialEffect.ActionFailed) }
+        _state.value = _state.value.copy(updatingUserIds = _state.value.updatingUserIds - user.id)
     }
 }

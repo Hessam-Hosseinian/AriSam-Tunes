@@ -59,6 +59,7 @@ data class PlaylistDto(
     @SerialName("cover_image_url") val coverImageUrl: String? = null,
     val scope: String = "USER",
     @SerialName("is_public") val isPublic: Boolean = false,
+    @SerialName("can_edit") val canEdit: Boolean = false,
     @SerialName("song_count") val songCount: Long = 0,
 )
 

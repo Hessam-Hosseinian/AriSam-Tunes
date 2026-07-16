@@ -24,6 +24,8 @@ internal object CatalogUrlNormalizer {
         coverImageUrl = playlist.coverImageUrl?.let(::mediaUrl),
     )
 
+    fun sharedSongUrl(songId: String): String = "$apiOrigin/share/songs/$songId"
+
     private fun mediaUrl(value: String): String {
         val uri = runCatching { java.net.URI(value) }.getOrNull() ?: return value
         val host = uri.host?.lowercase() ?: return value

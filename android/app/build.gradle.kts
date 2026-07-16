@@ -77,6 +77,14 @@ android {
         compose = true
         buildConfig = true
     }
+
+    sourceSets {
+        getByName("main") {
+            // Artist profiles live at the repository root so new artists can be added
+            // without duplicating their JSON and image assets inside the Android module.
+            assets.srcDir("../../Artists")
+        }
+    }
 }
 
 dependencies {

@@ -20,8 +20,11 @@ data class SongDetailUiState(
     val hasError: Boolean = false,
     val playlists: List<PlaylistDto> = emptyList(),
     val showPlaylistPicker: Boolean = false,
+    val showPlaylistCreator: Boolean = false,
+    val isLoadingPlaylists: Boolean = false,
     val isAddingToPlaylist: Boolean = false,
     val playlistActionDone: Boolean = false,
+    val playlistActionFailed: Boolean = false,
     val isLiked: Boolean = false,
 )
 
@@ -56,27 +59,79 @@ class SongDetailViewModel @Inject constructor(
     }
 
     fun openPlaylistPicker() = viewModelScope.launch {
-        _state.value = _state.value.copy(showPlaylistPicker = true, playlistActionDone = false)
-        runCatching { repository.playlists().filter { it.scope == "USER" } }
-            .onSuccess { playlists -> _state.value = _state.value.copy(playlists = playlists) }
-            .onFailure { _state.value = _state.value.copy(hasError = true) }
+        _state.value = _state.value.copy(
+            showPlaylistPicker = true,
+            isLoadingPlaylists = true,
+            playlistActionDone = false,
+            playlistActionFailed = false,
+        )
+        runCatching { repository.playlists().filter(PlaylistDto::canEdit) }
+            .onSuccess { playlists ->
+                _state.value = _state.value.copy(playlists = playlists, isLoadingPlaylists = false)
+            }
+            .onFailure {
+                _state.value = _state.value.copy(isLoadingPlaylists = false, playlistActionFailed = true)
+            }
     }
 
     fun closePlaylistPicker() {
-        _state.value = _state.value.copy(showPlaylistPicker = false, isAddingToPlaylist = false, playlistActionDone = false)
+        _state.value = _state.value.copy(
+            showPlaylistPicker = false,
+            isLoadingPlaylists = false,
+            isAddingToPlaylist = false,
+            playlistActionDone = false,
+            playlistActionFailed = false,
+        )
+    }
+
+    fun openPlaylistCreator() {
+        _state.value = _state.value.copy(
+            showPlaylistPicker = false,
+            showPlaylistCreator = true,
+            playlistActionFailed = false,
+        )
+    }
+
+    fun closePlaylistCreator() {
+        _state.value = _state.value.copy(
+            showPlaylistCreator = false,
+            isAddingToPlaylist = false,
+            playlistActionFailed = false,
+        )
+    }
+
+    fun createPlaylistAndAdd(name: String, description: String?, isPublic: Boolean) = viewModelScope.launch {
+        val safeName = name.trim()
+        if (safeName.isBlank()) return@launch
+        _state.value = _state.value.copy(isAddingToPlaylist = true, playlistActionFailed = false)
+        runCatching {
+            val playlist = repository.createPlaylist(safeName, description?.trim(), isPublic)
+            repository.addSongToPlaylist(playlist.id, songId)
+        }.onSuccess {
+            _state.value = _state.value.copy(
+                showPlaylistCreator = false,
+                isAddingToPlaylist = false,
+                playlistActionDone = true,
+                playlistActionFailed = false,
+            )
+        }.onFailure {
+            _state.value = _state.value.copy(isAddingToPlaylist = false, playlistActionFailed = true)
+        }
     }
 
     fun addToPlaylist(playlist: PlaylistDto) = viewModelScope.launch {
-        _state.value = _state.value.copy(isAddingToPlaylist = true, playlistActionDone = false)
+        if (!playlist.canEdit) return@launch
+        _state.value = _state.value.copy(isAddingToPlaylist = true, playlistActionDone = false, playlistActionFailed = false)
         runCatching { repository.addSongToPlaylist(playlist.id, songId) }
             .onSuccess {
                 _state.value = _state.value.copy(
                     isAddingToPlaylist = false,
                     showPlaylistPicker = false,
                     playlistActionDone = true,
+                    playlistActionFailed = false,
                 )
             }
-            .onFailure { _state.value = _state.value.copy(isAddingToPlaylist = false, hasError = true) }
+            .onFailure { _state.value = _state.value.copy(isAddingToPlaylist = false, playlistActionFailed = true) }
     }
 
     private fun observeLikeState(id: String) {
