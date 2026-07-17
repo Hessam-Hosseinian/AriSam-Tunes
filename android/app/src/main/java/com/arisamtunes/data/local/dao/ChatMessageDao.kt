@@ -18,6 +18,9 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE ownerUserId = :ownerUserId AND conversationUserId = :userId ORDER BY createdAt DESC, messageId DESC")
     fun pagingSource(ownerUserId: String, userId: String): PagingSource<Int, ChatMessageEntity>
 
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE ownerUserId = :ownerUserId AND conversationUserId = :userId AND (createdAt > :createdAt OR (createdAt = :createdAt AND messageId > :messageId))")
+    suspend fun messagePosition(ownerUserId: String, userId: String, createdAt: String, messageId: String): Int
+
     @Query("SELECT * FROM chat_messages WHERE ownerUserId = :ownerUserId AND conversationUserId = :userId ORDER BY createdAt ASC, messageId ASC")
     fun observeConversation(ownerUserId: String, userId: String): Flow<List<ChatMessageEntity>>
 
@@ -44,6 +47,9 @@ interface ChatMessageDao {
 
     @Query("SELECT * FROM chat_messages WHERE ownerUserId = :ownerUserId AND clientMessageId = :clientMessageId LIMIT 1")
     suspend fun messageByClientId(ownerUserId: String, clientMessageId: String): ChatMessageEntity?
+
+    @Query("SELECT * FROM chat_messages WHERE ownerUserId = :ownerUserId AND messageId = :messageId LIMIT 1")
+    suspend fun messageById(ownerUserId: String, messageId: String): ChatMessageEntity?
 
     @Query("UPDATE chat_messages SET deliveryState = 'PENDING', updatedAt = :updatedAt WHERE ownerUserId = :ownerUserId AND clientMessageId = :clientMessageId")
     suspend fun markPending(ownerUserId: String, clientMessageId: String, updatedAt: String)

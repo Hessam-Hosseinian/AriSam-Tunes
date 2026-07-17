@@ -27,6 +27,7 @@ import kotlinx.serialization.json.JsonNamingStrategy
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 
 private val chatJson = Json {
@@ -83,6 +84,12 @@ fun Route.chatRoutes(
                     call.respond(ChatMessageListResponse(items, PaginationMeta(page, size, total, pages(total, size))))
                 }
             }
+            get("/{userId}/search") {
+                val peerId = call.pathUserId()
+                val query = call.request.queryParameters["q"]?.trim().orEmpty()
+                if (query.length !in 2..100) throw validation("q must contain between 2 and 100 characters")
+                call.respond(ChatMessageListResponse(repository.searchMessages(call.userId(), peerId, query, call.pageSize(default = 30))))
+            }
             get("/sync") {
                 val size = call.pageSize(default = 100)
                 val result = repository.syncChanges(call.userId(), call.optionalCursor(), size)
@@ -114,12 +121,22 @@ fun Route.chatRoutes(
                         sendError("UNSUPPORTED_PROTOCOL_VERSION")
                         continue
                     }
-                    when (envelope.type) {
-                        ChatSocketType.SEND_MESSAGE -> handleSendMessage(userId, envelope, repository)
-                        ChatSocketType.TYPING_START, ChatSocketType.TYPING_STOP -> forwardTyping(userId, envelope)
-                        ChatSocketType.MESSAGE_DELIVERED -> handleReceipt(userId, envelope, repository, read = false)
-                        ChatSocketType.MESSAGE_READ -> handleReceipt(userId, envelope, repository, read = true)
-                        else -> sendError("UNSUPPORTED_MESSAGE_TYPE")
+                    try {
+                        when (envelope.type) {
+                            ChatSocketType.SEND_MESSAGE -> handleSendMessage(userId, envelope, repository)
+                            ChatSocketType.EDIT_MESSAGE -> handleMessageMutation(userId, envelope, repository, MessageMutation.Edit)
+                            ChatSocketType.DELETE_MESSAGE -> handleMessageMutation(userId, envelope, repository, MessageMutation.Delete)
+                            ChatSocketType.ADD_REACTION -> handleMessageMutation(userId, envelope, repository, MessageMutation.AddReaction)
+                            ChatSocketType.REMOVE_REACTION -> handleMessageMutation(userId, envelope, repository, MessageMutation.RemoveReaction)
+                            ChatSocketType.TYPING_START, ChatSocketType.TYPING_STOP -> forwardTyping(userId, envelope)
+                            ChatSocketType.MESSAGE_DELIVERED -> handleReceipt(userId, envelope, repository, read = false)
+                            ChatSocketType.MESSAGE_READ -> handleReceipt(userId, envelope, repository, read = true)
+                            else -> sendError("UNSUPPORTED_MESSAGE_TYPE")
+                        }
+                    } catch (cancellation: CancellationException) {
+                        throw cancellation
+                    } catch (_: Throwable) {
+                        sendError("INTERNAL_ERROR", requestType = envelope.type, messageId = envelope.messageId)
                     }
                 }
             } finally {
@@ -138,6 +155,7 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handl
     val recipientId = envelope.recipientId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
     val type = envelope.messageType ?: ChatMessageType.TEXT
     val songId = envelope.songId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+    val replyToId = envelope.replyToId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
     val content = envelope.content?.trim()
     val persistedContent = content.takeIf { type == ChatMessageType.TEXT }
 
@@ -152,7 +170,7 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handl
         return
     }
 
-    val result = runCatching { repository.saveMessage(senderId, clientMessageId, recipientId, type, persistedContent, songId) }
+    val result = runCatching { repository.saveMessage(senderId, clientMessageId, recipientId, type, persistedContent, songId, replyToId) }
         .getOrElse {
             sendError("INTERNAL_ERROR", envelope.clientMessageId)
             return
@@ -161,6 +179,7 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handl
         is SaveMessageResult.Success -> result
         SaveMessageResult.RecipientNotFound -> return sendError("USER_NOT_FOUND", envelope.clientMessageId)
         SaveMessageResult.SongNotFound -> return sendError("SONG_NOT_FOUND", envelope.clientMessageId)
+        SaveMessageResult.ReplyNotFound -> return sendError("REPLY_NOT_FOUND", envelope.clientMessageId)
         SaveMessageResult.IdempotencyConflict -> return sendError("MESSAGE_ID_CONFLICT", envelope.clientMessageId)
     }
     val message = saved.message
@@ -173,6 +192,40 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handl
             chatConnections.sendTo(senderId, receipt)
             chatConnections.sendTo(recipientId, receipt)
         }
+    }
+}
+
+private enum class MessageMutation { Edit, Delete, AddReaction, RemoveReaction }
+
+private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.handleMessageMutation(
+    userId: UUID,
+    envelope: ChatSocketEnvelope,
+    repository: ChatRepository,
+    mutation: MessageMutation,
+) {
+    val messageId = envelope.messageId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        ?: return sendError("VALIDATION_ERROR", requestType = envelope.type, messageId = envelope.messageId)
+    val updated = when (mutation) {
+        MessageMutation.Edit -> {
+            val content = envelope.content?.trim().orEmpty()
+            if (content.isBlank() || content.length > MaxMessageLength) return sendError("VALIDATION_ERROR", requestType = envelope.type, messageId = envelope.messageId)
+            repository.editMessage(userId, messageId, content)
+        }
+        MessageMutation.Delete -> repository.deleteMessage(userId, messageId)
+        MessageMutation.AddReaction, MessageMutation.RemoveReaction -> {
+            val reaction = envelope.reaction?.trim().orEmpty()
+            if (reaction.isBlank() || reaction.length > 16) return sendError("VALIDATION_ERROR", requestType = envelope.type, messageId = envelope.messageId)
+            repository.setReaction(userId, messageId, reaction, mutation == MessageMutation.AddReaction)
+        }
+    } ?: return sendError("MESSAGE_NOT_FOUND", requestType = envelope.type, messageId = envelope.messageId)
+    val messageIdValue = UUID.fromString(updated.id)
+    val senderId = UUID.fromString(updated.senderId)
+    val recipientId = UUID.fromString(updated.recipientId)
+    repository.messageForViewer(messageIdValue, senderId)?.let { senderView ->
+        chatConnections.sendTo(senderId, ChatSocketEnvelope(type = ChatSocketType.MESSAGE_UPDATED, messageId = senderView.id, message = senderView))
+    }
+    repository.messageForViewer(messageIdValue, recipientId)?.let { recipientView ->
+        chatConnections.sendTo(recipientId, ChatSocketEnvelope(type = ChatSocketType.MESSAGE_UPDATED, messageId = recipientView.id, message = recipientView))
     }
 }
 
@@ -221,8 +274,21 @@ private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.sendE
     send(Frame.Text(chatJson.encodeToString(envelope)))
 }
 
-private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.sendError(code: String, clientMessageId: String? = null) {
-    sendEnvelope(ChatSocketEnvelope(type = ChatSocketType.ERROR, error = code, clientMessageId = clientMessageId))
+private suspend fun io.ktor.server.websocket.DefaultWebSocketServerSession.sendError(
+    code: String,
+    clientMessageId: String? = null,
+    requestType: ChatSocketType? = null,
+    messageId: String? = null,
+) {
+    sendEnvelope(
+        ChatSocketEnvelope(
+            type = ChatSocketType.ERROR,
+            requestType = requestType,
+            error = code,
+            clientMessageId = clientMessageId,
+            messageId = messageId,
+        ),
+    )
 }
 
 private fun io.ktor.server.application.ApplicationCall.userId(): UUID =

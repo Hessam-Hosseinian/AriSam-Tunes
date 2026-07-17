@@ -72,6 +72,7 @@ class ChatRepository @Inject constructor(
     private val database: AriSamDatabase,
     private val chatMessageDao: ChatMessageDao,
     private val cachedUserProfileDao: CachedUserProfileDao,
+    private val notificationManager: com.arisamtunes.feature.chat.ChatNotificationManager,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; encodeDefaults = true }
@@ -171,20 +172,52 @@ class ChatRepository @Inject constructor(
             parameter("size", size)
         }.body()
 
-    suspend fun sendText(recipientId: String, text: String) = enqueueMessage(recipientId, "TEXT", text, null)
+    suspend fun sendText(recipientId: String, text: String, replyToId: String? = null) =
+        enqueueMessage(recipientId, "TEXT", text, null, replyToId)
 
-    suspend fun sendSong(recipientId: String, songId: String) = enqueueMessage(recipientId, "SONG", null, songId)
+    suspend fun sendSong(recipientId: String, songId: String, replyToId: String? = null) =
+        enqueueMessage(recipientId, "SONG", null, songId, replyToId)
+
+    suspend fun searchMessages(recipientId: String, query: String): List<ChatMessageDto> {
+        val items = client.get("chat/$recipientId/search") { parameter("q", query); parameter("size", 50) }
+            .body<ChatMessageListDto>().items
+        val ownerId = currentUserId()
+        chatMessageDao.upsertAll(items.map { it.toEntity(ownerId) })
+        return items
+    }
+
+    suspend fun messagePosition(recipientId: String, message: ChatMessageDto): Int =
+        chatMessageDao.messagePosition(currentUserId(), recipientId, message.createdAt, message.id)
+
+    suspend fun localMessage(messageId: String): ChatMessageDto? =
+        chatMessageDao.messageById(currentUserId(), messageId)?.toDto()
+
+    suspend fun editMessage(messageId: String, content: String) = sendRequiredEnvelope(
+        ChatSocketEnvelopeDto(type = ChatSocketTypeDto.EDIT_MESSAGE, messageId = messageId, content = content),
+    )
+
+    suspend fun deleteMessage(messageId: String) = sendRequiredEnvelope(
+        ChatSocketEnvelopeDto(type = ChatSocketTypeDto.DELETE_MESSAGE, messageId = messageId),
+    )
+
+    suspend fun setReaction(messageId: String, reaction: String, add: Boolean) = sendRequiredEnvelope(
+        ChatSocketEnvelopeDto(
+            type = if (add) ChatSocketTypeDto.ADD_REACTION else ChatSocketTypeDto.REMOVE_REACTION,
+            messageId = messageId,
+            reaction = reaction,
+        ),
+    )
 
     suspend fun retryMessage(clientMessageId: String) {
         val ownerId = currentUserId()
-        val message = chatMessageDao.messageByClientId(ownerId, clientMessageId) ?: return
+        val message = chatMessageDao.messageByClientId(ownerId, clientMessageId)
+            ?: throw IllegalArgumentException("Pending chat message not found")
         chatMessageDao.markPending(ownerId, clientMessageId, Instant.now().toString())
         sendPendingMessage(message)
     }
 
-    suspend fun setTyping(recipientId: String, typing: Boolean) {
+    suspend fun setTyping(recipientId: String, typing: Boolean): Boolean =
         sendEnvelope(ChatSocketEnvelopeDto(type = if (typing) ChatSocketTypeDto.TYPING_START else ChatSocketTypeDto.TYPING_STOP, recipientId = recipientId))
-    }
 
     fun clearTyping(recipientId: String) {
         scope.launch { setTyping(recipientId, false) }
@@ -200,7 +233,7 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    private suspend fun enqueueMessage(recipientId: String, type: String, body: String?, songId: String?) {
+    private suspend fun enqueueMessage(recipientId: String, type: String, body: String?, songId: String?, replyToId: String?) {
         val ownerId = currentUserId()
         val clientId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
@@ -214,6 +247,7 @@ class ChatRepository @Inject constructor(
             body = body.orEmpty(),
             messageType = type,
             songId = songId,
+            replyToId = replyToId,
             deliveryState = "PENDING",
             isMine = true,
             createdAt = now,
@@ -324,14 +358,24 @@ class ChatRepository @Inject constructor(
             messageType = ChatMessageTypeDto.valueOf(message.messageType),
             content = message.body.takeIf { message.messageType == "TEXT" },
             songId = message.songId.takeIf { message.messageType == "SONG" },
+            replyToId = message.replyToId,
         ),
     )
 
-    private suspend fun sendEnvelope(envelope: ChatSocketEnvelopeDto): Boolean = runCatching {
+    private suspend fun sendRequiredEnvelope(envelope: ChatSocketEnvelopeDto) {
+        if (!sendEnvelope(envelope)) throw IllegalStateException("Chat is offline")
+    }
+
+    private suspend fun sendEnvelope(envelope: ChatSocketEnvelopeDto): Boolean = try {
         val session = activeSession ?: return false
         session.send(Frame.Text(json.encodeToString(envelope)))
         true
-    }.getOrDefault(false)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (error: Throwable) {
+        Log.w(LogTag, "Chat socket send failed for ${envelope.type}", error)
+        false
+    }
 
     private suspend fun persistSocketEvent(event: ChatSocketEnvelopeDto) {
         val ownerId = runCatching { currentUserId() }.getOrNull() ?: return
@@ -345,6 +389,7 @@ class ChatRepository @Inject constructor(
             }
             if (message.status == ChatMessageStatusDto.READ) readReceiptsInFlight.remove(message.id)
             conversationSources.forEach { it.invalidate() }
+            if (event.type == ChatSocketTypeDto.MESSAGE_RECEIVED && message.senderId != ownerId) notificationManager.show(message)
         }
         if (event.message == null && event.messageId != null && event.type in ReceiptTypes) {
             val now = Instant.now().toString()
@@ -437,12 +482,16 @@ private fun ChatMessageDto.toEntity(ownerId: String): ChatMessageEntity {
         body = content.orEmpty(),
         messageType = messageType.name,
         songId = songId,
+        replyToId = replyToId,
+        reactionsJson = Json.encodeToString(reactions),
         deliveryState = status.name,
         isMine = mine,
         createdAt = createdAt,
         sentAt = createdAt,
         deliveredAt = deliveredAt,
         readAt = readAt,
+        editedAt = editedAt,
+        deletedAt = deletedAt,
         readReceiptPending = false,
         updatedAt = updatedAt,
         cachedAt = System.currentTimeMillis(),
@@ -457,6 +506,10 @@ private fun ChatMessageEntity.toDto() = ChatMessageDto(
     messageType = runCatching { ChatMessageTypeDto.valueOf(messageType) }.getOrDefault(ChatMessageTypeDto.TEXT),
     content = body,
     songId = songId,
+    replyToId = replyToId,
+    editedAt = editedAt,
+    deletedAt = deletedAt,
+    reactions = runCatching { Json.decodeFromString<List<ChatReactionDto>>(reactionsJson) }.getOrDefault(emptyList()),
     status = runCatching { ChatMessageStatusDto.valueOf(deliveryState) }.getOrDefault(ChatMessageStatusDto.PENDING),
     createdAt = createdAt,
     deliveredAt = deliveredAt,

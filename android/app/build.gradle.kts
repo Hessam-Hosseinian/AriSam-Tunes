@@ -61,6 +61,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Keep the installed development variant directly patchable by
+            // Android Studio Compose Live Edit.
+            isDebuggable = true
+            isMinifyEnabled = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -92,6 +98,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)

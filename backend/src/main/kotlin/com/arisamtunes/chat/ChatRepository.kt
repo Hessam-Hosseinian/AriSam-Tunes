@@ -90,6 +90,7 @@ class ChatRepository {
                 """.trimIndent(),
             ).use { s ->
                 s.setObject(1, userId)
+                s.setObject(2, peerId)
                 s.setObject(3, peerId)
                 s.setObject(4, userId)
                 s.setNullableTimestamp(5, since)
@@ -99,7 +100,7 @@ class ChatRepository {
                 s.executeQuery().use { results -> buildList { while (results.next()) add(results.toChatMessage()) } }
             }
             c.commit()
-            items to total
+            c.attachReactions(items, userId) to total
         } }
 
     suspend fun conversationBefore(userId: UUID, peerId: UUID, cursor: ChatCursor?, size: Int): CursorPage<ChatMessageResponse> =
@@ -128,7 +129,8 @@ class ChatRepository {
                 s.executeQuery().use { results -> buildList { while (results.next()) add(results.toChatMessage()) } }
             }
             c.commit()
-            items.toCursorPage(size) { message -> ChatCursor(Instant.parse(message.createdAt), UUID.fromString(message.id)) }
+            val page = items.toCursorPage(size) { message -> ChatCursor(Instant.parse(message.createdAt), UUID.fromString(message.id)) }
+            page.copy(items = c.attachReactions(page.items, userId))
         } }
 
     suspend fun syncChanges(userId: UUID, cursor: ChatCursor?, size: Int): CursorPage<ChatMessageResponse> =
@@ -155,9 +157,10 @@ class ChatRepository {
                 s.executeQuery().use { results -> buildList { while (results.next()) add(results.toChatMessage()) } }
             }
             c.commit()
-            items.toCursorPage(size, includeTerminalCursor = true) { message ->
+            val page = items.toCursorPage(size, includeTerminalCursor = true) { message ->
                 ChatCursor(Instant.parse(message.updatedAt), UUID.fromString(message.id))
             }
+            page.copy(items = c.attachReactions(page.items, userId))
         } }
 
     suspend fun saveMessage(
@@ -167,6 +170,7 @@ class ChatRepository {
         messageType: ChatMessageType,
         content: String?,
         songId: UUID?,
+        replyToId: UUID?,
     ): SaveMessageResult = withContext(Dispatchers.IO) { DatabaseProvider.dataSource.connection.use { c ->
         try {
             if (!c.exists("users", recipientId)) {
@@ -177,10 +181,14 @@ class ChatRepository {
                 c.rollback()
                 return@use SaveMessageResult.SongNotFound
             }
+            if (replyToId != null && !c.isConversationMessage(replyToId, senderId, recipientId)) {
+                c.rollback()
+                return@use SaveMessageResult.ReplyNotFound
+            }
             val inserted = c.prepareStatement(
                 """
-                INSERT INTO chat_messages(client_message_id, sender_id, recipient_id, message_type, content, song_id, status)
-                VALUES (?, ?, ?, ?::chat_message_type, ?, ?, 'SENT')
+                INSERT INTO chat_messages(client_message_id, sender_id, recipient_id, message_type, content, song_id, reply_to_id, status)
+                VALUES (?, ?, ?, ?::chat_message_type, ?, ?, ?, 'SENT')
                 ON CONFLICT (sender_id, client_message_id) DO NOTHING
                 RETURNING *
                 """.trimIndent(),
@@ -191,6 +199,7 @@ class ChatRepository {
                 s.setString(4, messageType.name)
                 s.setString(5, content)
                 s.setObject(6, songId)
+                s.setObject(7, replyToId)
                 s.executeQuery().use { results ->
                     if (results.next()) results.toChatMessage() else null
                 }
@@ -207,7 +216,8 @@ class ChatRepository {
                 s.executeQuery().use { results -> if (results.next()) results.toChatMessage() else null }
             } ?: error("Conflicting chat message could not be loaded")
             val samePayload = existing.recipientId == recipientId.toString() &&
-                existing.messageType == messageType && existing.content == content && existing.songId == songId?.toString()
+                existing.messageType == messageType && existing.content == content && existing.songId == songId?.toString() &&
+                existing.replyToId == replyToId?.toString()
             c.commit()
             if (samePayload) SaveMessageResult.Success(existing, isNew = false) else SaveMessageResult.IdempotencyConflict
         } catch (error: Throwable) {
@@ -215,6 +225,103 @@ class ChatRepository {
             throw error
         }
     } }
+
+    suspend fun searchMessages(userId: UUID, peerId: UUID, query: String, size: Int): List<ChatMessageResponse> =
+        withContext(Dispatchers.IO) { DatabaseProvider.dataSource.connection.use { c ->
+            val items = c.prepareStatement(
+                """
+                SELECT * FROM chat_messages
+                WHERE ((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?))
+                  AND deleted_at IS NULL AND content ILIKE ?
+                ORDER BY created_at DESC LIMIT ?
+                """.trimIndent(),
+            ).use { s ->
+                s.setObject(1, userId); s.setObject(2, peerId)
+                s.setObject(3, peerId); s.setObject(4, userId)
+                s.setString(5, "%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                s.setInt(6, size)
+                s.executeQuery().use { results -> buildList { while (results.next()) add(results.toChatMessage()) } }
+            }
+            c.commit()
+            c.attachReactions(items, userId)
+        } }
+
+    suspend fun editMessage(senderId: UUID, messageId: UUID, content: String): ChatMessageResponse? =
+        mutateOwnedMessage(senderId, messageId, """
+            UPDATE chat_messages SET content = ?, edited_at = NOW(), updated_at = NOW()
+            WHERE id = ? AND sender_id = ? AND message_type = 'TEXT' AND deleted_at IS NULL
+            RETURNING *
+        """.trimIndent(), content)
+
+    suspend fun deleteMessage(senderId: UUID, messageId: UUID): ChatMessageResponse? =
+        mutateOwnedMessage(senderId, messageId, """
+            UPDATE chat_messages SET content = NULL, song_id = NULL, deleted_at = NOW(), updated_at = NOW()
+            WHERE id = ? AND sender_id = ? AND deleted_at IS NULL
+            RETURNING *
+        """.trimIndent(), null)
+
+    private suspend fun mutateOwnedMessage(senderId: UUID, messageId: UUID, sql: String, content: String?): ChatMessageResponse? =
+        withContext(Dispatchers.IO) { DatabaseProvider.dataSource.connection.use { c ->
+            try {
+                val message = c.prepareStatement(sql).use { s ->
+                    var index = 1
+                    if (content != null) s.setString(index++, content)
+                    s.setObject(index++, messageId)
+                    s.setObject(index, senderId)
+                    s.executeQuery().use { results -> if (results.next()) results.toChatMessage() else null }
+                }
+                c.commit()
+                message?.let { c.attachReactions(listOf(it), senderId).first() }
+            } catch (error: Throwable) {
+                c.rollback(); throw error
+            }
+        } }
+
+    suspend fun setReaction(userId: UUID, messageId: UUID, reaction: String, add: Boolean): ChatMessageResponse? =
+        withContext(Dispatchers.IO) { DatabaseProvider.dataSource.connection.use { c ->
+            try {
+                val message = c.prepareStatement(
+                    "SELECT * FROM chat_messages WHERE id = ? AND (sender_id = ? OR recipient_id = ?) AND deleted_at IS NULL",
+                ).use { s ->
+                    s.setObject(1, messageId); s.setObject(2, userId); s.setObject(3, userId)
+                    s.executeQuery().use { results -> if (results.next()) results.toChatMessage() else null }
+                } ?: return@use null.also { c.rollback() }
+                if (add) {
+                    c.prepareStatement("INSERT INTO chat_message_reactions(message_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT DO NOTHING").use { s ->
+                        s.setObject(1, messageId); s.setObject(2, userId); s.setString(3, reaction); s.executeUpdate()
+                    }
+                } else {
+                    c.prepareStatement("DELETE FROM chat_message_reactions WHERE message_id = ? AND user_id = ? AND reaction = ?").use { s ->
+                        s.setObject(1, messageId); s.setObject(2, userId); s.setString(3, reaction); s.executeUpdate()
+                    }
+                }
+                c.prepareStatement("UPDATE chat_messages SET updated_at = NOW() WHERE id = ?").use { s ->
+                    s.setObject(1, messageId); s.executeUpdate()
+                }
+                c.commit()
+                val refreshed = c.prepareStatement("SELECT * FROM chat_messages WHERE id = ?").use { s ->
+                    s.setObject(1, messageId)
+                    s.executeQuery().use { results -> results.next(); results.toChatMessage() }
+                }
+                c.attachReactions(listOf(refreshed), userId).first()
+            } catch (error: Throwable) {
+                c.rollback(); throw error
+            }
+        } }
+
+    suspend fun messageForViewer(messageId: UUID, viewerId: UUID): ChatMessageResponse? =
+        withContext(Dispatchers.IO) { DatabaseProvider.dataSource.connection.use { c ->
+            val message = c.prepareStatement(
+                "SELECT * FROM chat_messages WHERE id = ? AND (sender_id = ? OR recipient_id = ?)",
+            ).use { s ->
+                s.setObject(1, messageId)
+                s.setObject(2, viewerId)
+                s.setObject(3, viewerId)
+                s.executeQuery().use { results -> if (results.next()) results.toChatMessage() else null }
+            }
+            c.commit()
+            message?.let { c.attachReactions(listOf(it), viewerId).first() }
+        } }
 
     suspend fun markDelivered(messageId: UUID, recipientId: UUID): ChatMessageResponse? =
         updateReceipt(
@@ -295,7 +402,43 @@ sealed interface SaveMessageResult {
     data class Success(val message: ChatMessageResponse, val isNew: Boolean) : SaveMessageResult
     data object RecipientNotFound : SaveMessageResult
     data object SongNotFound : SaveMessageResult
+    data object ReplyNotFound : SaveMessageResult
     data object IdempotencyConflict : SaveMessageResult
+}
+
+private fun Connection.isConversationMessage(messageId: UUID, firstUserId: UUID, secondUserId: UUID): Boolean =
+    prepareStatement(
+        "SELECT EXISTS(SELECT 1 FROM chat_messages WHERE id = ? AND ((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)))",
+    ).use { s ->
+        s.setObject(1, messageId); s.setObject(2, firstUserId); s.setObject(3, secondUserId)
+        s.setObject(4, secondUserId); s.setObject(5, firstUserId)
+        s.executeQuery().use { it.next(); it.getBoolean(1) }
+    }
+
+private fun Connection.attachReactions(messages: List<ChatMessageResponse>, viewerId: UUID): List<ChatMessageResponse> {
+    if (messages.isEmpty()) return messages
+    val ids = messages.map { UUID.fromString(it.id) }
+    val reactions = prepareStatement(
+        """
+        SELECT message_id, reaction, COUNT(*) AS reaction_count, BOOL_OR(user_id = ?) AS reacted_by_me
+        FROM chat_message_reactions WHERE message_id = ANY (?)
+        GROUP BY message_id, reaction ORDER BY MIN(created_at)
+        """.trimIndent(),
+    ).use { s ->
+        s.setObject(1, viewerId)
+        s.setArray(2, createArrayOf("uuid", ids.toTypedArray()))
+        s.executeQuery().use { results ->
+            buildMap<UUID, MutableList<ChatReactionResponse>> {
+                while (results.next()) {
+                    val id = results.getObject("message_id", UUID::class.java)
+                    getOrPut(id) { mutableListOf() }.add(
+                        ChatReactionResponse(results.getString("reaction"), results.getInt("reaction_count"), results.getBoolean("reacted_by_me")),
+                    )
+                }
+            }
+        }
+    }
+    return messages.map { it.copy(reactions = reactions[UUID.fromString(it.id)].orEmpty()) }
 }
 
 private fun Connection.exists(table: String, id: UUID): Boolean {
@@ -318,10 +461,13 @@ private fun ResultSet.toChatMessage() = ChatMessageResponse(
     messageType = ChatMessageType.valueOf(getString("message_type")),
     content = getString("content"),
     songId = getObject("song_id", UUID::class.java)?.toString(),
+    replyToId = getObject("reply_to_id", UUID::class.java)?.toString(),
     status = ChatMessageStatus.valueOf(getString("status")),
     createdAt = getTimestamp("created_at").toInstant().toString(),
     deliveredAt = getNullableTimestamp("delivered_at")?.toInstant()?.toString(),
     readAt = getNullableTimestamp("read_at")?.toInstant()?.toString(),
+    editedAt = getNullableTimestamp("edited_at")?.toInstant()?.toString(),
+    deletedAt = getNullableTimestamp("deleted_at")?.toInstant()?.toString(),
     updatedAt = getTimestamp("updated_at").toInstant().toString(),
 )
 

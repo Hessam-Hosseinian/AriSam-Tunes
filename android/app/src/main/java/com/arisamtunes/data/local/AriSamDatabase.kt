@@ -33,7 +33,7 @@ import com.arisamtunes.data.local.entity.SearchHistoryEntity
         CachedSongEntity::class,
         RemoteKeyEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 @TypeConverters(AriSamTypeConverters::class)

@@ -4,6 +4,7 @@ package com.arisamtunes.feature.player
 
 import android.graphics.Bitmap
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -87,6 +88,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -125,7 +127,7 @@ fun MiniPlayer(
     onOpen: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val song = state.currentSong ?: return
     PressScaleBox(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
         Surface(
@@ -187,7 +189,7 @@ fun ChatMiniPlayer(
         Column {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -237,6 +239,7 @@ fun NowPlayingRoute(
         EmptyPlayer()
     } else {
         var showLyrics by remember { mutableStateOf(false) }
+        BackHandler(enabled = showLyrics) { showLyrics = false }
         val context = LocalContext.current
         val isLiked by remember(song.id) { viewModel.observeIsLiked(song.id) }.collectAsState(initial = false)
         val download by remember(song.id) { viewModel.observeDownload(song.id) }.collectAsState(initial = null)

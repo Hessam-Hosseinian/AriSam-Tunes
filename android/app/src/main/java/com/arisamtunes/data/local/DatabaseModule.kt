@@ -28,7 +28,7 @@ object DatabaseModule {
         context,
         AriSamDatabase::class.java,
         "arisam_tunes.db",
-    ).addMigrations(ChatCacheMigration1To2).fallbackToDestructiveMigration(false).build()
+    ).addMigrations(ChatCacheMigration1To2, ChatInteractionsMigration2To3).fallbackToDestructiveMigration(false).build()
 
     @Provides fun provideSearchHistoryDao(database: AriSamDatabase): SearchHistoryDao = database.searchHistoryDao()
     @Provides fun provideLikedSongDao(database: AriSamDatabase): LikedSongDao = database.likedSongDao()
@@ -38,6 +38,15 @@ object DatabaseModule {
     @Provides fun provideCachedUserProfileDao(database: AriSamDatabase): CachedUserProfileDao = database.cachedUserProfileDao()
     @Provides fun provideCachedSongDao(database: AriSamDatabase): CachedSongDao = database.cachedSongDao()
     @Provides fun provideRemoteKeyDao(database: AriSamDatabase): RemoteKeyDao = database.remoteKeyDao()
+}
+
+private val ChatInteractionsMigration2To3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN replyToId TEXT")
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN reactionsJson TEXT NOT NULL DEFAULT '[]'")
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN editedAt TEXT")
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN deletedAt TEXT")
+    }
 }
 
 private val ChatCacheMigration1To2 = object : Migration(1, 2) {

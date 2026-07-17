@@ -32,6 +32,7 @@ private const val GlassAlpha = 1f
 fun PressScaleBox(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -40,7 +41,7 @@ fun PressScaleBox(
     Box(
         modifier = modifier
             .scale(scale)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+            .clickable(enabled = enabled, interactionSource = interactionSource, indication = null, onClick = onClick),
         content = content,
     )
 }

@@ -11,6 +11,7 @@ import com.arisamtunes.data.chat.ChatConnectionStatus
 import com.arisamtunes.data.chat.ChatConversationDto
 import com.arisamtunes.data.chat.ChatMessageDto
 import com.arisamtunes.data.chat.ChatMessageStatusDto
+import com.arisamtunes.data.chat.ChatMessageTypeDto
 import com.arisamtunes.data.chat.ChatSocketTypeDto
 import com.arisamtunes.data.chat.ChatRepository
 import com.arisamtunes.data.social.PublicUserDto
@@ -18,6 +19,7 @@ import com.arisamtunes.data.social.SocialRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -82,6 +84,11 @@ class ChatListViewModel @Inject constructor(
 
 sealed interface ChatEffect {
     data object SendFailed : ChatEffect
+    data object EditFailed : ChatEffect
+    data object DeleteFailed : ChatEffect
+    data object ReactionFailed : ChatEffect
+    data object SearchFailed : ChatEffect
+    data object RetryFailed : ChatEffect
     data object InvalidSong : ChatEffect
 }
 
@@ -95,6 +102,18 @@ data class ChatDetailUiState(
     val hasPeerError: Boolean = false,
     val songCards: Map<String, SongDto> = emptyMap(),
     val unavailableSongIds: Set<String> = emptySet(),
+    val replyPreviews: Map<String, ChatMessageDto> = emptyMap(),
+    val replyTo: ChatMessageDto? = null,
+    val editingMessage: ChatMessageDto? = null,
+    val selectedMessage: ChatMessageDto? = null,
+    val isSearchOpen: Boolean = false,
+    val searchQuery: String = "",
+    val searchResults: List<ChatMessageDto> = emptyList(),
+    val isSearching: Boolean = false,
+    val scrollToMessageId: String? = null,
+    val scrollToMessageIndex: Int? = null,
+    val highlightedMessageId: String? = null,
+    val isSending: Boolean = false,
 )
 
 @HiltViewModel
@@ -110,11 +129,19 @@ class ChatDetailViewModel @Inject constructor(
     val messages = chatRepository.messagesPager(userId).cachedIn(viewModelScope)
     private val _effects = Channel<ChatEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
-    private val presentedMessages = ConcurrentHashMap.newKeySet<String>()
     private val loadingSongs = ConcurrentHashMap.newKeySet<String>()
+    private val readReceiptsQueued = ConcurrentHashMap.newKeySet<String>()
+    private val reactionsInFlight = ConcurrentHashMap.newKeySet<String>()
     private var typingStopJob: Job? = null
+    private var typingStartJob: Job? = null
     private var peerTypingExpiryJob: Job? = null
     private var typingSent = false
+    private var searchJob: Job? = null
+    private var searchJumpJob: Job? = null
+    private var highlightJob: Job? = null
+    private var editAckJob: Job? = null
+    private var pendingEditId: String? = null
+    private var draftBeforeEdit: String? = null
 
     init {
         refreshPeer()
@@ -124,7 +151,29 @@ class ChatDetailViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.events.collect { event ->
                 if (event.type == ChatSocketTypeDto.ERROR) {
-                    _effects.send(if (event.error == "SONG_NOT_FOUND") ChatEffect.InvalidSong else ChatEffect.SendFailed)
+                    val effect = when {
+                        event.error == "SONG_NOT_FOUND" -> ChatEffect.InvalidSong
+                        event.requestType == ChatSocketTypeDto.EDIT_MESSAGE -> ChatEffect.EditFailed
+                        event.requestType == ChatSocketTypeDto.DELETE_MESSAGE -> ChatEffect.DeleteFailed
+                        event.requestType == ChatSocketTypeDto.ADD_REACTION || event.requestType == ChatSocketTypeDto.REMOVE_REACTION -> ChatEffect.ReactionFailed
+                        else -> ChatEffect.SendFailed
+                    }
+                    if (event.requestType == ChatSocketTypeDto.EDIT_MESSAGE) {
+                        editAckJob?.cancel()
+                        pendingEditId = null
+                        _state.value = _state.value.copy(isSending = false)
+                    }
+                    _effects.send(effect)
+                }
+                if (event.type == ChatSocketTypeDto.MESSAGE_UPDATED && event.message?.id == pendingEditId) {
+                    editAckJob?.cancel()
+                    pendingEditId = null
+                    _state.value = _state.value.copy(
+                        draft = draftBeforeEdit.orEmpty(),
+                        editingMessage = null,
+                        isSending = false,
+                    )
+                    draftBeforeEdit = null
                 }
                 if (event.senderId == userId && event.type == ChatSocketTypeDto.TYPING_START) {
                     _state.value = _state.value.copy(isPeerTyping = true)
@@ -152,37 +201,87 @@ class ChatDetailViewModel @Inject constructor(
     }
 
     fun updateDraft(value: String) {
-        _state.value = _state.value.copy(draft = value.take(4_000))
+        val safeValue = value.take(4_000)
+        _state.value = _state.value.copy(draft = safeValue)
         typingStopJob?.cancel()
-        peerTypingExpiryJob?.cancel()
-        if (value.isNotBlank() && !typingSent) {
-            typingSent = true
-            viewModelScope.launch { chatRepository.setTyping(userId, true) }
+        if (safeValue.isBlank()) {
+            stopTypingFromUi()
+            return
         }
+        startTypingIfNeeded()
         typingStopJob = viewModelScope.launch {
             delay(1_500)
-            stopTyping()
+            sendTypingStopped()
         }
     }
 
     fun send() = viewModelScope.launch {
-        val text = _state.value.draft.trim()
-        if (text.isBlank()) return@launch
-        _state.value = _state.value.copy(draft = "")
-        stopTyping()
-        runCatching { chatRepository.sendText(userId, text) }.onFailure { _effects.send(ChatEffect.SendFailed) }
+        val snapshot = _state.value
+        val text = snapshot.draft.trim()
+        if (text.isBlank() || snapshot.isSending) return@launch
+        _state.value = snapshot.copy(isSending = true)
+        stopTypingFromUi()
+        try {
+            if (snapshot.editingMessage != null) {
+                pendingEditId = snapshot.editingMessage.id
+                chatRepository.editMessage(snapshot.editingMessage.id, text)
+                if (pendingEditId == snapshot.editingMessage.id) {
+                    editAckJob?.cancel()
+                    editAckJob = viewModelScope.launch {
+                        delay(8_000)
+                        if (pendingEditId == snapshot.editingMessage.id) {
+                            pendingEditId = null
+                            _state.value = _state.value.copy(isSending = false)
+                            _effects.send(ChatEffect.EditFailed)
+                        }
+                    }
+                }
+            } else {
+                chatRepository.sendText(userId, text, snapshot.replyTo?.id)
+                _state.value = _state.value.copy(
+                    draft = if (_state.value.draft == snapshot.draft) "" else _state.value.draft,
+                    replyTo = null,
+                    isSending = false,
+                )
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            if (snapshot.editingMessage != null) pendingEditId = null
+            _state.value = _state.value.copy(isSending = false)
+            _effects.send(if (snapshot.editingMessage != null) ChatEffect.EditFailed else ChatEffect.SendFailed)
+        }
     }
 
     fun sendSong(songId: String) = viewModelScope.launch {
-        stopTyping()
-        runCatching { chatRepository.sendSong(userId, songId) }
-            .onFailure { _effects.send(ChatEffect.SendFailed) }
+        val snapshot = _state.value
+        if (snapshot.isSending || snapshot.editingMessage != null) return@launch
+        _state.value = snapshot.copy(isSending = true)
+        stopTypingFromUi()
+        try {
+            chatRepository.sendSong(userId, songId, snapshot.replyTo?.id)
+            _state.value = _state.value.copy(replyTo = null, isSending = false)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            _state.value = _state.value.copy(isSending = false)
+            _effects.send(ChatEffect.SendFailed)
+        }
     }
 
     fun onMessagePresented(message: ChatMessageDto) {
-        if (!presentedMessages.add(message.id)) return
-        if (message.senderId == userId && message.status != ChatMessageStatusDto.READ) {
-            viewModelScope.launch { chatRepository.markMessageRead(message.id) }
+        message.replyToId?.takeIf { it !in _state.value.replyPreviews }?.let { replyId ->
+            viewModelScope.launch {
+                try {
+                    chatRepository.localMessage(replyId)?.let { reply ->
+                        _state.value = _state.value.copy(replyPreviews = _state.value.replyPreviews + (replyId to reply))
+                    }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (_: Throwable) {
+                    // A missing reply preview must not affect the message list.
+                }
+            }
         }
         val songId = message.songId ?: return
         if (songId in _state.value.songCards || !loadingSongs.add(songId)) return
@@ -197,21 +296,189 @@ class ChatDetailViewModel @Inject constructor(
         }
     }
 
+    fun markVisibleMessagesRead(messages: List<ChatMessageDto>) {
+        messages.asSequence()
+            .filter { it.senderId == userId && it.status != ChatMessageStatusDto.READ }
+            .filter { readReceiptsQueued.add(it.id) }
+            .forEach { message ->
+                viewModelScope.launch {
+                    try {
+                        // The repository persists a pending receipt before trying the socket,
+                        // so an offline result is still durably retryable.
+                        chatRepository.markMessageRead(message.id)
+                    } catch (cancellation: CancellationException) {
+                        readReceiptsQueued.remove(message.id)
+                        throw cancellation
+                    } catch (_: Throwable) {
+                        readReceiptsQueued.remove(message.id)
+                    }
+                }
+            }
+    }
+
     fun retry(message: ChatMessageDto) = viewModelScope.launch {
         runCatching { chatRepository.retryMessage(message.clientMessageId) }
-            .onFailure { _effects.send(ChatEffect.SendFailed) }
+            .onFailure { _effects.send(ChatEffect.RetryFailed) }
     }
 
     fun retryConnection() = chatRepository.retryRealtime()
 
-    private suspend fun stopTyping() {
+    fun selectMessage(message: ChatMessageDto?) { _state.value = _state.value.copy(selectedMessage = message) }
+
+    fun replyTo(message: ChatMessageDto) {
+        _state.value = _state.value.copy(replyTo = message, editingMessage = null, selectedMessage = null)
+    }
+
+    fun edit(message: ChatMessageDto) {
+        if (message.senderId != _state.value.meId || message.deletedAt != null || message.messageType != ChatMessageTypeDto.TEXT) return
+        if (_state.value.editingMessage == null) draftBeforeEdit = _state.value.draft
+        _state.value = _state.value.copy(draft = message.content.orEmpty(), editingMessage = message, replyTo = null, selectedMessage = null)
+    }
+
+    fun cancelComposerContext() {
+        val wasEditing = _state.value.editingMessage != null
+        _state.value = _state.value.copy(
+            replyTo = null,
+            editingMessage = null,
+            draft = if (wasEditing) draftBeforeEdit.orEmpty() else _state.value.draft,
+        )
+        if (wasEditing) draftBeforeEdit = null
+    }
+
+    fun delete(message: ChatMessageDto) = viewModelScope.launch {
+        _state.value = _state.value.copy(selectedMessage = null)
+        runCatching { chatRepository.deleteMessage(message.id) }.onFailure { _effects.send(ChatEffect.DeleteFailed) }
+    }
+
+    fun toggleReaction(message: ChatMessageDto, reaction: String) = viewModelScope.launch {
+        _state.value = _state.value.copy(selectedMessage = null)
+        val key = "${message.id}:$reaction"
+        if (!reactionsInFlight.add(key)) return@launch
+        val add = message.reactions.none { it.reaction == reaction && it.reactedByMe }
+        try {
+            chatRepository.setReaction(message.id, reaction, add)
+            delay(600)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            _effects.send(ChatEffect.ReactionFailed)
+        } finally {
+            reactionsInFlight.remove(key)
+        }
+    }
+
+    fun toggleSearch() {
+        searchJob?.cancel()
+        searchJumpJob?.cancel()
+        val open = !_state.value.isSearchOpen
+        _state.value = _state.value.copy(isSearchOpen = open, searchQuery = "", searchResults = emptyList(), isSearching = false)
+    }
+
+    fun updateSearch(value: String) {
+        val query = value.take(100)
+        _state.value = _state.value.copy(searchQuery = query)
+        searchJob?.cancel()
+        searchJumpJob?.cancel()
+        if (query.trim().length < 2) {
+            _state.value = _state.value.copy(searchResults = emptyList(), isSearching = false)
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(350)
+            _state.value = _state.value.copy(isSearching = true)
+            try {
+                val results = chatRepository.searchMessages(userId, query.trim())
+                if (_state.value.searchQuery == query) _state.value = _state.value.copy(searchResults = results, isSearching = false)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                if (_state.value.searchQuery == query) _state.value = _state.value.copy(isSearching = false)
+                _effects.send(ChatEffect.SearchFailed)
+            }
+        }
+    }
+
+    fun openSearchResult(message: ChatMessageDto) {
+        searchJob?.cancel()
+        searchJumpJob?.cancel()
+        searchJumpJob = viewModelScope.launch {
+            try {
+                val position = chatRepository.messagePosition(userId, message)
+                _state.value = _state.value.copy(
+                    isSearchOpen = false,
+                    searchResults = emptyList(),
+                    isSearching = false,
+                    scrollToMessageId = message.id,
+                    scrollToMessageIndex = position,
+                    highlightedMessageId = message.id,
+                )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                _effects.send(ChatEffect.SearchFailed)
+            }
+        }
+    }
+
+    fun consumeScrollTarget() {
+        _state.value = _state.value.copy(scrollToMessageId = null, scrollToMessageIndex = null)
+        highlightJob?.cancel()
+        highlightJob = viewModelScope.launch {
+            delay(1_600)
+            _state.value = _state.value.copy(highlightedMessageId = null)
+        }
+    }
+
+    fun searchJumpFailed() {
+        _state.value = _state.value.copy(
+            isSearchOpen = true,
+            scrollToMessageId = null,
+            scrollToMessageIndex = null,
+            highlightedMessageId = null,
+        )
+        viewModelScope.launch { _effects.send(ChatEffect.SearchFailed) }
+    }
+
+    private fun startTypingIfNeeded() {
+        if (typingSent || typingStartJob?.isActive == true) return
+        typingStartJob = viewModelScope.launch {
+            try {
+                typingSent = chatRepository.setTyping(userId, true)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                typingSent = false
+            }
+        }
+    }
+
+    private fun stopTypingFromUi() {
         typingStopJob?.cancel()
-        if (typingSent) chatRepository.setTyping(userId, false)
-        typingSent = false
+        typingStopJob = null
+        typingStartJob?.cancel()
+        typingStartJob = null
+        viewModelScope.launch { sendTypingStopped() }
+    }
+
+    private suspend fun sendTypingStopped() {
+        if (!typingSent) return
+        try {
+            if (chatRepository.setTyping(userId, false)) typingSent = false
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Typing is best-effort and must never cancel send/edit operations.
+        }
     }
 
     override fun onCleared() {
         typingStopJob?.cancel()
+        typingStartJob?.cancel()
+        peerTypingExpiryJob?.cancel()
+        searchJob?.cancel()
+        searchJumpJob?.cancel()
+        highlightJob?.cancel()
+        editAckJob?.cancel()
         if (typingSent) chatRepository.clearTyping(userId)
         super.onCleared()
     }

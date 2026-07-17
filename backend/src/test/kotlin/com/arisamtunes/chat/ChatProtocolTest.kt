@@ -59,4 +59,20 @@ class ChatProtocolTest {
         assertTrue(encoded.contains("\"protocol_version\":1"))
         assertEquals(ChatSocketType.SEND_MESSAGE, json.decodeFromString<ChatSocketEnvelope>(encoded).type)
     }
+
+    @Test
+    fun `socket protocol carries reply edit and reaction events`() {
+        val envelope = ChatSocketEnvelope(
+            type = ChatSocketType.ADD_REACTION,
+            messageId = "00000000-0000-0000-0000-000000000001",
+            replyToId = "00000000-0000-0000-0000-000000000002",
+            reaction = "🔥",
+        )
+
+        val encoded = json.encodeToString(envelope)
+
+        assertTrue(encoded.contains("\"type\":\"add_reaction\""))
+        assertTrue(encoded.contains("\"reply_to_id\""))
+        assertEquals("🔥", json.decodeFromString<ChatSocketEnvelope>(encoded).reaction)
+    }
 }

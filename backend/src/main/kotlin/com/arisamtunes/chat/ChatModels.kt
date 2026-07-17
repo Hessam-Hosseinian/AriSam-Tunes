@@ -22,8 +22,20 @@ enum class ChatSocketType {
     @SerialName("message_read") MESSAGE_READ,
     @SerialName("typing_start") TYPING_START,
     @SerialName("typing_stop") TYPING_STOP,
+    @SerialName("edit_message") EDIT_MESSAGE,
+    @SerialName("delete_message") DELETE_MESSAGE,
+    @SerialName("add_reaction") ADD_REACTION,
+    @SerialName("remove_reaction") REMOVE_REACTION,
+    @SerialName("message_updated") MESSAGE_UPDATED,
     @SerialName("error") ERROR,
 }
+
+@Serializable
+data class ChatReactionResponse(
+    val reaction: String,
+    val count: Int,
+    @SerialName("reacted_by_me") val reactedByMe: Boolean = false,
+)
 
 @Serializable
 data class ChatMessageResponse(
@@ -34,16 +46,21 @@ data class ChatMessageResponse(
     @SerialName("message_type") val messageType: ChatMessageType,
     val content: String? = null,
     @SerialName("song_id") val songId: String? = null,
+    @SerialName("reply_to_id") val replyToId: String? = null,
     val status: ChatMessageStatus,
     @SerialName("created_at") val createdAt: String,
     @SerialName("delivered_at") val deliveredAt: String? = null,
     @SerialName("read_at") val readAt: String? = null,
+    @SerialName("edited_at") val editedAt: String? = null,
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    val reactions: List<ChatReactionResponse> = emptyList(),
     @SerialName("updated_at") val updatedAt: String,
 )
 
 @Serializable
 data class ChatSocketEnvelope(
     val type: ChatSocketType,
+    @SerialName("request_type") val requestType: ChatSocketType? = null,
     @SerialName("protocol_version") val protocolVersion: Int = CHAT_PROTOCOL_VERSION,
     @SerialName("message_id") val messageId: String? = null,
     @SerialName("sender_id") val senderId: String? = null,
@@ -52,6 +69,8 @@ data class ChatSocketEnvelope(
     @SerialName("message_type") val messageType: ChatMessageType? = null,
     val content: String? = null,
     @SerialName("song_id") val songId: String? = null,
+    @SerialName("reply_to_id") val replyToId: String? = null,
+    val reaction: String? = null,
     val message: ChatMessageResponse? = null,
     val error: String? = null,
 )

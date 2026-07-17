@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltViewModel()) {
-    val preferences by preferencesViewModel.preferences.collectAsState()
+    val preferences by preferencesViewModel.preferences.collectAsStateWithLifecycle()
     val baseContext = LocalContext.current
     val locale = preferences.language.toLocale() ?: Locale.getDefault()
     val localizedConfiguration = Configuration(LocalConfiguration.current).apply { setLocale(locale) }

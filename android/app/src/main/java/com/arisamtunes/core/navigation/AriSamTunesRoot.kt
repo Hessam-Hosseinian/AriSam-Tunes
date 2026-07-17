@@ -21,7 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +62,7 @@ private const val MainRoute = "main"
 @Composable
 fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
     val navController = rememberNavController()
-    val session by sessionViewModel.state.collectAsState()
+    val session by sessionViewModel.state.collectAsStateWithLifecycle()
     var splashComplete by remember { mutableStateOf(false) }
 
     LaunchedEffect(session, splashComplete) {
@@ -73,9 +73,9 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
             SessionState.Checking -> SplashRoute
         }
         navController.navigate(destination) {
-            popUpTo(navController.graph.startDestinationId) {
-                inclusive = destination != SplashRoute
-            }
+            // Authentication states must never remain underneath each other;
+            // otherwise Back from Main can reveal Auth again after login.
+            popUpTo(navController.graph.id) { inclusive = true }
             launchSingleTop = true
         }
     }
@@ -84,7 +84,7 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
         composable(SplashRoute) { SplashScreen(onFinished = { splashComplete = true }) }
         composable(AuthRoute) {
             val viewModel: AuthViewModel = hiltViewModel()
-            val state by viewModel.state.collectAsState()
+            val state by viewModel.state.collectAsStateWithLifecycle()
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     if (effect == AuthEffect.Authenticated) sessionViewModel.authenticated()

@@ -1,6 +1,7 @@
 package com.arisamtunes.core.navigation
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -47,10 +48,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.arisamtunes.R
 import com.arisamtunes.feature.home.HomeQuickAction
 import com.arisamtunes.feature.downloads.DownloadsRoute
-import com.arisamtunes.feature.chat.ChatDetailRoute
+import com.arisamtunes.feature.chat.ChatExperienceRoute
 import com.arisamtunes.feature.chat.ChatListRoute
 import com.arisamtunes.feature.chat.ChatConnectionViewModel
 import com.arisamtunes.feature.chat.ShareSongRoute
@@ -85,14 +87,13 @@ private const val ArtistRoutePattern = "artist/{artistId}"
 fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val navController = rememberNavController()
     val playerViewModel: PlayerViewModel = hiltViewModel()
-    val playerState by playerViewModel.state.collectAsState()
+    val playerState by playerViewModel.state.collectAsStateWithLifecycle()
     val chatConnectionViewModel: ChatConnectionViewModel = hiltViewModel()
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(chatConnectionViewModel, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> chatConnectionViewModel.start()
-                Lifecycle.Event.ON_STOP -> chatConnectionViewModel.stop()
                 else -> Unit
             }
         }
@@ -108,6 +109,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val currentMainDestination = currentRoute?.mainDestination()
     val showMainChrome = currentRoute in MainDestinations.map(AppDestination::route)
     val showHomeBrand = currentMainDestination == AppDestination.Home
+    val isFullscreenDestination = currentRoute == NowPlayingRoutePath || currentRoute == ChatDetailRoutePattern
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -182,7 +184,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
         bottomBar = {
             if (showMainChrome) {
                 Column {
-                    MiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) })
+                    MiniPlayer(onOpen = navController::openNowPlaying)
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 0.dp,
@@ -205,7 +207,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .then(
-                    if (currentRoute == NowPlayingRoutePath) Modifier
+                    if (isFullscreenDestination) Modifier
                     else Modifier.padding(contentPadding),
                 ),
         ) {
@@ -248,26 +250,36 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onUserProfileClick = { navController.navigate(userProfileRoute(it)) },
                     )
                 }
-                composable(ChatDetailRoutePattern) {
-                    ChatDetailRoute(
-                        onBack = navController::popBackStack,
-                        onPlaySong = playerViewModel::play,
+                composable(
+                    route = ChatDetailRoutePattern,
+                    deepLinks = listOf(navDeepLink { uriPattern = "arisamtunes://chat/{userId}" }),
+                ) {
+                    val navigateBack = { navController.backFromChatDetail() }
+                    BackHandler(onBack = navigateBack)
+                    ChatExperienceRoute(
+                        onBack = navigateBack,
+                        onPeerProfileClick = { navController.navigate(userProfileRoute(it)) },
+                        onPlaySong = { song, chatQueue -> playerViewModel.play(song, chatQueue) },
                         currentSong = playerState.currentSong,
-                        miniPlayer = { ChatMiniPlayer(onOpen = { navController.navigate(NowPlayingRoutePath) }) },
+                        miniPlayer = { chatSongIds ->
+                            if (playerState.currentSong?.id in chatSongIds) {
+                                ChatMiniPlayer(onOpen = navController::openNowPlaying)
+                            }
+                        },
                     )
                 }
                 composable(ShareSongRoutePattern) {
-                    ShareSongRoute(onBack = navController::popBackStack)
+                    ShareSongRoute(onBack = { navController.backOrNavigateTopLevel(AppDestination.Home.route) })
                 }
                 composable(PlaylistDetailRoutePattern) {
-                    PlaylistDetailRoute(onBack = navController::popBackStack, onSongClick = { song, queue ->
+                    PlaylistDetailRoute(onBack = { navController.backOrNavigateTopLevel(AppDestination.Playlists.route) }, onSongClick = { song, queue ->
                         playerViewModel.play(song, queue)
-                        navController.navigateSingleTop(NowPlayingRoutePath)
+                        navController.openNowPlaying()
                     })
                 }
                 composable(LibraryCollectionRoutePattern) {
                     LibraryCollectionRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Home.route) },
                         onSongClick = {
                             navController.navigate(songRoute(it))
                         },
@@ -275,24 +287,24 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                 }
                 composable(ArtistRoutePattern) {
                     ArtistRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Home.route) },
                         onArtistClick = { navController.navigate(artistRoute(it)) },
                         onSongClick = { navController.navigate(songRoute(it)) },
                     )
                 }
                 composable(SongDetailRoutePattern) {
                     SongDetailRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Home.route) },
                         onPlay = {
                             playerViewModel.play(it)
-                            navController.navigate(NowPlayingRoutePath)
+                            navController.openNowPlaying()
                         },
                         onShare = { navController.navigate(shareSongRoute(it.id)) },
                     )
                 }
                 composable(NowPlayingRoutePath) {
                     NowPlayingRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Home.route) },
                         onShowSongInfo = { navController.navigate(songRoute(it)) },
                         onArtistClick = { navController.navigate(artistRoute(it)) },
                         onShareSong = { navController.navigate(shareSongRoute(it)) },
@@ -308,7 +320,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                 }
                 composable(UserProfileRoutePattern) {
                     SocialProfileRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Profile.route) },
                         onFollowersClick = { navController.navigate(userListRoute(it, "followers")) },
                         onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
                         onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
@@ -317,13 +329,13 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                 }
                 composable(UserListRoutePattern) {
                     SocialUsersRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Profile.route) },
                         onUserClick = { navController.navigate(userProfileRoute(it.id)) },
                     )
                 }
                 composable(SettingsRoutePath) {
                     SettingsRoute(
-                        onBack = navController::popBackStack,
+                        onBack = { navController.backOrNavigateTopLevel(AppDestination.Home.route) },
                         onLoggedOut = onLoggedOut,
                     )
                 }
@@ -343,6 +355,25 @@ private fun NavController.navigateTopLevel(route: String) {
 private fun NavController.navigateSingleTop(route: String) {
     navigate(route) {
         launchSingleTop = true
+    }
+}
+
+private fun NavController.openNowPlaying() {
+    if (!popBackStack(NowPlayingRoutePath, inclusive = false)) {
+        navigateSingleTop(NowPlayingRoutePath)
+    }
+}
+
+private fun NavController.backOrNavigateTopLevel(fallbackRoute: String) {
+    if (!popBackStack()) navigateTopLevel(fallbackRoute)
+}
+
+private fun NavController.backFromChatDetail() {
+    val previousRoute = previousBackStackEntry?.destination?.route
+    if (previousRoute == null || previousRoute == AppDestination.Home.route) {
+        navigateTopLevel(AppDestination.Chat.route)
+    } else {
+        popBackStack()
     }
 }
 

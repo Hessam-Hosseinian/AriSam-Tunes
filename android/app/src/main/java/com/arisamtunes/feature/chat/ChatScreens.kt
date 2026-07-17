@@ -65,7 +65,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -112,7 +112,7 @@ fun ChatListRoute(
     onUserProfileClick: (String) -> Unit,
     viewModel: ChatListViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val conversations = viewModel.conversations.collectAsLazyPagingItems()
     val starters = viewModel.starters.collectAsLazyPagingItems()
     val results = viewModel.searchResults.collectAsLazyPagingItems()
@@ -229,7 +229,7 @@ private fun ConversationRow(conversation: ChatConversationDto, onClick: (String)
 }
 
 @Composable
-fun ChatDetailRoute(
+private fun LegacyChatDetailContent(
     onBack: () -> Unit,
     onPlaySong: (SongDto) -> Unit,
     currentSong: SongDto? = null,
@@ -237,8 +237,8 @@ fun ChatDetailRoute(
     viewModel: ChatDetailViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
-    val preferences by settingsViewModel.preferences.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val preferences by settingsViewModel.preferences.collectAsStateWithLifecycle()
     val systemDark = isSystemInDarkTheme()
     val isDark = when (preferences.theme) {
         ThemePreference.System -> systemDark
@@ -366,19 +366,13 @@ private fun ChatTopBar(
                     state.peer?.let {
                         UserAvatar(it, Modifier.size(46.dp).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape).padding(2.dp))
                     }
-                    Surface(
-                        modifier = Modifier.align(Alignment.BottomEnd).size(13.dp),
-                        shape = CircleShape,
-                        color = if (state.status == ChatConnectionStatus.Connected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
-                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface),
-                    ) {}
                 }
                 Column(Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.md)) {
                     Text(state.peer?.displayName ?: stringResource(R.string.chat), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, maxLines = 1)
                     AnimatedContent(state.isPeerTyping, label = "peer-status") { typing ->
                         Text(
-                            if (typing) stringResource(R.string.chat_typing) else stringResource(state.status.labelRes()),
-                            color = if (typing || state.status == ChatConnectionStatus.Connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            if (typing) stringResource(R.string.chat_typing) else stringResource(R.string.chat_presence_unknown),
+                            color = if (typing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
@@ -433,7 +427,7 @@ private fun ConnectionBanner(status: ChatConnectionStatus, onRetry: () -> Unit) 
                 modifier = Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.sm),
                 style = MaterialTheme.typography.bodySmall,
             )
-            if (status != ChatConnectionStatus.Connecting) TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+            if (status == ChatConnectionStatus.Disconnected) TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         }
     }
 }
@@ -478,7 +472,7 @@ private fun ChatComposer(draft: String, onDraftChange: (String) -> Unit, onSend:
                         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     ),
                 )
-                PressScaleBox(onSend) {
+                PressScaleBox(onClick = onSend, enabled = draft.isNotBlank()) {
                     Surface(
                         Modifier.size(50.dp),
                         MaterialTheme.shapes.large,
@@ -486,7 +480,7 @@ private fun ChatComposer(draft: String, onDraftChange: (String) -> Unit, onSend:
                         contentColor = if (draft.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary,
                         tonalElevation = if (draft.isBlank()) 0.dp else 5.dp,
                     ) {
-                        IconButton(onClick = onSend, enabled = draft.isNotBlank()) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
                         }
                     }
@@ -525,7 +519,7 @@ private fun MessageBubble(message: ChatMessageDto, isMine: Boolean, song: SongDt
 }
 
 @Composable
-private fun SharedSongCard(song: SongDto?, unavailable: Boolean, isMine: Boolean, onPlay: (SongDto) -> Unit) {
+internal fun SharedSongCard(song: SongDto?, unavailable: Boolean, isMine: Boolean, onPlay: (SongDto) -> Unit) {
     val secondaryContent = if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .78f) else MaterialTheme.colorScheme.onSurfaceVariant
     if (unavailable) {
         Surface(
@@ -611,7 +605,7 @@ private fun TypingBubble(peer: PublicUserDto?) {
 }
 
 @Composable
-private fun DateSeparator(value: String) {
+internal fun DateSeparator(value: String) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
         Surface(
@@ -688,7 +682,7 @@ private fun MessageStatusIcon(status: ChatMessageStatusDto) = when (status) {
 
 @Composable
 fun ShareSongRoute(onBack: () -> Unit, viewModel: ShareSongViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val friends = viewModel.friends.collectAsLazyPagingItems()
     LaunchedEffect(Unit) { viewModel.effects.collect { if (it is ShareSongEffect.Sent) onBack() } }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -733,7 +727,7 @@ fun ShareSongRoute(onBack: () -> Unit, viewModel: ShareSongViewModel = hiltViewM
 }
 
 @Composable
-private fun UserAvatar(user: PublicUserDto, modifier: Modifier) {
+internal fun UserAvatar(user: PublicUserDto, modifier: Modifier) {
     if (!user.avatarUrl.isNullOrBlank()) AsyncImage(user.avatarUrl, user.displayName, contentScale = ContentScale.Crop, modifier = modifier.clip(CircleShape))
     else Box(modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
         Text(user.displayName.take(1).uppercase(), fontWeight = FontWeight.Bold)
@@ -748,13 +742,13 @@ private fun UserAvatar(user: PublicUserDto, modifier: Modifier) {
 
 @Composable private fun EmptyState(message: Int) = Box(Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.xxl), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Rounded.Chat, null, Modifier.size(48.dp)); Text(stringResource(message), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
 
-private fun messageTime(value: String): String = runCatching { DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(Instant.parse(value)) }.getOrDefault("")
+internal fun messageTime(value: String): String = runCatching { DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(Instant.parse(value)) }.getOrDefault("")
 
 private fun messageDate(value: String): LocalDate? = runCatching {
     Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDate()
 }.getOrNull()
 
-private fun isSameMessageDay(first: String, second: String): Boolean = messageDate(first) == messageDate(second)
+internal fun isSameMessageDay(first: String, second: String): Boolean = messageDate(first) == messageDate(second)
 
 @Composable
 private fun messageDateLabel(value: String): String {
