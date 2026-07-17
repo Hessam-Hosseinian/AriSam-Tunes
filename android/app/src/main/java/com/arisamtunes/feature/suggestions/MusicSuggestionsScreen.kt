@@ -66,6 +66,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
@@ -202,6 +203,7 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
             }
         }
         val scope = rememberCoroutineScope()
+        val completedSongAnimations = remember(songs) { mutableSetOf<String>() }
 
         LaunchedEffect(state, tileWidth, tileHeight) {
             snapshotFlow {
@@ -249,8 +251,11 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
                     )
                 },
             ) { index ->
+                val song = songs[(index % cellsPerTile) % songs.size]
                 HexagonSong(
-                    song = songs[(index % cellsPerTile) % songs.size],
+                    song = song,
+                    hasCompletedAnimation = song.id in completedSongAnimations,
+                    onAnimationCompleted = { completedSongAnimations += song.id },
                     onClick = { scope.launch { state.animateTo(index) } },
                 )
             }
@@ -263,13 +268,23 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
  * The upstream Apache-2.0 license is included at third_party/minabox/LICENSE.md.
  */
 @Composable
-private fun HexagonSong(song: SongDto, onClick: () -> Unit) {
-    val rotation = remember { Animatable(-15f) }
-    val scale = remember { Animatable(.5f) }
+private fun HexagonSong(
+    song: SongDto,
+    hasCompletedAnimation: Boolean,
+    onAnimationCompleted: () -> Unit,
+    onClick: () -> Unit,
+) {
+    val rotation = remember { Animatable(if (hasCompletedAnimation) 0f else -15f) }
+    val scale = remember { Animatable(if (hasCompletedAnimation) 1f else .5f) }
     LaunchedEffect(Unit) {
-        delay(100)
-        launch { scale.animateTo(1f) }
-        launch { rotation.animateTo(0f) }
+        if (!hasCompletedAnimation) {
+            delay(100)
+            coroutineScope {
+                launch { scale.animateTo(1f) }
+                launch { rotation.animateTo(0f) }
+            }
+            onAnimationCompleted()
+        }
     }
     val shape = remember { GenericShape { size, _ -> addPath(size.createHexagonPath()) } }
 
