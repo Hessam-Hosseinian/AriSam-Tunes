@@ -45,6 +45,50 @@ class PlaylistRepository {
         } catch (error: Throwable) { c.rollback(); throw error }
     }
 
+    fun createGenerated(ownerId: UUID, request: CreateGeneratedPlaylistRequest): PlaylistResponse =
+        DatabaseProvider.dataSource.connection.use { connection ->
+            try {
+                val playlistId = connection.prepareStatement(
+                    "INSERT INTO playlists(owner_id,name,description,cover_image_url,scope,is_public) VALUES (?,?,?,?,'USER',FALSE) RETURNING id",
+                ).use { statement ->
+                    statement.setObject(1, ownerId)
+                    statement.setString(2, request.name.trim())
+                    statement.setString(3, request.description?.trim())
+                    statement.setString(4, request.coverImageUrl?.trim())
+                    statement.executeQuery().use { results ->
+                        results.next()
+                        results.getObject(1, UUID::class.java)
+                    }
+                }
+                val songIds = request.songIds.map(UUID::fromString)
+                val existingSongCount = connection.prepareStatement(
+                    "SELECT COUNT(*) FROM songs WHERE id = ANY(?)",
+                ).use { statement ->
+                    statement.setArray(1, connection.createArrayOf("uuid", songIds.toTypedArray()))
+                    statement.executeQuery().use { results -> results.next(); results.getInt(1) }
+                }
+                if (existingSongCount != songIds.size) {
+                    throw IllegalArgumentException("Generated playlist contains a missing song")
+                }
+                connection.prepareStatement(
+                    "INSERT INTO playlist_songs(playlist_id,song_id,position) VALUES (?,?,?)",
+                ).use { statement ->
+                    songIds.forEachIndexed { position, songId ->
+                        statement.setObject(1, playlistId)
+                        statement.setObject(2, songId)
+                        statement.setInt(3, position)
+                        statement.addBatch()
+                    }
+                    statement.executeBatch()
+                }
+                connection.commit()
+                checkNotNull(findVisible(playlistId, ownerId))
+            } catch (error: Throwable) {
+                connection.rollback()
+                throw error
+            }
+        }
+
     fun update(id: UUID, ownerId: UUID, request: UpdatePlaylistRequest): PlaylistResponse? = DatabaseProvider.dataSource.connection.use { c ->
         try {
             val changed = c.prepareStatement(

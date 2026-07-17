@@ -1,8 +1,17 @@
 package com.arisamtunes.feature.suggestions
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +30,7 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,10 +39,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -42,8 +56,10 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -72,10 +88,19 @@ fun MusicSuggestionsRoute(
     viewModel: MusicSuggestionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val playlistName = stringResource(R.string.music_suggestions_playlist_name)
+    val playlistDescription = stringResource(R.string.music_suggestions_playlist_description)
     MusicSuggestionsScreen(
         state = state,
         onRetry = viewModel::refresh,
-        onContinue = onContinue,
+        onCreatePlaylist = { selectedSongIds ->
+            viewModel.createPlaylist(
+                selectedSongIds = selectedSongIds,
+                name = playlistName,
+                description = playlistDescription,
+                onCreated = onContinue,
+            )
+        },
     )
 }
 
@@ -83,8 +108,11 @@ fun MusicSuggestionsRoute(
 fun MusicSuggestionsScreen(
     state: MusicSuggestionsUiState,
     onRetry: () -> Unit,
-    onContinue: () -> Unit,
+    onCreatePlaylist: (Set<String>) -> Unit,
 ) {
+    val selectionState = remember(state.songs) {
+        SongSelectionState(state.songs.map(SongDto::id))
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -130,11 +158,11 @@ fun MusicSuggestionsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 104.dp, bottom = 88.dp),
+                .padding(top = 104.dp, bottom = 112.dp),
             contentAlignment = Alignment.Center,
         ) {
             when {
-                state.isLoading -> CircularProgressIndicator(color = Color(0xFF7DD3FC))
+                state.isLoading -> MusicSuggestionsLoadingShimmer()
                 state.hasError -> SuggestionError(onRetry)
                 state.songs.isEmpty() -> Text(
                     text = stringResource(R.string.music_suggestions_empty),
@@ -142,35 +170,158 @@ fun MusicSuggestionsScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp),
                 )
-                else -> HexagonSongPlane(state.songs)
+                else -> HexagonSongPlane(state.songs, selectionState)
             }
         }
 
-        Button(
-            onClick = onContinue,
-            enabled = !state.isLoading,
+        SuggestionActionBar(
+            selectionState = selectionState,
+            isCreatingPlaylist = state.isCreatingPlaylist,
+            creationFailed = state.playlistCreationFailed,
+            onCreatePlaylist = onCreatePlaylist,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .height(54.dp),
+                .fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun MusicSuggestionsLoadingShimmer() {
+    val shimmer = rememberInfiniteTransition(label = "suggestionShimmer")
+    val offset = shimmer.animateFloat(
+        initialValue = -700f,
+        targetValue = 1_600f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_350, easing = LinearEasing),
+        ),
+        label = "suggestionShimmerOffset",
+    )
+    Box(
+        Modifier.fillMaxSize().drawWithCache {
+        val radius = HexagonRadius.toPx()
+        val halfHeight = radius * cos(PI / HexagonVertices).toFloat()
+        val hexagonSize = Size(radius * 2f, halfHeight * 2f)
+        val hexagonPath = hexagonSize.createHexagonPath()
+        val horizontalStep = hexagonSize.width * .75f
+        val columns = ceil(size.width / horizontalStep).toInt() + 1
+        val rows = ceil(size.height / hexagonSize.height).toInt() + 1
+        val positions = buildList {
+            repeat(rows) { row ->
+                repeat(columns) { column ->
+                    add(
+                        Offset(
+                            x = column * horizontalStep - radius * .5f,
+                            y = row * hexagonSize.height + if (column % 2 == 1) halfHeight else 0f,
+                        ),
+                    )
+                }
+            }
+        }
+        onDrawBehind {
+            val brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = .04f),
+                    Color(0xFF7DD3FC).copy(alpha = .22f),
+                    Color.White.copy(alpha = .04f),
+                ),
+                start = Offset(offset.value - 260f, offset.value - 260f),
+                end = Offset(offset.value + 260f, offset.value + 260f),
+            )
+            positions.forEach { position ->
+                withTransform({ translate(left = position.x, top = position.y) }) {
+                    drawPath(path = hexagonPath, brush = brush)
+                }
+            }
+        }
+    },
+    )
+}
+
+@Composable
+private fun SuggestionActionBar(
+    selectionState: SongSelectionState,
+    isCreatingPlaylist: Boolean,
+    creationFailed: Boolean,
+    onCreatePlaylist: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selectedCount = selectionState.selectedCount
+    Column(
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        if (creationFailed) {
+            Text(
+                text = stringResource(R.string.music_suggestions_playlist_error),
+                color = Color(0xFFFFB4AB),
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+            )
+        }
+        Button(
+            onClick = { onCreatePlaylist(selectionState.selectedIds()) },
+            enabled = selectedCount > 0 && !isCreatingPlaylist,
+            modifier = Modifier.fillMaxWidth().height(54.dp),
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF0284C7),
                 contentColor = Color.White,
             ),
         ) {
-            Text(
-                text = stringResource(R.string.music_suggestions_continue),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
+            if (isCreatingPlaylist) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                )
+                Text(
+                    text = stringResource(R.string.music_suggestions_creating_playlist),
+                    modifier = Modifier.padding(start = 10.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            } else {
+                Text(
+                    text = if (selectedCount == 0) {
+                        stringResource(R.string.music_suggestions_select_prompt)
+                    } else {
+                        stringResource(R.string.music_suggestions_create_playlist, selectedCount)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     }
 }
 
+@Stable
+private class SongSelectionState(songIds: List<String>) {
+    private val selections = songIds.distinct().associateWith { mutableStateOf(false) }
+
+    var selectedCount by mutableIntStateOf(0)
+        private set
+
+    fun selected(songId: String): State<Boolean> = checkNotNull(selections[songId])
+
+    fun toggle(songId: String) {
+        val selection = checkNotNull(selections[songId])
+        selection.value = !selection.value
+        selectedCount += if (selection.value) 1 else -1
+    }
+
+    fun selectedIds(): Set<String> = selections.asSequence()
+        .filter { (_, selected) -> selected.value }
+        .mapTo(linkedSetOf()) { (songId, _) -> songId }
+}
+
 @Composable
-private fun HexagonSongPlane(songs: List<SongDto>) {
+private fun HexagonSongPlane(
+    songs: List<SongDto>,
+    selectionState: SongSelectionState,
+) {
     val halfHeight = HexagonRadius * cos(PI / HexagonVertices).toFloat()
     val itemSize = with(LocalDensity.current) {
         Size(
@@ -203,7 +354,6 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
                 )
             }
         }
-        val scope = rememberCoroutineScope()
         val completedSongAnimations = remember(songs) { mutableSetOf<String>() }
 
         MinaBox(
@@ -236,11 +386,13 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
                 },
             ) { index ->
                 val song = songs[(index % cellsPerTile) % songs.size]
+                val isSelected by selectionState.selected(song.id)
                 HexagonSong(
                     song = song,
+                    isSelected = isSelected,
                     hasCompletedAnimation = song.id in completedSongAnimations,
                     onAnimationCompleted = { completedSongAnimations += song.id },
-                    onClick = { scope.launch { state.animateTo(index) } },
+                    onClick = { selectionState.toggle(song.id) },
                 )
             }
         }
@@ -254,6 +406,7 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
 @Composable
 private fun HexagonSong(
     song: SongDto,
+    isSelected: Boolean,
     hasCompletedAnimation: Boolean,
     onAnimationCompleted: () -> Unit,
     onClick: () -> Unit,
@@ -271,36 +424,49 @@ private fun HexagonSong(
         }
     }
     val shape = remember { GenericShape { size, _ -> addPath(size.createHexagonPath()) } }
+    val selectionScale = animateFloatAsState(
+        targetValue = if (isSelected) .9f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "hexagonSelectionScale",
+    )
+    val borderColor = animateColorAsState(
+        targetValue = if (isSelected) SelectedColor else UnselectedBorderColor,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "hexagonBorderColor",
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(3.dp)
             .graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
+                scaleX = scale.value * selectionScale.value
+                scaleY = scale.value * selectionScale.value
                 rotationZ = rotation.value
                 this.shape = shape
                 clip = true
             }
             .drawWithCache {
                 val borderPath = size.createHexagonPath()
-                val borderColor = Color(0xFF7DD3FC).copy(alpha = .78f)
-                val borderWidth = 3.dp.toPx()
+                val borderWidth = (if (isSelected) 5.dp else 3.dp).toPx()
                 onDrawBehind {
                     drawPath(
                         path = borderPath,
-                        color = borderColor,
+                        color = borderColor.value,
                         style = Stroke(width = borderWidth),
                     )
                 }
             }
-            .clickable(onClick = onClick),
+            .selectable(selected = isSelected, onClick = onClick),
     ) {
         AsyncImage(
             model = song.coverImageUrl,
             contentDescription = song.title,
             contentScale = ContentScale.Crop,
+            filterQuality = FilterQuality.Low,
             modifier = Modifier.fillMaxSize(),
         )
         Box(
@@ -314,6 +480,28 @@ private fun HexagonSong(
                     ),
                 ),
         )
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(SelectedColor.copy(alpha = .16f)),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 17.dp)
+                    .size(30.dp)
+                    .background(SelectedColor, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = stringResource(R.string.music_suggestions_selected),
+                    tint = Color.White,
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -387,3 +575,5 @@ private const val WrapBufferCells = 2
 private const val WrapTileCount = 3
 private const val CenterTileIndex = WrapTileCount / 2
 private val HexagonRadius = 70.dp
+private val SelectedColor = Color(0xFF0EA5E9)
+private val UnselectedBorderColor = Color(0xFF7DD3FC).copy(alpha = .78f)

@@ -8,12 +8,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class MusicSuggestionsUiState(
     val isLoading: Boolean = true,
     val songs: List<SongDto> = emptyList(),
     val hasError: Boolean = false,
+    val isCreatingPlaylist: Boolean = false,
+    val playlistCreationFailed: Boolean = false,
 )
 
 @HiltViewModel
@@ -41,6 +45,35 @@ class MusicSuggestionsViewModel @Inject constructor(
                 .onFailure {
                     _state.value = _state.value.copy(isLoading = false, hasError = true)
                 }
+        }
+    }
+
+    fun createPlaylist(
+        selectedSongIds: Set<String>,
+        name: String,
+        description: String,
+        onCreated: () -> Unit,
+    ) {
+        if (_state.value.isCreatingPlaylist || selectedSongIds.isEmpty()) return
+        _state.value = _state.value.copy(isCreatingPlaylist = true, playlistCreationFailed = false)
+        viewModelScope.launch {
+            runCatching {
+                val songs = withContext(Dispatchers.Default) {
+                    MusicSuggestionRanker.buildPlaylist(
+                        allSongs = _state.value.songs,
+                        selectedSongIds = selectedSongIds,
+                    )
+                }
+                catalogRepository.createSuggestedPlaylist(name, description, songs)
+            }.onSuccess {
+                _state.value = _state.value.copy(isCreatingPlaylist = false)
+                onCreated()
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    isCreatingPlaylist = false,
+                    playlistCreationFailed = true,
+                )
+            }
         }
     }
 

@@ -41,6 +41,14 @@ data class CreatePlaylistRequest(
 )
 
 @Serializable
+data class CreateGeneratedPlaylistRequest(
+    val name: String,
+    val description: String? = null,
+    val coverImageUrl: String? = null,
+    val songIds: List<String>,
+)
+
+@Serializable
 data class UpdatePlaylistRequest(
     val name: String,
     val description: String? = null,

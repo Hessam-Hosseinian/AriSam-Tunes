@@ -37,6 +37,10 @@ fun Route.playlistRoutes(repository: PlaylistRepository = PlaylistRepository()) 
         }
         authenticate("auth-jwt") {
             get { call.respond(PlaylistListResponse(repository.visibleTo(call.userId()))) }
+            post("/generated") {
+                val request = call.receive<CreateGeneratedPlaylistRequest>().validated()
+                call.respond(HttpStatusCode.Created, repository.createGenerated(call.userId(), request))
+            }
             post {
                 val request = call.receive<CreatePlaylistRequest>().validated()
                 call.respond(HttpStatusCode.Created, repository.create(call.userId(), request))
@@ -66,6 +70,18 @@ fun Route.playlistRoutes(repository: PlaylistRepository = PlaylistRepository()) 
 
 private fun CreatePlaylistRequest.validated(): CreatePlaylistRequest {
     validateFields(name, description, coverImageUrl)
+    return this
+}
+private fun CreateGeneratedPlaylistRequest.validated(): CreateGeneratedPlaylistRequest {
+    validateFields(name, description, coverImageUrl)
+    if (songIds.isEmpty() || songIds.size > 500 || songIds.distinct().size != songIds.size) {
+        throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "Provide between 1 and 500 unique song IDs")
+    }
+    songIds.forEach { songId ->
+        runCatching { UUID.fromString(songId) }.getOrElse {
+            throw ApiException(HttpStatusCode.BadRequest, ErrorCode.VALIDATION_ERROR, "songIds must contain valid UUIDs")
+        }
+    }
     return this
 }
 private fun UpdatePlaylistRequest.validated(): UpdatePlaylistRequest {
