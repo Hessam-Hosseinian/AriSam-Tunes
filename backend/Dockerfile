@@ -6,10 +6,15 @@ RUN gradle --no-daemon installDist
 
 FROM eclipse-temurin:21-jre-alpine
 
-RUN addgroup -S arisam && adduser -S arisam -G arisam
+RUN addgroup -S arisam \
+    && adduser -S arisam -G arisam \
+    && mkdir -p /app/uploads/avatars \
+    && chown -R arisam:arisam /app/uploads
 WORKDIR /app
 COPY --from=build --chown=arisam:arisam /workspace/build/install/arisam-tunes-backend/ ./
+COPY docker-entrypoint.sh /usr/local/bin/arisam-entrypoint
+RUN chmod 755 /usr/local/bin/arisam-entrypoint
 
-USER arisam
 EXPOSE 8080
-ENTRYPOINT ["/app/bin/arisam-tunes-backend"]
+ENTRYPOINT ["arisam-entrypoint"]
+CMD ["/app/bin/arisam-tunes-backend"]
