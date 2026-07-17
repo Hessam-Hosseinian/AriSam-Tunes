@@ -55,6 +55,8 @@ class SocialProfileViewModel @Inject constructor(
         .cachedIn(viewModelScope)
     private val _effects = Channel<SocialEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+    private val followActionLock = Any()
+    private var followActionInFlight = false
 
     init { refresh() }
 
@@ -68,23 +70,39 @@ class SocialProfileViewModel @Inject constructor(
             .onFailure { _state.value = _state.value.copy(isLoading = false, hasError = true) }
     }
 
-    fun toggleFollow() = viewModelScope.launch {
+    fun toggleFollow() {
         val before = _state.value
-        val user = before.user ?: return@launch
-        if (before.isOwnProfile || before.isUpdatingFollow) return@launch
+        val user = before.user ?: return
+        if (before.isOwnProfile || !claimFollowAction()) return
+
         _state.update { it.copy(user = user.optimisticFollowToggle(), isUpdatingFollow = true) }
-        try {
-            val updated = if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id)
-            _state.update { it.copy(user = updated) }
-        } catch (cancelled: CancellationException) {
-            _state.update { it.copy(user = user) }
-            throw cancelled
-        } catch (_: Throwable) {
-            _state.update { it.copy(user = user) }
-            _effects.send(SocialEffect.ActionFailed)
-        } finally {
-            _state.update { it.copy(isUpdatingFollow = false) }
+
+        viewModelScope.launch {
+            try {
+                val updated = if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id)
+                _state.update { it.copy(user = updated) }
+            } catch (cancelled: CancellationException) {
+                _state.update { it.copy(user = user) }
+                throw cancelled
+            } catch (_: Throwable) {
+                _state.update { it.copy(user = user) }
+                _effects.send(SocialEffect.ActionFailed)
+            } finally {
+                releaseFollowAction()
+                _state.update { it.copy(isUpdatingFollow = false) }
+            }
         }
+    }
+
+    private fun claimFollowAction(): Boolean = synchronized(followActionLock) {
+        if (followActionInFlight) false else {
+            followActionInFlight = true
+            true
+        }
+    }
+
+    private fun releaseFollowAction() = synchronized(followActionLock) {
+        followActionInFlight = false
     }
 
     fun uploadAvatar(uri: Uri) = viewModelScope.launch {
@@ -120,29 +138,47 @@ class SocialUsersViewModel @Inject constructor(
     val state = _state.asStateFlow()
     private val overrides = MutableStateFlow<Map<String, PublicUserDto>>(emptyMap())
     private val source = if (kind == SocialListKind.Followers) repository.followersPager(userId) else repository.followingPager(userId)
-    val users: Flow<PagingData<PublicUserDto>> = source.combine(overrides) { page, updates ->
+    // Cache the Pager output before combining it with local follow-state changes.
+    // Otherwise each override re-emits a wrapper around the same single-use
+    // pageEventFlow and Paging crashes when Compose starts collecting the update.
+    val users: Flow<PagingData<PublicUserDto>> = source.cachedIn(viewModelScope).combine(overrides) { page, updates ->
         page.map { updates[it.id] ?: it }
-    }.cachedIn(viewModelScope)
+    }
     private val _effects = Channel<SocialEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+    private val followActionLock = Any()
+    private val followActionsInFlight = mutableSetOf<String>()
 
-    fun toggleFollow(user: PublicUserDto) = viewModelScope.launch {
-        if (user.id in _state.value.updatingUserIds) return@launch
+    fun toggleFollow(user: PublicUserDto) {
+        if (!claimFollowAction(user.id)) return
+
         val before = overrides.value[user.id] ?: user
         _state.update { it.copy(updatingUserIds = it.updatingUserIds + user.id) }
         overrides.update { it + (user.id to before.optimisticFollowToggle()) }
-        try {
-            val updated = if (before.isFollowing) repository.unfollow(user.id) else repository.follow(user.id)
-            overrides.update { it + (updated.id to updated) }
-        } catch (cancelled: CancellationException) {
-            overrides.update { it + (user.id to before) }
-            throw cancelled
-        } catch (_: Throwable) {
-            overrides.update { it + (user.id to before) }
-            _effects.send(SocialEffect.ActionFailed)
-        } finally {
-            _state.update { it.copy(updatingUserIds = it.updatingUserIds - user.id) }
+
+        viewModelScope.launch {
+            try {
+                val updated = if (before.isFollowing) repository.unfollow(user.id) else repository.follow(user.id)
+                overrides.update { it + (updated.id to updated) }
+            } catch (cancelled: CancellationException) {
+                overrides.update { it + (user.id to before) }
+                throw cancelled
+            } catch (_: Throwable) {
+                overrides.update { it + (user.id to before) }
+                _effects.send(SocialEffect.ActionFailed)
+            } finally {
+                releaseFollowAction(user.id)
+                _state.update { it.copy(updatingUserIds = it.updatingUserIds - user.id) }
+            }
         }
+    }
+
+    private fun claimFollowAction(userId: String): Boolean = synchronized(followActionLock) {
+        followActionsInFlight.add(userId)
+    }
+
+    private fun releaseFollowAction(userId: String) = synchronized(followActionLock) {
+        followActionsInFlight.remove(userId)
     }
 }
 
