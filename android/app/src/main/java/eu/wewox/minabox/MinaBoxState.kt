@@ -27,6 +27,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlin.math.round
 
 /**
  * Creates a [MinaBoxState] that is remembered across compositions.
@@ -79,6 +80,16 @@ public class MinaBoxState(
     private val isRtl: Boolean
         get() = positionProvider.layoutDirection == LayoutDirection.Rtl
 
+    private var horizontalWrapPeriod: Float? = null
+    private var verticalWrapPeriod: Float? = null
+    private var wrapCenterTileIndex: Int = 1
+
+    internal val layoutTranslateX: Float
+        get() = translateX.value.wrapped(horizontalWrapPeriod)
+
+    internal val layoutTranslateY: Float
+        get() = translateY.value.wrapped(verticalWrapPeriod)
+
     /**
      * The position provider used to get items offsets.
      */
@@ -93,6 +104,22 @@ public class MinaBoxState(
     /** Whether a fling or programmatic position animation is currently running. */
     public var isAnimationRunning: Boolean by mutableStateOf(false)
         private set
+
+    /**
+     * Keeps the logical scroll offset unbounded while mapping its displayed value into a repeated
+     * center tile. This preserves drag and fling velocity across an infinite wrapping seam.
+     */
+    public fun configureWrapping(
+        horizontalPeriod: Float,
+        verticalPeriod: Float,
+        centerTileIndex: Int = 1,
+    ) {
+        require(horizontalPeriod > 0f && verticalPeriod > 0f)
+        require(centerTileIndex >= 0)
+        horizontalWrapPeriod = horizontalPeriod
+        verticalWrapPeriod = verticalPeriod
+        wrapCenterTileIndex = centerTileIndex
+    }
 
     /**
      * Updates bounds of the layout and initializes the position provider.
@@ -126,28 +153,30 @@ public class MinaBoxState(
         }
 
         translateX.updateBounds(
-            lowerBound = maxBounds.left,
-            upperBound = maxBounds.right,
+            lowerBound = if (horizontalWrapPeriod == null) maxBounds.left else null,
+            upperBound = if (horizontalWrapPeriod == null) maxBounds.right else null,
         )
         translateY.updateBounds(
-            lowerBound = maxBounds.top,
-            upperBound = maxBounds.bottom,
+            lowerBound = if (verticalWrapPeriod == null) maxBounds.top else null,
+            upperBound = if (verticalWrapPeriod == null) maxBounds.bottom else null,
         )
 
         updateTranslate(size)
     }
 
     private fun updateTranslate(size: Size) {
+        val displayX = layoutTranslateX
+        val displayY = layoutTranslateY
         if (
             translate == null ||
-            translateX.value != translate?.x ||
-            translateY.value != translate?.y ||
+            displayX != translate?.x ||
+            displayY != translate?.y ||
             translateX.upperBound != translate?.maxX ||
             translateY.upperBound != translate?.maxY
         ) {
             translate = Translate(
-                translateX.value,
-                translateY.value,
+                displayX,
+                displayY,
                 translateX.upperBound ?: 0f,
                 translateY.upperBound ?: 0f,
                 size.width,
@@ -183,14 +212,16 @@ public class MinaBoxState(
      * @param y The new offset on the Y axis.
      */
     public suspend fun animateTo(x: Float = translateX.value, y: Float = translateY.value) {
+        val targetX = x.nearestEquivalentTo(translateX.value, horizontalWrapPeriod)
+        val targetY = y.nearestEquivalentTo(translateY.value, verticalWrapPeriod)
         isAnimationRunning = true
         try {
             coroutineScope {
                 launch {
-                    translateX.animateTo(x)
+                    translateX.animateTo(targetX)
                 }
                 launch {
-                    translateY.animateTo(y)
+                    translateY.animateTo(targetY)
                 }
             }
         } finally {
@@ -355,5 +386,17 @@ public class MinaBoxState(
                 }
             }
         )
+    }
+
+    private fun Float.wrapped(period: Float?): Float {
+        period ?: return this
+        val lowerBound = period * (wrapCenterTileIndex - .5f)
+        val normalized = (this - lowerBound) % period
+        return lowerBound + if (normalized < 0f) normalized + period else normalized
+    }
+
+    private fun Float.nearestEquivalentTo(current: Float, period: Float?): Float {
+        period ?: return this
+        return this + round((current - this) / period) * period
     }
 }

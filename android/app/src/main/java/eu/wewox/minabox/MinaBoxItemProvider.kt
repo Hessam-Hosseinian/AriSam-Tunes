@@ -1,7 +1,7 @@
 package eu.wewox.minabox
 
-// Modified for AriSam Tunes: visible-item lookup avoids chained temporary maps during every frame.
-// The upstream source is documented in third_party/minabox.
+// Modified for AriSam Tunes: visible-item lookup uses a spatial index and avoids chained temporary
+// maps during every frame. The upstream source is documented in third_party/minabox.
 
 import androidx.compose.foundation.lazy.layout.IntervalList
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemProvider
@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.layout.getDefaultLazyLayoutKey
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import kotlin.math.floor
 import kotlin.math.max
 
 /**
@@ -41,6 +42,8 @@ internal class MinaBoxItemProvider(
     val items: Map<Int, MinaBoxItem> =
         intervals.mapAll { index, localIndex, item -> index to item.layoutInfo(localIndex) }.toMap()
 
+    private val spatialLookup: SpatialLookup = buildSpatialLookup(items)
+
     /**
      * The total size of the place occupied by items.
      */
@@ -58,6 +61,10 @@ internal class MinaBoxItemProvider(
 
     override val itemCount: Int =
         intervals.size
+
+    private val candidateMarks = IntArray(itemCount)
+    private val candidateIndices = ArrayList<Int>()
+    private var candidateGeneration = 0
 
     override fun getContentType(index: Int): Any? =
         withLocalIntervalIndex(index) { localIndex, content ->
@@ -99,12 +106,40 @@ internal class MinaBoxItemProvider(
             bottom = translateY - contentPadding.top + size.height,
         )
 
+        candidateIndices.clear()
+        candidateGeneration = if (candidateGeneration == Int.MAX_VALUE) {
+            candidateMarks.fill(0)
+            1
+        } else {
+            candidateGeneration + 1
+        }
+        val startBucketX = viewport.left.bucketCoordinate()
+        val endBucketX = viewport.right.bucketCoordinate()
+        val startBucketY = viewport.top.bucketCoordinate()
+        val endBucketY = viewport.bottom.bucketCoordinate()
+        for (bucketY in startBucketY..endBucketY) {
+            for (bucketX in startBucketX..endBucketX) {
+                spatialLookup.buckets[spatialBucketKey(bucketX, bucketY)]
+                    ?.forEach(::addCandidate)
+            }
+        }
+        spatialLookup.dynamicItemIndices.forEach(::addCandidate)
+        candidateIndices.sort()
+
         return buildMap {
-            items.forEach { (index, info) ->
+            candidateIndices.forEach { index ->
+                val info = items.getValue(index)
                 if (info.overlaps(viewport)) {
                     put(index, info.translate(translateX, translateY, contentPadding, viewport))
                 }
             }
+        }
+    }
+
+    private fun addCandidate(index: Int) {
+        if (candidateMarks[index] != candidateGeneration) {
+            candidateMarks[index] = candidateGeneration
+            candidateIndices += index
         }
     }
 
@@ -126,6 +161,46 @@ internal class MinaBoxItemProvider(
             }
         }
 }
+
+private data class SpatialLookup(
+    val buckets: Map<Long, IntArray>,
+    val dynamicItemIndices: List<Int>,
+)
+
+private fun buildSpatialLookup(items: Map<Int, MinaBoxItem>): SpatialLookup {
+    val buckets = mutableMapOf<Long, MutableList<Int>>()
+    val dynamicItems = mutableListOf<Int>()
+    items.forEach { (index, info) ->
+        if (info.requiresDynamicLookup()) {
+            dynamicItems += index
+        } else {
+            val startBucketX = info.x.bucketCoordinate()
+            val endBucketX = (info.x + info.width.resolve()).bucketCoordinate()
+            val startBucketY = info.y.bucketCoordinate()
+            val endBucketY = (info.y + info.height.resolve()).bucketCoordinate()
+            for (bucketY in startBucketY..endBucketY) {
+                for (bucketX in startBucketX..endBucketX) {
+                    buckets.getOrPut(spatialBucketKey(bucketX, bucketY)) { mutableListOf() } += index
+                }
+            }
+        }
+    }
+    return SpatialLookup(
+        buckets = buckets.mapValues { (_, indices) -> indices.toIntArray() },
+        dynamicItemIndices = dynamicItems,
+    )
+}
+
+private fun MinaBoxItem.requiresDynamicLookup(): Boolean =
+    lockHorizontally || lockVertically ||
+        width is MinaBoxItem.Value.MatchParent || height is MinaBoxItem.Value.MatchParent
+
+private fun Float.bucketCoordinate(): Int = floor(this / SpatialBucketSize).toInt()
+
+private fun spatialBucketKey(x: Int, y: Int): Long =
+    (x.toLong() shl Int.SIZE_BITS) xor (y.toLong() and 0xFFFF_FFFFL)
+
+private const val SpatialBucketSize = 256f
 
 private fun MinaBoxItem.overlaps(other: Rect): Boolean {
     if (lockVertically && lockHorizontally) {

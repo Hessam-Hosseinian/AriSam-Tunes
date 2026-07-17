@@ -33,13 +33,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.Offset
@@ -67,8 +64,6 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 @Composable
@@ -200,27 +195,16 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
         val state = remember(songs.size, tileWidth, tileHeight) {
             MinaBoxState {
                 Offset(tileWidth * CenterTileIndex, tileHeight * CenterTileIndex)
+            }.apply {
+                configureWrapping(
+                    horizontalPeriod = tileWidth,
+                    verticalPeriod = tileHeight,
+                    centerTileIndex = CenterTileIndex,
+                )
             }
         }
         val scope = rememberCoroutineScope()
         val completedSongAnimations = remember(songs) { mutableSetOf<String>() }
-
-        LaunchedEffect(state, tileWidth, tileHeight) {
-            snapshotFlow {
-                state.translate?.let { Offset(it.x, it.y) to state.isAnimationRunning }
-            }
-                .filterNotNull()
-                .distinctUntilChanged()
-                .collect { (offset, isAnimationRunning) ->
-                    if (!isAnimationRunning) {
-                        val wrappedX = offset.x.wrapIntoCenterTile(tileWidth)
-                        val wrappedY = offset.y.wrapIntoCenterTile(tileHeight)
-                        if (wrappedX != offset.x || wrappedY != offset.y) {
-                            state.snapTo(x = wrappedX, y = wrappedY)
-                        }
-                    }
-                }
-        }
 
         MinaBox(
             state = state,
@@ -292,16 +276,25 @@ private fun HexagonSong(
         modifier = Modifier
             .fillMaxSize()
             .padding(3.dp)
-            .scale(scale.value)
-            .rotate(rotation.value)
-            .drawBehind {
-                drawPath(
-                    path = size.createHexagonPath(),
-                    color = Color(0xFF7DD3FC).copy(alpha = .78f),
-                    style = Stroke(width = 3.dp.toPx()),
-                )
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+                rotationZ = rotation.value
+                this.shape = shape
+                clip = true
             }
-            .clip(shape)
+            .drawWithCache {
+                val borderPath = size.createHexagonPath()
+                val borderColor = Color(0xFF7DD3FC).copy(alpha = .78f)
+                val borderWidth = 3.dp.toPx()
+                onDrawBehind {
+                    drawPath(
+                        path = borderPath,
+                        color = borderColor,
+                        style = Stroke(width = borderWidth),
+                    )
+                }
+            }
             .clickable(onClick = onClick),
     ) {
         AsyncImage(
@@ -351,15 +344,6 @@ private fun HexagonSong(
 
 private fun Int.toEven(): Int = if (this % 2 == 0) this else this + 1
 
-private fun Float.wrapIntoCenterTile(period: Float): Float {
-    var wrapped = this
-    val lowerBound = period * (CenterTileIndex - .5f)
-    val upperBound = period * (CenterTileIndex + .5f)
-    while (wrapped < lowerBound) wrapped += period
-    while (wrapped >= upperBound) wrapped -= period
-    return wrapped
-}
-
 @Composable
 private fun SuggestionError(onRetry: () -> Unit) {
     Column(
@@ -400,6 +384,6 @@ private fun Size.createHexagonPath(): Path = Path().apply {
 private const val MinimumHexagonColumns = 4
 private const val HexagonVertices = 6
 private const val WrapBufferCells = 2
-private const val WrapTileCount = 5
+private const val WrapTileCount = 3
 private const val CenterTileIndex = WrapTileCount / 2
 private val HexagonRadius = 70.dp

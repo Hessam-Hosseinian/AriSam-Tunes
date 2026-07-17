@@ -78,8 +78,8 @@ public fun MinaBox(
         )
 
         val items = itemProvider.getItems(
-            state.translateX.value,
-            state.translateY.value,
+            state.layoutTranslateX,
+            state.layoutTranslateY,
             contentPaddingPx,
             size,
         )
