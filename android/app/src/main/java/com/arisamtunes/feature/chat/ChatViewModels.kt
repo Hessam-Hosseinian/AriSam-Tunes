@@ -21,6 +21,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -30,6 +31,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
@@ -50,7 +54,7 @@ data class ChatListUiState(
 )
 
 @HiltViewModel
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class ChatListViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val socialRepository: SocialRepository,
@@ -60,23 +64,17 @@ class ChatListViewModel @Inject constructor(
     val conversations: Flow<PagingData<ChatConversationDto>> = chatRepository.conversationsPager().cachedIn(viewModelScope)
     val starters: Flow<PagingData<PublicUserDto>> = socialRepository.followingPager().cachedIn(viewModelScope)
     private val query = MutableStateFlow("")
-    private val _searchResults = MutableStateFlow<PagingData<PublicUserDto>>(PagingData.empty())
-    val searchResults = _searchResults.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            query.debounce(350).collectLatest { value ->
-                if (value.isBlank()) {
-                    _searchResults.value = PagingData.empty()
-                } else {
-                    socialRepository.searchUsersPager(value).collectLatest {
-                        _searchResults.value = it
-                        _state.value = _state.value.copy(isSearchPending = false)
-                    }
-                }
+    val searchResults: Flow<PagingData<PublicUserDto>> = query
+        .debounce(350)
+        .flatMapLatest { value ->
+            if (value.isBlank()) {
+                flowOf(PagingData.empty())
+            } else {
+                socialRepository.searchUsersPager(value)
             }
         }
-    }
+        .onEach { _state.value = _state.value.copy(isSearchPending = false) }
+        .cachedIn(viewModelScope)
 
     fun updateSearch(value: String) {
         val safe = value.take(100)
