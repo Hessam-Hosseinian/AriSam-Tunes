@@ -11,7 +11,12 @@ class AuthTokenStore @Inject constructor(private val preferencesStore: UserPrefe
         BearerTokens(tokens.accessToken, tokens.refreshToken)
     }
 
-    suspend fun save(tokens: TokenDto) = preferencesStore.saveTokens(tokens.accessToken, tokens.refreshToken)
+    suspend fun save(tokens: TokenDto, shouldShowMusicSuggestions: Boolean? = null) =
+        preferencesStore.saveTokens(
+            accessToken = tokens.accessToken,
+            refreshToken = tokens.refreshToken,
+            shouldShowMusicSuggestions = shouldShowMusicSuggestions,
+        )
 
     suspend fun clear() = preferencesStore.clearTokens()
 }

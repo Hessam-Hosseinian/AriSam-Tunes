@@ -26,6 +26,7 @@ data class UserPreferences(
     val fontScale: Float = 1f,
     val isPremium: Boolean = false,
     val hasAuthTokens: Boolean = false,
+    val shouldShowMusicSuggestions: Boolean = false,
 )
 
 @Singleton
@@ -36,6 +37,7 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
     private val themeKey = stringPreferencesKey("theme")
     private val fontScaleKey = floatPreferencesKey("font_scale")
     private val isPremiumKey = booleanPreferencesKey("is_premium")
+    private val shouldShowMusicSuggestionsKey = booleanPreferencesKey("should_show_music_suggestions")
 
     val preferences: Flow<UserPreferences> = context.userPreferencesDataStore.data.map { values ->
         UserPreferences(
@@ -44,6 +46,7 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
             fontScale = (values[fontScaleKey] ?: 1f).coerceIn(MinFontScale, MaxFontScale),
             isPremium = values[isPremiumKey] ?: false,
             hasAuthTokens = !values[accessTokenKey].isNullOrBlank() && !values[refreshTokenKey].isNullOrBlank(),
+            shouldShowMusicSuggestions = values[shouldShowMusicSuggestionsKey] ?: false,
         )
     }
 
@@ -53,17 +56,30 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
         StoredAuthTokens(access, refresh)
     }
 
-    suspend fun saveTokens(accessToken: String, refreshToken: String) {
+    suspend fun saveTokens(
+        accessToken: String,
+        refreshToken: String,
+        shouldShowMusicSuggestions: Boolean? = null,
+    ) {
         context.userPreferencesDataStore.edit { values ->
             values[accessTokenKey] = accessToken
             values[refreshTokenKey] = refreshToken
+            shouldShowMusicSuggestions?.let { values[shouldShowMusicSuggestionsKey] = it }
         }
+    }
+
+    suspend fun shouldShowMusicSuggestions(): Boolean =
+        context.userPreferencesDataStore.data.first()[shouldShowMusicSuggestionsKey] ?: false
+
+    suspend fun markMusicSuggestionsShown() {
+        context.userPreferencesDataStore.edit { it[shouldShowMusicSuggestionsKey] = false }
     }
 
     suspend fun clearTokens() {
         context.userPreferencesDataStore.edit { values ->
             values.remove(accessTokenKey)
             values.remove(refreshTokenKey)
+            values.remove(shouldShowMusicSuggestionsKey)
         }
     }
 

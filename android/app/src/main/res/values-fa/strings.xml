@@ -330,4 +330,16 @@
     <string name="profile_photo_uploading">در حال بارگذاری عکس…</string>
     <string name="profile_photo_updated">عکس پروفایل به‌روزرسانی شد.</string>
     <string name="profile_photo_upload_failed">بارگذاری عکس پروفایل انجام نشد؛ یک تصویر JPEG، PNG یا WebP کوچک‌تر از ۵ مگابایت انتخاب کنید.</string>
+    <string name="music_suggestions_title">دنیایی از موسیقی برای تو</string>
+    <string name="music_suggestions_subtitle">آهنگ‌هایی را که دوست داری انتخاب کن؛ با لمس دوباره انتخاب برداشته می‌شود و اولین میکس تو را از حال‌وهوایشان می‌سازیم.</string>
+    <string name="music_suggestions_continue">ورود به آری‌سام تیونز</string>
+    <string name="music_suggestions_error">فعلاً نتوانستیم پیشنهادهای موسیقی را بارگذاری کنیم.</string>
+    <string name="music_suggestions_empty">به‌زودی پیشنهادهای تازهٔ موسیقی اینجا نمایش داده می‌شوند.</string>
+    <string name="music_suggestions_selected">انتخاب‌شده</string>
+    <string name="music_suggestions_select_prompt">حداقل یک آهنگ انتخاب کن</string>
+    <string name="music_suggestions_create_playlist">ساخت میکس من · %1$d انتخاب</string>
+    <string name="music_suggestions_creating_playlist">در حال ساخت میکس تو…</string>
+    <string name="music_suggestions_playlist_error">میکس ساخته نشد؛ انتخاب‌هایت محفوظ‌اند، دوباره تلاش کن.</string>
+    <string name="music_suggestions_playlist_name">اولین میکس من</string>
+    <string name="music_suggestions_playlist_description">براساس هنرمندها، سبک‌ها، حال‌وهوا، زبان، برچسب‌ها و دورهٔ انتشار آهنگ‌های انتخابی تو ساخته شده است.</string>
 </resources>

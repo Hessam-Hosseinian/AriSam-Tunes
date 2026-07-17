@@ -51,12 +51,14 @@ import com.arisamtunes.R
 import com.arisamtunes.feature.auth.AuthScreen
 import com.arisamtunes.feature.auth.AuthViewModel
 import com.arisamtunes.feature.auth.AuthEffect
+import com.arisamtunes.feature.suggestions.MusicSuggestionsRoute
 import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.sp
 
 
 private const val SplashRoute = "splash"
 private const val AuthRoute = "auth"
+private const val MusicSuggestionsRoutePath = "music-suggestions"
 private const val MainRoute = "main"
 
 @Composable
@@ -69,6 +71,7 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
         if (!splashComplete || session == SessionState.Checking) return@LaunchedEffect
         val destination = when (session) {
             SessionState.Authenticated -> MainRoute
+            SessionState.MusicSuggestions -> MusicSuggestionsRoutePath
             SessionState.Unauthenticated -> AuthRoute
             SessionState.Checking -> SplashRoute
         }
@@ -94,6 +97,9 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
         }
         composable(MainRoute) {
             AriSamAppShell(onLoggedOut = sessionViewModel::loggedOut)
+        }
+        composable(MusicSuggestionsRoutePath) {
+            MusicSuggestionsRoute(onContinue = sessionViewModel::musicSuggestionsShown)
         }
     }
 }

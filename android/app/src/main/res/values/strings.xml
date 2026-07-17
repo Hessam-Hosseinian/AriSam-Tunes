@@ -330,4 +330,16 @@
     <string name="profile_photo_uploading">Uploading photo…</string>
     <string name="profile_photo_updated">Profile photo updated.</string>
     <string name="profile_photo_upload_failed">Couldn’t upload the profile photo. Try a JPEG, PNG, or WebP image under 5 MB.</string>
+    <string name="music_suggestions_title">A world of music for you</string>
+    <string name="music_suggestions_subtitle">Tap songs you like. Tap again to remove them; we’ll build your first mix from their sound.</string>
+    <string name="music_suggestions_continue">Continue to AriSam Tunes</string>
+    <string name="music_suggestions_error">We couldn’t load the music suggestions right now.</string>
+    <string name="music_suggestions_empty">New music suggestions will appear here soon.</string>
+    <string name="music_suggestions_selected">Selected</string>
+    <string name="music_suggestions_select_prompt">Select at least one song</string>
+    <string name="music_suggestions_create_playlist">Create my mix · %1$d selected</string>
+    <string name="music_suggestions_creating_playlist">Creating your mix…</string>
+    <string name="music_suggestions_playlist_error">Your mix couldn’t be created. Your selections are safe; try again.</string>
+    <string name="music_suggestions_playlist_name">My First Mix</string>
+    <string name="music_suggestions_playlist_description">Made for you from your selected artists, genres, moods, languages, tags, and release eras.</string>
 </resources>

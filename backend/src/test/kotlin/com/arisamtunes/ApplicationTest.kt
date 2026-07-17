@@ -1,8 +1,12 @@
 package com.arisamtunes
 
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import io.ktor.server.config.MapApplicationConfig
 import kotlin.test.Test
@@ -59,6 +63,19 @@ class ApplicationTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertTrue(response.bodyAsText().contains("Swagger UI"))
+    }
+
+    @Test
+    fun `generated playlist endpoint requires authentication`() = testApplication {
+        environment { config = testConfig() }
+        application { module() }
+
+        val response = client.post("/api/v1/playlists/generated") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name":"Mix","song_ids":["00000000-0000-0000-0000-000000000001"]}""")
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 }
 

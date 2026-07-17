@@ -103,6 +103,9 @@ fun HomeScreen(
                 item { NewReleaseSection(state.newReleases, onSongClick) }
             }
             item { QuickAccess(onQuickAction) }
+            if (state.userPlaylists.isNotEmpty()) {
+                item { PlaylistSection(R.string.home_my_playlists, state.userPlaylists, onPlaylistClick) }
+            }
             if (state.popular.isNotEmpty()) {
                 item { ArtworkSongSection(R.string.home_most_popular, state.popular, onSongClick) }
             }

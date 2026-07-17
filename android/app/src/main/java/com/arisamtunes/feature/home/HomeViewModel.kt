@@ -18,6 +18,7 @@ data class HomeUiState(
     val newReleases: List<SongDto> = emptyList(),
     val globalPlaylists: List<PlaylistDto> = emptyList(),
     val localPlaylists: List<PlaylistDto> = emptyList(),
+    val userPlaylists: List<PlaylistDto> = emptyList(),
     val hasError: Boolean = false,
 )
 
@@ -38,6 +39,7 @@ class HomeViewModel @Inject constructor(private val repository: CatalogRepositor
                         isLoading = false, trending = catalog.trending, popular = catalog.popular,
                         newReleases = catalog.newReleases, globalPlaylists = catalog.globalPlaylists,
                         localPlaylists = catalog.localPlaylists,
+                        userPlaylists = catalog.userPlaylists,
                     )
                 }
                 .onFailure { _state.value = _state.value.copy(isLoading = false, hasError = true) }

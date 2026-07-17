@@ -34,6 +34,7 @@ data class HomeCatalog(
     val newReleases: List<SongDto>,
     val globalPlaylists: List<PlaylistDto>,
     val localPlaylists: List<PlaylistDto>,
+    val userPlaylists: List<PlaylistDto>,
 )
 
 @Singleton
@@ -49,12 +50,14 @@ class CatalogRepository @Inject constructor(
         val newReleases = async { client.get("songs/new").body<List<SongDto>>() }
         val global = async { client.get("playlists/global").body<PlaylistListDto>().items }
         val local = async { client.get("playlists/local").body<PlaylistListDto>().items }
+        val user = async { playlists().filter { it.scope == UserPlaylistScope && it.canEdit } }
         HomeCatalog(
             trending.await().map(CatalogUrlNormalizer::song),
             popular.await().map(CatalogUrlNormalizer::song),
             newReleases.await().map(CatalogUrlNormalizer::song),
             global.await().map(CatalogUrlNormalizer::playlist),
             local.await().map(CatalogUrlNormalizer::playlist),
+            user.await(),
         )
     }
 
@@ -71,6 +74,17 @@ class CatalogRepository @Inject constructor(
             parameter("page", page)
             parameter("size", size)
         }.body<SongPageDto>().normalized()
+
+    suspend fun allSongs(): List<SongDto> {
+        val allSongs = mutableListOf<SongDto>()
+        var page = 0
+        do {
+            val response = songs(page = page, size = AllSongsPageSize)
+            allSongs += response.items
+            page++
+        } while (page < response.pagination.totalPages)
+        return allSongs.distinctBy(SongDto::id)
+    }
 
     suspend fun song(id: String): SongDto = CatalogUrlNormalizer.song(client.get("songs/$id").body())
 
@@ -107,11 +121,23 @@ class CatalogRepository @Inject constructor(
 
     suspend fun playlist(id: String): PlaylistDto = CatalogUrlNormalizer.playlist(client.get("playlists/$id").body())
 
-    suspend fun createPlaylist(name: String, description: String?, isPublic: Boolean): PlaylistDto =
+    suspend fun createPlaylist(
+        name: String,
+        description: String?,
+        isPublic: Boolean,
+        coverImageUrl: String? = null,
+    ): PlaylistDto =
         CatalogUrlNormalizer.playlist(
             client.post("playlists") {
                 contentType(ContentType.Application.Json)
-                setBody(PlaylistMutationDto(name = name, description = description?.takeIf(String::isNotBlank), isPublic = isPublic))
+                setBody(
+                    PlaylistMutationDto(
+                        name = name,
+                        description = description?.takeIf(String::isNotBlank),
+                        coverImageUrl = coverImageUrl?.takeIf(String::isNotBlank),
+                        isPublic = isPublic,
+                    ),
+                )
             }.body(),
         )
 
@@ -137,6 +163,27 @@ class CatalogRepository @Inject constructor(
 
     suspend fun removeSongFromPlaylist(playlistId: String, songId: String): PlaylistDto =
         CatalogUrlNormalizer.playlist(client.delete("playlists/$playlistId/songs/$songId").body())
+
+    suspend fun createSuggestedPlaylist(
+        name: String,
+        description: String,
+        songs: List<SongDto>,
+    ): PlaylistDto {
+        require(songs.isNotEmpty())
+        return CatalogUrlNormalizer.playlist(
+            client.post("playlists/generated") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    GeneratedPlaylistMutationDto(
+                        name = name,
+                        description = description,
+                        coverImageUrl = songs.first().coverImageUrl,
+                        songIds = songs.map(SongDto::id),
+                    ),
+                )
+            }.body(),
+        )
+    }
 
     private suspend fun playlistSongs(id: String, page: Int, size: Int): PlaylistSongsDto =
         client.get("playlists/$id/songs") {
@@ -182,7 +229,9 @@ class CatalogRepository @Inject constructor(
         const val ScopeSongs = "songs"
         const val ScopeSearch = "song_search"
         const val CacheKeyAllSongs = "all"
+        const val AllSongsPageSize = 100
         const val PlaylistPlaybackPageSize = 100
+        const val UserPlaylistScope = "USER"
     }
 }
 

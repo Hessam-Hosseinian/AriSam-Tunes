@@ -75,6 +75,14 @@ data class PlaylistMutationDto(
 )
 
 @Serializable
+data class GeneratedPlaylistMutationDto(
+    val name: String,
+    val description: String? = null,
+    @SerialName("cover_image_url") val coverImageUrl: String? = null,
+    @SerialName("song_ids") val songIds: List<String>,
+)
+
+@Serializable
 data class PlaylistSongMutationDto(
     @SerialName("song_id") val songId: String,
 )
