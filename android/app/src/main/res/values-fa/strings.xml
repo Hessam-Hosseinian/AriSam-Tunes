@@ -223,6 +223,17 @@
     <string name="chat_start_with_following">شروع گفتگو</string>
     <string name="chat_tap_to_message">برای ارسال پیام ضربه بزنید</string>
     <string name="chat_recent_messages">پیام‌های اخیر</string>
+    <string name="chat_inbox_eyebrow">حلقهٔ موسیقی تو</string>
+    <string name="chat_inbox_title">گوش کن، به اشتراک بگذار، وصل شو</string>
+    <string name="chat_inbox_subtitle">هر گفتگو را به یک تجربهٔ شنیدن مشترک تبدیل کن.</string>
+    <string name="chat_people_search_hint">شنونده‌ها را پیدا کن و گفتگو را شروع کن</string>
+    <string name="chat_start_with_following_subtitle">آدم‌هایی که همین حالا در حلقهٔ موسیقی تو هستند</string>
+    <string name="chat_recent_messages_subtitle">گفتگو را از همان‌جایی ادامه بده که موسیقی متوقف شد</string>
+    <string name="chat_people_results_title">شنونده‌ها</string>
+    <string name="chat_people_results_subtitle">پروفایل را ببین یا مستقیم پیام بده</string>
+    <string name="chat_empty_title">حلقهٔ موسیقی تو منتظر است</string>
+    <string name="chat_people_empty_title">شنونده‌ای پیدا نشد</string>
+    <string name="chat_inbox_error_title">گفتگوها فعلاً در دسترس نیستند</string>
     <string name="chat_typing">در حال نوشتن…</string>
     <string name="chat_message_hint">پیامی بنویسید…</string>
     <string name="chat_status_offline">آفلاین</string>
@@ -268,6 +279,7 @@
     <string name="chat_reply">پاسخ</string>
     <string name="chat_edit">ویرایش</string>
     <string name="chat_presence_unknown">وضعیت حضور در دسترس نیست</string>
+    <string name="chat_presence_checking">در حال بررسی وضعیت…</string>
     <string name="chat_connecting_hint">در حال اتصال به گفتگو…</string>
     <string name="chat_edit_failed">ویرایش پیام انجام نشد؛ متن شما حفظ شده است.</string>
     <string name="chat_delete_failed">حذف پیام انجام نشد.</string>

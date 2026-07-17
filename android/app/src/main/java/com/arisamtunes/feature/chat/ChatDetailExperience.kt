@@ -22,10 +22,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -139,6 +141,7 @@ fun ChatExperienceRoute(
     val pendingDelete = remember { androidx.compose.runtime.mutableStateOf<ChatMessageDto?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val loadedMessages = messages.itemSnapshotList.items.associateBy(ChatMessageDto::id)
     var bottomContentHeight by remember { mutableIntStateOf(0) }
     val bottomContentPadding = with(density) { bottomContentHeight.toDp() } + 12.dp
@@ -163,7 +166,23 @@ fun ChatExperienceRoute(
     }
 
     LaunchedEffect(messages.itemSnapshotList.items.firstOrNull()?.id) {
-        if (messages.itemCount > 0 && listState.firstVisibleItemIndex < 3) listState.animateScrollToItem(0)
+        if (messages.itemCount > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
+    // Keep the latest message attached to the composer as the IME or a
+    // multi-line draft changes the available height.
+    LaunchedEffect(isImeVisible, bottomContentHeight) {
+        if (isImeVisible && messages.itemCount > 0) {
+            listState.scrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(state.isPeerTyping) {
+        if (state.isPeerTyping && messages.itemCount > 0) {
+            listState.scrollToItem(0)
+        }
     }
 
     LaunchedEffect(state.scrollToMessageId, state.scrollToMessageIndex, messages.itemCount) {
@@ -228,7 +247,7 @@ fun ChatExperienceRoute(
                 )
             },
     ) {
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().imePadding()) {
             ConversationHeader(
                 state = state,
                 onBack = onBack,
@@ -252,10 +271,9 @@ fun ChatExperienceRoute(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 reverseLayout = true,
-                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = bottomContentPadding),
+                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                if (state.isPeerTyping) item(key = "typing") { ModernTypingBubble(state.peer?.displayName.orEmpty()) }
                 items(messages.itemCount, key = { messages.peek(it)?.id ?: it }) { index ->
                     messages[index]?.let { message ->
                         LaunchedEffect(message.id, message.replyToId, message.songId) { viewModel.onMessagePresented(message) }
@@ -293,26 +311,33 @@ fun ChatExperienceRoute(
                     item { NewConversationHero(state.peer?.displayName ?: stringResource(R.string.chat)) }
                 }
             }
-        }
-        Column(
-            Modifier.align(Alignment.BottomCenter).imePadding().onSizeChanged { bottomContentHeight = it.height },
-        ) {
-            miniPlayer(state.songCards.keys)
-            ExperienceComposer(
-                draft = state.draft,
-                replyTo = state.replyTo,
-                editing = state.editingMessage,
-                currentSong = currentSong,
-                isSending = state.isSending,
-                onDraftChange = viewModel::updateDraft,
-                onCancelContext = viewModel::cancelComposerContext,
-                onSendSong = { currentSong?.let { viewModel.sendSong(it.id) } },
-                onSend = viewModel::send,
-            )
+            Column(Modifier.onSizeChanged { bottomContentHeight = it.height }) {
+                AnimatedVisibility(
+                    visible = state.isPeerTyping,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                ) {
+                    Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        ModernTypingBubble(state.peer?.displayName.orEmpty())
+                    }
+                }
+                miniPlayer(state.songCards.keys)
+                ExperienceComposer(
+                    draft = state.draft,
+                    replyTo = state.replyTo,
+                    editing = state.editingMessage,
+                    currentSong = currentSong,
+                    isSending = state.isSending,
+                    onDraftChange = viewModel::updateDraft,
+                    onCancelContext = viewModel::cancelComposerContext,
+                    onSendSong = { currentSong?.let { viewModel.sendSong(it.id) } },
+                    onSend = viewModel::send,
+                )
+            }
         }
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomContentPadding),
+            modifier = Modifier.align(Alignment.BottomCenter).imePadding().padding(bottom = bottomContentPadding),
         )
 
         state.selectedMessage?.let { message ->
@@ -407,15 +432,29 @@ private fun ConversationHeader(
                         )
                         AnimatedContent(state.isPeerTyping, label = "typing-status") { typing ->
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                val peerOnline = state.peerPresence?.isOnline == true
+                                val presenceKnown = state.peerPresence != null
                                 Box(
                                     Modifier
                                         .size(6.dp)
-                                        .background(if (typing) NocturneCyan else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .55f), CircleShape),
+                                        .background(
+                                            when {
+                                                typing || peerOnline -> NocturneCyan
+                                                presenceKnown -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .55f)
+                                                else -> NocturneAmber
+                                            },
+                                            CircleShape,
+                                        ),
                                 )
                                 Text(
-                                    if (typing) stringResource(R.string.chat_typing) else stringResource(R.string.chat_presence_unknown),
+                                    when {
+                                        typing -> stringResource(R.string.chat_typing)
+                                        peerOnline -> stringResource(R.string.chat_online)
+                                        presenceKnown -> stringResource(R.string.chat_offline)
+                                        else -> stringResource(R.string.chat_presence_checking)
+                                    },
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (typing) NocturneCyan else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (typing || peerOnline) NocturneCyan else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }

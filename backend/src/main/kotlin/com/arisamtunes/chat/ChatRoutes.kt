@@ -98,8 +98,9 @@ fun Route.chatRoutes(
         }
         webSocket("/ws/chat") {
             val userId = call.userId()
-            chatConnections.register(userId, this)
+            val becameOnline = chatConnections.register(userId, this)
             sendEnvelope(ChatSocketEnvelope(type = ChatSocketType.CONNECTED))
+            if (becameOnline) chatConnections.publishPresence(userId)
             repository.markPendingDelivered(userId).forEach { delivered ->
                 val receipt = ChatSocketEnvelope(
                     type = ChatSocketType.MESSAGE_DELIVERED,
@@ -129,6 +130,19 @@ fun Route.chatRoutes(
                             ChatSocketType.ADD_REACTION -> handleMessageMutation(userId, envelope, repository, MessageMutation.AddReaction)
                             ChatSocketType.REMOVE_REACTION -> handleMessageMutation(userId, envelope, repository, MessageMutation.RemoveReaction)
                             ChatSocketType.TYPING_START, ChatSocketType.TYPING_STOP -> forwardTyping(userId, envelope)
+                            ChatSocketType.PRESENCE_SUBSCRIBE -> {
+                                val targetId = envelope.recipientId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                if (targetId == null) {
+                                    sendError("VALIDATION_ERROR", requestType = envelope.type)
+                                } else {
+                                    chatConnections.subscribeToPresence(userId, targetId)
+                                    chatConnections.sendPresenceTo(userId, targetId)
+                                }
+                            }
+                            ChatSocketType.PRESENCE_UNSUBSCRIBE -> {
+                                envelope.recipientId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                    ?.let { chatConnections.unsubscribeFromPresence(userId, it) }
+                            }
                             ChatSocketType.MESSAGE_DELIVERED -> handleReceipt(userId, envelope, repository, read = false)
                             ChatSocketType.MESSAGE_READ -> handleReceipt(userId, envelope, repository, read = true)
                             else -> sendError("UNSUPPORTED_MESSAGE_TYPE")
@@ -140,7 +154,10 @@ fun Route.chatRoutes(
                     }
                 }
             } finally {
-                chatConnections.unregister(userId, this)
+                if (chatConnections.unregister(userId, this)) {
+                    chatConnections.publishPresence(userId)
+                    chatConnections.removePresenceSubscriptions(userId)
+                }
             }
         }
     }

@@ -12,6 +12,7 @@ import com.arisamtunes.data.chat.ChatConversationDto
 import com.arisamtunes.data.chat.ChatMessageDto
 import com.arisamtunes.data.chat.ChatMessageStatusDto
 import com.arisamtunes.data.chat.ChatMessageTypeDto
+import com.arisamtunes.data.chat.ChatPresenceDto
 import com.arisamtunes.data.chat.ChatSocketTypeDto
 import com.arisamtunes.data.chat.ChatRepository
 import com.arisamtunes.data.social.PublicUserDto
@@ -45,6 +46,7 @@ class ChatConnectionViewModel @Inject constructor(private val repository: ChatRe
 data class ChatListUiState(
     val searchQuery: String = "",
     val isSearching: Boolean = false,
+    val isSearchPending: Boolean = false,
 )
 
 @HiltViewModel
@@ -67,7 +69,10 @@ class ChatListViewModel @Inject constructor(
                 if (value.isBlank()) {
                     _searchResults.value = PagingData.empty()
                 } else {
-                    socialRepository.searchUsersPager(value).collectLatest { _searchResults.value = it }
+                    socialRepository.searchUsersPager(value).collectLatest {
+                        _searchResults.value = it
+                        _state.value = _state.value.copy(isSearchPending = false)
+                    }
                 }
             }
         }
@@ -75,7 +80,11 @@ class ChatListViewModel @Inject constructor(
 
     fun updateSearch(value: String) {
         val safe = value.take(100)
-        _state.value = _state.value.copy(searchQuery = safe, isSearching = safe.isNotBlank())
+        _state.value = _state.value.copy(
+            searchQuery = safe,
+            isSearching = safe.isNotBlank(),
+            isSearchPending = safe.isNotBlank(),
+        )
         query.value = safe.trim()
     }
 
@@ -114,6 +123,7 @@ data class ChatDetailUiState(
     val scrollToMessageIndex: Int? = null,
     val highlightedMessageId: String? = null,
     val isSending: Boolean = false,
+    val peerPresence: ChatPresenceDto? = null,
 )
 
 @HiltViewModel
@@ -144,6 +154,7 @@ class ChatDetailViewModel @Inject constructor(
     private var draftBeforeEdit: String? = null
 
     init {
+        chatRepository.subscribePresence(userId)
         refreshPeer()
         viewModelScope.launch {
             chatRepository.status.collectLatest { _state.value = _state.value.copy(status = it) }
@@ -187,6 +198,11 @@ class ChatDetailViewModel @Inject constructor(
                     peerTypingExpiryJob?.cancel()
                     _state.value = _state.value.copy(isPeerTyping = false)
                 }
+            }
+        }
+        viewModelScope.launch {
+            chatRepository.presence.collectLatest { presence ->
+                _state.value = _state.value.copy(peerPresence = presence[userId])
             }
         }
     }
@@ -480,6 +496,7 @@ class ChatDetailViewModel @Inject constructor(
         highlightJob?.cancel()
         editAckJob?.cancel()
         if (typingSent) chatRepository.clearTyping(userId)
+        chatRepository.unsubscribePresence(userId)
         super.onCleared()
     }
 }

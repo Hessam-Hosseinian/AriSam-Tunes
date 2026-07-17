@@ -75,4 +75,20 @@ class ChatProtocolTest {
         assertTrue(encoded.contains("\"reply_to_id\""))
         assertEquals("🔥", json.decodeFromString<ChatSocketEnvelope>(encoded).reaction)
     }
+
+    @Test
+    fun `socket protocol carries realtime presence updates`() {
+        val envelope = ChatSocketEnvelope(
+            type = ChatSocketType.PRESENCE_UPDATED,
+            userId = "00000000-0000-0000-0000-000000000002",
+            isOnline = true,
+        )
+
+        val encoded = json.encodeToString(envelope)
+        val decoded = json.decodeFromString<ChatSocketEnvelope>(encoded)
+
+        assertTrue(encoded.contains("\"type\":\"presence_updated\""))
+        assertTrue(decoded.isOnline == true)
+        assertEquals(envelope.userId, decoded.userId)
+    }
 }
