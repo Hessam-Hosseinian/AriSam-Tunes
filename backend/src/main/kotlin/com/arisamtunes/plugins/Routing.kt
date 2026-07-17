@@ -3,6 +3,7 @@ package com.arisamtunes.plugins
 import com.arisamtunes.model.HealthResponse
 import com.arisamtunes.auth.authRoutes
 import com.arisamtunes.auth.profileRoutes
+import com.arisamtunes.config.AppConfig
 import com.arisamtunes.catalog.catalogRoutes
 import com.arisamtunes.catalog.mediaRoutes
 import com.arisamtunes.catalog.sharedSongRoutes
@@ -19,6 +20,7 @@ import io.ktor.server.routing.routing
 private const val API_V1 = "/api/v1"
 
 fun Application.configureRouting() {
+    val publicBaseUrl = AppConfig.from(environment.config).publicBaseUrl
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
         mediaRoutes()
@@ -26,7 +28,7 @@ fun Application.configureRouting() {
         route(API_V1) {
             swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
             authRoutes(authService)
-            profileRoutes(authService)
+            profileRoutes(authService, publicBaseUrl)
             catalogRoutes()
             playlistRoutes()
             socialRoutes()

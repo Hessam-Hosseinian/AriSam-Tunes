@@ -1,5 +1,6 @@
 package com.arisamtunes.feature.social
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,13 +23,18 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-sealed interface SocialEffect { data object ActionFailed : SocialEffect }
+sealed interface SocialEffect {
+    data object ActionFailed : SocialEffect
+    data object AvatarUpdated : SocialEffect
+    data object AvatarUploadFailed : SocialEffect
+}
 
 data class SocialProfileUiState(
     val isLoading: Boolean = true,
     val user: PublicUserDto? = null,
     val hasError: Boolean = false,
     val isUpdatingFollow: Boolean = false,
+    val isUploadingAvatar: Boolean = false,
     val isOwnProfile: Boolean = false,
 )
 
@@ -67,6 +73,20 @@ class SocialProfileViewModel @Inject constructor(
         runCatching { if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id) }
             .onSuccess { _state.value = _state.value.copy(user = it, isUpdatingFollow = false) }
             .onFailure { _state.value = _state.value.copy(isUpdatingFollow = false); _effects.send(SocialEffect.ActionFailed) }
+    }
+
+    fun uploadAvatar(uri: Uri) = viewModelScope.launch {
+        if (!_state.value.isOwnProfile || _state.value.isUploadingAvatar) return@launch
+        _state.value = _state.value.copy(isUploadingAvatar = true)
+        runCatching { repository.uploadAvatar(uri) }
+            .onSuccess { user ->
+                _state.value = _state.value.copy(user = user, isUploadingAvatar = false)
+                _effects.send(SocialEffect.AvatarUpdated)
+            }
+            .onFailure {
+                _state.value = _state.value.copy(isUploadingAvatar = false)
+                _effects.send(SocialEffect.AvatarUploadFailed)
+            }
     }
 }
 

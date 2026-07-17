@@ -32,6 +32,7 @@ services:
       DB_USER: ${POSTGRES_USER:-arisam}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-arisam_dev_password}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      AVATAR_DATA_FOLDER: /app/uploads/avatars
       JWT_SECRET: ${JWT_SECRET:-arisam-local-development-secret-change-before-production}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
@@ -40,11 +41,13 @@ services:
         condition: service_healthy
     volumes:
       - ./music_data:/app/music_data:ro
+      - arisam-avatar-data:/app/uploads/avatars
     networks:
       - arisam-network
 
 volumes:
   arisam-postgres-data:
+  arisam-avatar-data:
 
 networks:
   arisam-network:

@@ -1,5 +1,8 @@
 package com.arisamtunes.feature.social
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Chat
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.AssistChip
@@ -82,7 +86,22 @@ fun SocialProfileRoute(
     val playlists = viewModel.playlists.collectAsLazyPagingItems()
     val snackbar = remember { SnackbarHostState() }
     val actionFailed = stringResource(R.string.social_action_failed)
-    LaunchedEffect(Unit) { viewModel.effects.collect { snackbar.showSnackbar(actionFailed) } }
+    val avatarUpdated = stringResource(R.string.profile_photo_updated)
+    val avatarUploadFailed = stringResource(R.string.profile_photo_upload_failed)
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::uploadAvatar)
+    }
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            snackbar.showSnackbar(
+                when (effect) {
+                    SocialEffect.ActionFailed -> actionFailed
+                    SocialEffect.AvatarUpdated -> avatarUpdated
+                    SocialEffect.AvatarUploadFailed -> avatarUploadFailed
+                },
+            )
+        }
+    }
     Box(Modifier.fillMaxSize()) {
     when {
         state.isLoading -> Loading()
@@ -92,6 +111,7 @@ fun SocialProfileRoute(
                 user = user,
                 playlists = playlists,
                 isUpdatingFollow = state.isUpdatingFollow,
+                isUploadingAvatar = state.isUploadingAvatar,
                 isOwnProfile = state.isOwnProfile,
                 onBack = onBack,
                 onFollowClick = viewModel::toggleFollow,
@@ -99,6 +119,9 @@ fun SocialProfileRoute(
                 onFollowingClick = { onFollowingClick(user.id) },
                 onPlaylistClick = onPlaylistClick,
                 onMessageClick = { onMessageClick(user.id) },
+                onAvatarClick = {
+                    avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
             )
         } ?: EmptyState(R.string.social_profile_empty)
     }
@@ -111,6 +134,7 @@ private fun SocialProfileContent(
     user: PublicUserDto,
     playlists: LazyPagingItems<PlaylistDto>,
     isUpdatingFollow: Boolean,
+    isUploadingAvatar: Boolean,
     isOwnProfile: Boolean,
     onBack: (() -> Unit)?,
     onFollowClick: () -> Unit,
@@ -118,6 +142,7 @@ private fun SocialProfileContent(
     onFollowingClick: () -> Unit,
     onPlaylistClick: (PlaylistDto) -> Unit,
     onMessageClick: () -> Unit,
+    onAvatarClick: () -> Unit,
 ) {
     val spacing = AriSamThemeTokens.spacing
     LazyColumn(
@@ -128,7 +153,7 @@ private fun SocialProfileContent(
         verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
         item {
-            ProfileHero(user, onBack)
+            ProfileHero(user, onBack, isOwnProfile, isUploadingAvatar, onAvatarClick)
         }
         item {
             ProfileStats(user, onFollowersClick, onFollowingClick)
@@ -191,7 +216,13 @@ private fun SocialProfileContent(
 }
 
 @Composable
-private fun ProfileHero(user: PublicUserDto, onBack: (() -> Unit)?) {
+private fun ProfileHero(
+    user: PublicUserDto,
+    onBack: (() -> Unit)?,
+    isOwnProfile: Boolean,
+    isUploadingAvatar: Boolean,
+    onAvatarClick: () -> Unit,
+) {
     Box(Modifier.fillMaxWidth().height(280.dp)) {
         Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.background))))
         Box(Modifier.size(190.dp).align(Alignment.TopEnd).background(MaterialTheme.colorScheme.primary.copy(alpha = .08f), CircleShape))
@@ -203,7 +234,34 @@ private fun ProfileHero(user: PublicUserDto, onBack: (() -> Unit)?) {
         }
         Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box {
-                Avatar(user, Modifier.size(118.dp).border(4.dp, Color.White.copy(alpha = .92f), CircleShape))
+                if (isOwnProfile) {
+                    PressScaleBox(onAvatarClick, enabled = !isUploadingAvatar) {
+                        Avatar(user, Modifier.size(118.dp).border(4.dp, Color.White.copy(alpha = .92f), CircleShape))
+                    }
+                } else {
+                    Avatar(user, Modifier.size(118.dp).border(4.dp, Color.White.copy(alpha = .92f), CircleShape))
+                }
+                if (isUploadingAvatar) {
+                    Box(
+                        Modifier.size(118.dp).clip(CircleShape).background(Color.Black.copy(alpha = .52f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(Modifier.size(30.dp), color = Color.White, strokeWidth = 3.dp)
+                    }
+                } else if (isOwnProfile) {
+                    Surface(
+                        onClick = onAvatarClick,
+                        modifier = Modifier.align(Alignment.BottomStart).size(36.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.surface),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.PhotoCamera, stringResource(R.string.profile_change_photo), Modifier.size(18.dp))
+                        }
+                    }
+                }
                 if (user.isPremium) {
                     Surface(Modifier.align(Alignment.BottomEnd).size(32.dp), CircleShape, AriSamThemeTokens.tehranAmber, border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.surface)) {
                         Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Verified, stringResource(R.string.premium_active), tint = MaterialTheme.colorScheme.background, modifier = Modifier.size(18.dp)) }
@@ -211,6 +269,13 @@ private fun ProfileHero(user: PublicUserDto, onBack: (() -> Unit)?) {
                 }
             }
             Text(user.displayName, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (isOwnProfile) {
+                Text(
+                    stringResource(if (isUploadingAvatar) R.string.profile_photo_uploading else R.string.profile_change_photo),
+                    color = Color.White.copy(alpha = .72f),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
         }
     }
 }

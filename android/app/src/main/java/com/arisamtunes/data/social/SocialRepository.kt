@@ -1,5 +1,8 @@
 package com.arisamtunes.data.social
 
+import android.content.Context
+import android.net.Uri
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.arisamtunes.data.auth.UserDto
 import com.arisamtunes.data.catalog.CatalogUrlNormalizer
 import com.arisamtunes.data.catalog.PlaylistDto
@@ -13,16 +16,41 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.arisamtunes.data.local.dao.CachedUserProfileDao
 import com.arisamtunes.data.local.entity.CachedUserProfileEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class SocialRepository @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val client: HttpClient,
     private val cachedUserProfileDao: CachedUserProfileDao,
 ) {
+    suspend fun uploadAvatar(uri: Uri): PublicUserDto = withContext(Dispatchers.IO) {
+        val image = ProfileImageEncoder.encode(context.contentResolver, uri)
+        client.submitFormWithBinaryData(
+            url = "users/me/avatar",
+            formData = formData {
+                append(
+                    key = "avatar",
+                    value = image.bytes,
+                    headers = Headers.build {
+                        append(HttpHeaders.ContentType, image.contentType)
+                        append(HttpHeaders.ContentDisposition, "filename=\"${image.fileName}\"")
+                    },
+                )
+            },
+        ).body<com.arisamtunes.data.auth.UserDto>()
+        currentUser()
+    }
+
     suspend fun currentUser(): PublicUserDto {
         val me = client.get("auth/me").body<UserDto>()
         return user(me.id)

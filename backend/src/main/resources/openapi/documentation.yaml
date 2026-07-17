@@ -175,6 +175,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserResponse"
+  /users/me/avatar:
+    post:
+      tags: [Profile]
+      summary: Upload my profile picture
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Updated profile with avatar URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "413":
+          $ref: "#/components/responses/Error"
+        "415":
+          $ref: "#/components/responses/Error"
   /songs:
     get:
       tags: [Catalog]

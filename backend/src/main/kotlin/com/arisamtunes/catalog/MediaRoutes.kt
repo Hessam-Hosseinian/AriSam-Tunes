@@ -18,9 +18,11 @@ fun Application.configureMediaStreaming() {
 
 fun Route.mediaRoutes(musicRoot: Path = Path.of(System.getenv("MUSIC_DATA_FOLDER") ?: "music_data")) {
     val root = musicRoot.toAbsolutePath().normalize()
+    val avatarRoot = Path.of(System.getenv("AVATAR_DATA_FOLDER") ?: "uploads/avatars").toAbsolutePath().normalize()
     route("/media") {
         get("/audio/{path...}") { call.respondMedia(root, call.parameters.getAll("path")?.joinToString("/")) }
         get("/covers/{path...}") { call.respondMedia(root.resolve("covers"), call.parameters.getAll("path")?.joinToString("/")) }
+        get("/avatars/{path...}") { call.respondMedia(avatarRoot, call.parameters.getAll("path")?.joinToString("/")) }
     }
 }
 
