@@ -12,6 +12,7 @@ import com.arisamtunes.data.chat.ChatConversationDto
 import com.arisamtunes.data.chat.ChatMessageDto
 import com.arisamtunes.data.chat.ChatMessageStatusDto
 import com.arisamtunes.data.chat.ChatMessageTypeDto
+import com.arisamtunes.data.chat.ChatPresenceDto
 import com.arisamtunes.data.chat.ChatSocketTypeDto
 import com.arisamtunes.data.chat.ChatRepository
 import com.arisamtunes.data.social.PublicUserDto
@@ -20,6 +21,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -29,6 +31,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
@@ -45,10 +50,11 @@ class ChatConnectionViewModel @Inject constructor(private val repository: ChatRe
 data class ChatListUiState(
     val searchQuery: String = "",
     val isSearching: Boolean = false,
+    val isSearchPending: Boolean = false,
 )
 
 @HiltViewModel
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class ChatListViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val socialRepository: SocialRepository,
@@ -58,24 +64,25 @@ class ChatListViewModel @Inject constructor(
     val conversations: Flow<PagingData<ChatConversationDto>> = chatRepository.conversationsPager().cachedIn(viewModelScope)
     val starters: Flow<PagingData<PublicUserDto>> = socialRepository.followingPager().cachedIn(viewModelScope)
     private val query = MutableStateFlow("")
-    private val _searchResults = MutableStateFlow<PagingData<PublicUserDto>>(PagingData.empty())
-    val searchResults = _searchResults.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            query.debounce(350).collectLatest { value ->
-                if (value.isBlank()) {
-                    _searchResults.value = PagingData.empty()
-                } else {
-                    socialRepository.searchUsersPager(value).collectLatest { _searchResults.value = it }
-                }
+    val searchResults: Flow<PagingData<PublicUserDto>> = query
+        .debounce(350)
+        .flatMapLatest { value ->
+            if (value.isBlank()) {
+                flowOf(PagingData.empty())
+            } else {
+                socialRepository.searchUsersPager(value)
             }
         }
-    }
+        .onEach { _state.value = _state.value.copy(isSearchPending = false) }
+        .cachedIn(viewModelScope)
 
     fun updateSearch(value: String) {
         val safe = value.take(100)
-        _state.value = _state.value.copy(searchQuery = safe, isSearching = safe.isNotBlank())
+        _state.value = _state.value.copy(
+            searchQuery = safe,
+            isSearching = safe.isNotBlank(),
+            isSearchPending = safe.isNotBlank(),
+        )
         query.value = safe.trim()
     }
 
@@ -114,6 +121,7 @@ data class ChatDetailUiState(
     val scrollToMessageIndex: Int? = null,
     val highlightedMessageId: String? = null,
     val isSending: Boolean = false,
+    val peerPresence: ChatPresenceDto? = null,
 )
 
 @HiltViewModel
@@ -144,6 +152,7 @@ class ChatDetailViewModel @Inject constructor(
     private var draftBeforeEdit: String? = null
 
     init {
+        chatRepository.subscribePresence(userId)
         refreshPeer()
         viewModelScope.launch {
             chatRepository.status.collectLatest { _state.value = _state.value.copy(status = it) }
@@ -187,6 +196,11 @@ class ChatDetailViewModel @Inject constructor(
                     peerTypingExpiryJob?.cancel()
                     _state.value = _state.value.copy(isPeerTyping = false)
                 }
+            }
+        }
+        viewModelScope.launch {
+            chatRepository.presence.collectLatest { presence ->
+                _state.value = _state.value.copy(peerPresence = presence[userId])
             }
         }
     }
@@ -480,6 +494,7 @@ class ChatDetailViewModel @Inject constructor(
         highlightJob?.cancel()
         editAckJob?.cancel()
         if (typingSent) chatRepository.clearTyping(userId)
+        chatRepository.unsubscribePresence(userId)
         super.onCleared()
     }
 }

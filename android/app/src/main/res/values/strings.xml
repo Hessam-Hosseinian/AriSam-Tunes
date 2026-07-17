@@ -223,6 +223,17 @@
     <string name="chat_start_with_following">Start a conversation</string>
     <string name="chat_tap_to_message">Tap to send a message</string>
     <string name="chat_recent_messages">Recent messages</string>
+    <string name="chat_inbox_eyebrow">YOUR SOUND CIRCLE</string>
+    <string name="chat_inbox_title">Listen. Share. Connect.</string>
+    <string name="chat_inbox_subtitle">Turn every conversation into a shared listening moment.</string>
+    <string name="chat_people_search_hint">Find listeners and start a conversation</string>
+    <string name="chat_start_with_following_subtitle">People already in your music circle</string>
+    <string name="chat_recent_messages_subtitle">Pick up right where the music stopped</string>
+    <string name="chat_people_results_title">Listeners</string>
+    <string name="chat_people_results_subtitle">Open a profile or jump straight into chat</string>
+    <string name="chat_empty_title">Your sound circle is waiting</string>
+    <string name="chat_people_empty_title">No listeners found</string>
+    <string name="chat_inbox_error_title">Couldn’t tune into your conversations</string>
     <string name="chat_typing">typing…</string>
     <string name="chat_message_hint">Write a message…</string>
     <string name="chat_status_offline">Offline</string>
@@ -268,6 +279,7 @@
     <string name="chat_reply">Reply</string>
     <string name="chat_edit">Edit</string>
     <string name="chat_presence_unknown">Presence unavailable</string>
+    <string name="chat_presence_checking">Checking status…</string>
     <string name="chat_connecting_hint">Connecting to chat…</string>
     <string name="chat_edit_failed">Couldn’t edit the message. Your text is still here.</string>
     <string name="chat_delete_failed">Couldn’t delete the message.</string>

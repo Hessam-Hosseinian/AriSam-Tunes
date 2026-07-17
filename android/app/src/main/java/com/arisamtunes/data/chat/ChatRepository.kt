@@ -84,7 +84,10 @@ class ChatRepository @Inject constructor(
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val events: SharedFlow<ChatSocketEnvelopeDto> = _events
+    private val _presence = MutableStateFlow<Map<String, ChatPresenceDto>>(emptyMap())
+    val presence: StateFlow<Map<String, ChatPresenceDto>> = _presence
     private val readReceiptsInFlight = ConcurrentHashMap.newKeySet<String>()
+    private val presenceSubscriptions = ConcurrentHashMap.newKeySet<String>()
     private val conversationSources = CopyOnWriteArraySet<ConversationsPagingSource>()
     private var connectionJob: Job? = null
     private var activeSession: DefaultClientWebSocketSession? = null
@@ -116,7 +119,24 @@ class ChatRepository @Inject constructor(
         activeSession = null
         cachedUserId = null
         readReceiptsInFlight.clear()
+        presenceSubscriptions.clear()
+        _presence.value = emptyMap()
         _status.value = ChatConnectionStatus.Disconnected
+    }
+
+    fun subscribePresence(userId: String) {
+        presenceSubscriptions.add(userId)
+        scope.launch {
+            sendEnvelope(ChatSocketEnvelopeDto(type = ChatSocketTypeDto.PRESENCE_SUBSCRIBE, recipientId = userId))
+        }
+    }
+
+    fun unsubscribePresence(userId: String) {
+        if (!presenceSubscriptions.remove(userId)) return
+        _presence.value = _presence.value - userId
+        scope.launch {
+            sendEnvelope(ChatSocketEnvelopeDto(type = ChatSocketTypeDto.PRESENCE_UNSUBSCRIBE, recipientId = userId))
+        }
     }
 
     fun conversationsPager(): Flow<PagingData<ChatConversationDto>> = Pager(
@@ -279,10 +299,16 @@ class ChatRepository @Inject constructor(
                     runPostConnectStep("sync") { synchronizeChanges() }
                     runPostConnectStep("outbox") { flushPendingMessages() }
                     runPostConnectStep("receipts") { flushPendingReadReceipts() }
+                    runPostConnectStep("presence") { restorePresenceSubscriptions() }
                     for (frame in incoming) {
                         if (frame !is Frame.Text) continue
                         runCatching { json.decodeFromString<ChatSocketEnvelopeDto>(frame.readText()) }
                             .onSuccess { event ->
+                                if (event.type == ChatSocketTypeDto.PRESENCE_UPDATED && event.userId != null && event.isOnline != null) {
+                                    _presence.value = _presence.value + (
+                                        event.userId to ChatPresenceDto(event.userId, event.isOnline, event.lastSeenAt)
+                                    )
+                                }
                                 persistSocketEvent(event)
                                 _events.emit(event)
                             }
@@ -347,6 +373,12 @@ class ChatRepository @Inject constructor(
             ) {
                 readReceiptsInFlight.remove(message.messageId)
             }
+        }
+    }
+
+    private suspend fun restorePresenceSubscriptions() {
+        presenceSubscriptions.forEach { userId ->
+            sendEnvelope(ChatSocketEnvelopeDto(type = ChatSocketTypeDto.PRESENCE_SUBSCRIBE, recipientId = userId))
         }
     }
 

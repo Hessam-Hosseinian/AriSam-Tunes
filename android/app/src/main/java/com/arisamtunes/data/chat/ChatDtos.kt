@@ -20,6 +20,9 @@ enum class ChatSocketTypeDto {
     @SerialName("message_read") MESSAGE_READ,
     @SerialName("typing_start") TYPING_START,
     @SerialName("typing_stop") TYPING_STOP,
+    @SerialName("presence_subscribe") PRESENCE_SUBSCRIBE,
+    @SerialName("presence_unsubscribe") PRESENCE_UNSUBSCRIBE,
+    @SerialName("presence_updated") PRESENCE_UPDATED,
     @SerialName("edit_message") EDIT_MESSAGE,
     @SerialName("delete_message") DELETE_MESSAGE,
     @SerialName("add_reaction") ADD_REACTION,
@@ -33,6 +36,12 @@ data class ChatReactionDto(
     val reaction: String,
     val count: Int,
     @SerialName("reacted_by_me") val reactedByMe: Boolean = false,
+)
+
+data class ChatPresenceDto(
+    val userId: String,
+    val isOnline: Boolean,
+    val lastSeenAt: String? = null,
 )
 
 @Serializable
@@ -92,6 +101,9 @@ data class ChatSocketEnvelopeDto(
     @SerialName("sender_id") val senderId: String? = null,
     @SerialName("client_message_id") val clientMessageId: String? = null,
     @SerialName("recipient_id") val recipientId: String? = null,
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("is_online") val isOnline: Boolean? = null,
+    @SerialName("last_seen_at") val lastSeenAt: String? = null,
     @SerialName("message_type") val messageType: ChatMessageTypeDto? = null,
     val content: String? = null,
     @SerialName("song_id") val songId: String? = null,
