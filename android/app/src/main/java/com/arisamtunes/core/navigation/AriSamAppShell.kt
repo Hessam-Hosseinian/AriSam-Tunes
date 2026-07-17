@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +71,9 @@ import com.arisamtunes.feature.player.PlayerViewModel
 import com.arisamtunes.feature.settings.SettingsRoute
 import com.arisamtunes.feature.songdetail.SongDetailRoute
 import com.arisamtunes.feature.social.SocialProfileRoute
+import com.arisamtunes.feature.social.SocialProfileViewModel
 import com.arisamtunes.feature.social.SocialUsersRoute
+import coil3.compose.AsyncImage
 
 private const val SettingsRoutePath = "settings"
 private const val PlaylistDetailRoutePattern = "playlist/{playlistId}"
@@ -89,6 +93,8 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val playerViewModel: PlayerViewModel = hiltViewModel()
     val playerState by playerViewModel.state.collectAsStateWithLifecycle()
     val chatConnectionViewModel: ChatConnectionViewModel = hiltViewModel()
+    val currentUserProfileViewModel: SocialProfileViewModel = hiltViewModel()
+    val currentUserProfileState by currentUserProfileViewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(chatConnectionViewModel, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -174,9 +180,10 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         IconButton(onClick = { navController.navigateSingleTop(SettingsRoutePath) }) {
                             Icon(Icons.Rounded.Settings, stringResource(R.string.settings))
                         }
-                        IconButton(onClick = { navController.navigateTopLevel(AppDestination.Profile.route) }) {
-                            Icon(Icons.Rounded.AccountCircle, stringResource(R.string.profile_picture))
-                        }
+                        HeaderProfileAction(
+                            avatarUrl = currentUserProfileState.user?.avatarUrl,
+                            onClick = { navController.navigateTopLevel(AppDestination.Profile.route) },
+                        )
                     },
                 )
             }
@@ -316,6 +323,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onFollowingClick = { navController.navigate(userListRoute(it, "following")) },
                         onPlaylistClick = { navController.navigate(playlistRoute(it.id)) },
                         onMessageClick = { navController.navigate(chatRoute(it)) },
+                        viewModel = currentUserProfileViewModel,
                     )
                 }
                 composable(UserProfileRoutePattern) {
@@ -339,6 +347,38 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onLoggedOut = onLoggedOut,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeaderProfileAction(
+    avatarUrl: String?,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .55f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (avatarUrl.isNullOrBlank()) {
+                Icon(
+                    Icons.Rounded.AccountCircle,
+                    stringResource(R.string.profile_picture),
+                    modifier = Modifier.size(27.dp),
+                )
+            } else {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = stringResource(R.string.profile_picture),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }

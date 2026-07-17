@@ -203,6 +203,10 @@
     <string name="social_followers">Followers</string>
     <string name="social_following">Following</string>
     <string name="social_following_badge">Following</string>
+    <string name="social_followers_list_subtitle">People connected to this listening world</string>
+    <string name="social_following_list_subtitle">The voices shaping this listening world</string>
+    <string name="social_no_followers_title">The first connection starts here</string>
+    <string name="social_no_following_title">A fresh listening circle</string>
     <string name="social_followers_count">%1$d followers</string>
     <string name="social_following_count">%1$d following</string>
     <string name="social_public_playlists">Public playlists</string>
@@ -330,6 +334,13 @@
     <string name="profile_photo_uploading">Uploading photo…</string>
     <string name="profile_photo_updated">Profile photo updated.</string>
     <string name="profile_photo_upload_failed">Couldn’t upload the profile photo. Try a JPEG, PNG, or WebP image under 5 MB.</string>
+    <string name="profile_listener">AriSam listener</string>
+    <string name="profile_premium_listener">Premium listener</string>
+    <string name="profile_about">About this listener</string>
+    <string name="profile_identity_eyebrow">LISTENING IDENTITY</string>
+    <string name="profile_shared_sound_own">The sound you share with the world</string>
+    <string name="profile_shared_sound_other">The sound they share with the world</string>
+    <string name="profile_no_playlists_title">A quiet collection—for now</string>
     <string name="music_suggestions_title">A world of music for you</string>
     <string name="music_suggestions_subtitle">Tap songs you like. Tap again to remove them; we’ll build your first mix from their sound.</string>
     <string name="music_suggestions_continue">Continue to AriSam Tunes</string>

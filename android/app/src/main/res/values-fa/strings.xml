@@ -203,6 +203,10 @@
     <string name="social_followers">دنبال‌کننده‌ها</string>
     <string name="social_following">دنبال‌شده‌ها</string>
     <string name="social_following_badge">دنبال می‌کنید</string>
+    <string name="social_followers_list_subtitle">آدم‌هایی که به این دنیای شنیداری وصل‌اند</string>
+    <string name="social_following_list_subtitle">صداهایی که این دنیای شنیداری را می‌سازند</string>
+    <string name="social_no_followers_title">اولین ارتباط از همین‌جا شروع می‌شود</string>
+    <string name="social_no_following_title">یک حلقهٔ شنیداری تازه</string>
     <string name="social_followers_count">%1$d دنبال‌کننده</string>
     <string name="social_following_count">%1$d دنبال‌شده</string>
     <string name="social_public_playlists">فهرست‌های عمومی</string>
@@ -330,6 +334,13 @@
     <string name="profile_photo_uploading">در حال بارگذاری عکس…</string>
     <string name="profile_photo_updated">عکس پروفایل به‌روزرسانی شد.</string>
     <string name="profile_photo_upload_failed">بارگذاری عکس پروفایل انجام نشد؛ یک تصویر JPEG، PNG یا WebP کوچک‌تر از ۵ مگابایت انتخاب کنید.</string>
+    <string name="profile_listener">شنوندهٔ آری‌سام</string>
+    <string name="profile_premium_listener">شنوندهٔ پریمیوم</string>
+    <string name="profile_about">دربارهٔ این شنونده</string>
+    <string name="profile_identity_eyebrow">هویت شنیداری</string>
+    <string name="profile_shared_sound_own">صدایی که با دنیا به اشتراک می‌گذاری</string>
+    <string name="profile_shared_sound_other">صدایی که با دنیا به اشتراک می‌گذارد</string>
+    <string name="profile_no_playlists_title">فعلاً مجموعه در سکوت است</string>
     <string name="music_suggestions_title">دنیایی از موسیقی برای تو</string>
     <string name="music_suggestions_subtitle">آهنگ‌هایی را که دوست داری انتخاب کن؛ با لمس دوباره انتخاب برداشته می‌شود و اولین میکس تو را از حال‌وهوایشان می‌سازیم.</string>
     <string name="music_suggestions_continue">ورود به آری‌سام تیونز</string>
