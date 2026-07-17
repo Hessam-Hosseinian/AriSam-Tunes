@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 sealed interface SocialEffect {
@@ -57,17 +58,50 @@ class SocialProfileViewModel @Inject constructor(
     val effects = _effects.receiveAsFlow()
     private val followActionLock = Any()
     private var followActionInFlight = false
+    private var refreshJob: Job? = null
+    private var hasEnteredForeground = false
 
     init { refresh() }
 
-    fun refresh() = viewModelScope.launch {
-        _state.value = _state.value.copy(isLoading = true, hasError = false)
-        runCatching { if (requestedUserId.isNullOrBlank()) repository.currentUser() else repository.user(requestedUserId) }
-            .onSuccess { user ->
-                loadedUserId.value = user.id
-                _state.value = SocialProfileUiState(user = user, isLoading = false, isOwnProfile = requestedUserId.isNullOrBlank())
-            }
-            .onFailure { _state.value = _state.value.copy(isLoading = false, hasError = true) }
+    fun refresh() {
+        loadProfile(showLoading = true)
+    }
+
+    fun onForeground() {
+        if (hasEnteredForeground) {
+            loadProfile(showLoading = false)
+        } else {
+            hasEnteredForeground = true
+        }
+    }
+
+    private fun loadProfile(showLoading: Boolean) {
+        if (refreshJob?.isActive == true) return
+        if (showLoading) {
+            _state.update { it.copy(isLoading = true, hasError = false) }
+        }
+        refreshJob = viewModelScope.launch {
+            runCatching { if (requestedUserId.isNullOrBlank()) repository.currentUser() else repository.user(requestedUserId) }
+                .onSuccess { user ->
+                    loadedUserId.value = user.id
+                    _state.update {
+                        it.copy(
+                            user = user,
+                            isLoading = false,
+                            hasError = false,
+                            isOwnProfile = requestedUserId.isNullOrBlank(),
+                        )
+                    }
+                }
+                .onFailure {
+                    _state.update { current ->
+                        current.copy(
+                            isLoading = false,
+                            hasError = current.user == null,
+                        )
+                    }
+                }
+        }
     }
 
     fun toggleFollow() {
