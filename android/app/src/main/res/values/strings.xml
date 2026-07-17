@@ -330,6 +330,13 @@
     <string name="profile_photo_uploading">Uploading photo…</string>
     <string name="profile_photo_updated">Profile photo updated.</string>
     <string name="profile_photo_upload_failed">Couldn’t upload the profile photo. Try a JPEG, PNG, or WebP image under 5 MB.</string>
+    <string name="profile_listener">AriSam listener</string>
+    <string name="profile_premium_listener">Premium listener</string>
+    <string name="profile_about">About this listener</string>
+    <string name="profile_identity_eyebrow">LISTENING IDENTITY</string>
+    <string name="profile_shared_sound_own">The sound you share with the world</string>
+    <string name="profile_shared_sound_other">The sound they share with the world</string>
+    <string name="profile_no_playlists_title">A quiet collection—for now</string>
     <string name="music_suggestions_title">A world of music for you</string>
     <string name="music_suggestions_subtitle">Tap songs you like. Tap again to remove them; we’ll build your first mix from their sound.</string>
     <string name="music_suggestions_continue">Continue to AriSam Tunes</string>
