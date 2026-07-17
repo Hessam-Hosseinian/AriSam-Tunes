@@ -203,6 +203,10 @@
     <string name="social_followers">Followers</string>
     <string name="social_following">Following</string>
     <string name="social_following_badge">Following</string>
+    <string name="social_followers_list_subtitle">People connected to this listening world</string>
+    <string name="social_following_list_subtitle">The voices shaping this listening world</string>
+    <string name="social_no_followers_title">The first connection starts here</string>
+    <string name="social_no_following_title">A fresh listening circle</string>
     <string name="social_followers_count">%1$d followers</string>
     <string name="social_following_count">%1$d following</string>
     <string name="social_public_playlists">Public playlists</string>

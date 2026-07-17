@@ -13,6 +13,7 @@ import com.arisamtunes.data.social.SocialRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 sealed interface SocialEffect {
@@ -67,12 +69,22 @@ class SocialProfileViewModel @Inject constructor(
     }
 
     fun toggleFollow() = viewModelScope.launch {
-        val user = _state.value.user ?: return@launch
-        if (_state.value.isOwnProfile || _state.value.isUpdatingFollow) return@launch
-        _state.value = _state.value.copy(isUpdatingFollow = true)
-        runCatching { if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id) }
-            .onSuccess { _state.value = _state.value.copy(user = it, isUpdatingFollow = false) }
-            .onFailure { _state.value = _state.value.copy(isUpdatingFollow = false); _effects.send(SocialEffect.ActionFailed) }
+        val before = _state.value
+        val user = before.user ?: return@launch
+        if (before.isOwnProfile || before.isUpdatingFollow) return@launch
+        _state.update { it.copy(user = user.optimisticFollowToggle(), isUpdatingFollow = true) }
+        try {
+            val updated = if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id)
+            _state.update { it.copy(user = updated) }
+        } catch (cancelled: CancellationException) {
+            _state.update { it.copy(user = user) }
+            throw cancelled
+        } catch (_: Throwable) {
+            _state.update { it.copy(user = user) }
+            _effects.send(SocialEffect.ActionFailed)
+        } finally {
+            _state.update { it.copy(isUpdatingFollow = false) }
+        }
     }
 
     fun uploadAvatar(uri: Uri) = viewModelScope.launch {
@@ -116,10 +128,29 @@ class SocialUsersViewModel @Inject constructor(
 
     fun toggleFollow(user: PublicUserDto) = viewModelScope.launch {
         if (user.id in _state.value.updatingUserIds) return@launch
-        _state.value = _state.value.copy(updatingUserIds = _state.value.updatingUserIds + user.id)
-        runCatching { if (user.isFollowing) repository.unfollow(user.id) else repository.follow(user.id) }
-            .onSuccess { updated -> overrides.value = overrides.value + (updated.id to updated) }
-            .onFailure { _effects.send(SocialEffect.ActionFailed) }
-        _state.value = _state.value.copy(updatingUserIds = _state.value.updatingUserIds - user.id)
+        val before = overrides.value[user.id] ?: user
+        _state.update { it.copy(updatingUserIds = it.updatingUserIds + user.id) }
+        overrides.update { it + (user.id to before.optimisticFollowToggle()) }
+        try {
+            val updated = if (before.isFollowing) repository.unfollow(user.id) else repository.follow(user.id)
+            overrides.update { it + (updated.id to updated) }
+        } catch (cancelled: CancellationException) {
+            overrides.update { it + (user.id to before) }
+            throw cancelled
+        } catch (_: Throwable) {
+            overrides.update { it + (user.id to before) }
+            _effects.send(SocialEffect.ActionFailed)
+        } finally {
+            _state.update { it.copy(updatingUserIds = it.updatingUserIds - user.id) }
+        }
     }
+}
+
+internal fun PublicUserDto.optimisticFollowToggle(): PublicUserDto {
+    val willFollow = !isFollowing
+    val followerDelta = if (willFollow) 1 else -1
+    return copy(
+        isFollowing = willFollow,
+        followersCount = (followersCount + followerDelta).coerceAtLeast(0),
+    )
 }

@@ -12,6 +12,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -20,11 +21,13 @@ import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.arisamtunes.data.local.dao.CachedUserProfileDao
 import com.arisamtunes.data.local.entity.CachedUserProfileEntity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 
 @Singleton
@@ -96,13 +99,15 @@ class SocialRepository @Inject constructor(
         pagingSourceFactory = { SocialPagingSource { page, size -> followersPage(userId, page, size) } },
     ).flow
 
-    suspend fun follow(userId: String): PublicUserDto = client.post("users/$userId/follow").body<FollowDto>().user.also {
-        cachedUserProfileDao.upsert(it.toCacheEntity())
-    }
+    suspend fun follow(userId: String): PublicUserDto = followResult(
+        userId = userId,
+        response = client.post("users/$userId/follow"),
+    )
 
-    suspend fun unfollow(userId: String): PublicUserDto = client.delete("users/$userId/follow").body<FollowDto>().user.also {
-        cachedUserProfileDao.upsert(it.toCacheEntity())
-    }
+    suspend fun unfollow(userId: String): PublicUserDto = followResult(
+        userId = userId,
+        response = client.delete("users/$userId/follow"),
+    )
 
     suspend fun publicPlaylists(userId: String): List<PlaylistDto> =
         client.get("users/$userId/playlists") {
@@ -132,6 +137,21 @@ class SocialRepository @Inject constructor(
 
     private suspend fun publicPlaylistsPage(userId: String, page: Int, size: Int): PublicPlaylistListDto =
         client.get("users/$userId/playlists") { parameter("page", page); parameter("size", size) }.body()
+
+    private suspend fun followResult(userId: String, response: HttpResponse): PublicUserDto {
+        check(response.status.isSuccess()) { "Follow action failed with HTTP ${response.status.value}" }
+        // Older deployments may return 204 (or an empty 200) for DELETE. In that
+        // case, reload the public user instead of trying to decode an absent body.
+        val updated = try {
+            response.body<FollowDto>().user
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Throwable) {
+            user(userId)
+        }
+        cachedUserProfileDao.upsert(updated.toCacheEntity())
+        return updated
+    }
 
     private class SocialPagingSource(
         private val loadPage: suspend (Int, Int) -> PublicUserListDto,

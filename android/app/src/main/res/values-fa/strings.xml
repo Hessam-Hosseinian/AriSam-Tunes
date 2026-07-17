@@ -203,6 +203,10 @@
     <string name="social_followers">دنبال‌کننده‌ها</string>
     <string name="social_following">دنبال‌شده‌ها</string>
     <string name="social_following_badge">دنبال می‌کنید</string>
+    <string name="social_followers_list_subtitle">آدم‌هایی که به این دنیای شنیداری وصل‌اند</string>
+    <string name="social_following_list_subtitle">صداهایی که این دنیای شنیداری را می‌سازند</string>
+    <string name="social_no_followers_title">اولین ارتباط از همین‌جا شروع می‌شود</string>
+    <string name="social_no_following_title">یک حلقهٔ شنیداری تازه</string>
     <string name="social_followers_count">%1$d دنبال‌کننده</string>
     <string name="social_following_count">%1$d دنبال‌شده</string>
     <string name="social_public_playlists">فهرست‌های عمومی</string>
