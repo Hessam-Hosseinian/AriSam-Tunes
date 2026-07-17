@@ -1,5 +1,8 @@
 package eu.wewox.minabox
 
+// Modified for AriSam Tunes: visible-item lookup avoids chained temporary maps during every frame.
+// The upstream source is documented in third_party/minabox.
+
 import androidx.compose.foundation.lazy.layout.IntervalList
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemProvider
 import androidx.compose.foundation.lazy.layout.getDefaultLazyLayoutKey
@@ -96,11 +99,13 @@ internal class MinaBoxItemProvider(
             bottom = translateY - contentPadding.top + size.height,
         )
 
-        return items
-            .filterValues { it.overlaps(viewport) }
-            .mapValues { (_, info) ->
-                info.translate(translateX, translateY, contentPadding, viewport)
+        return buildMap {
+            items.forEach { (index, info) ->
+                if (info.overlaps(viewport)) {
+                    put(index, info.translate(translateX, translateY, contentPadding, viewport))
+                }
             }
+        }
     }
 
     private inline fun <T> withLocalIntervalIndex(

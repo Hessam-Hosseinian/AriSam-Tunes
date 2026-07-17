@@ -1,5 +1,8 @@
 package eu.wewox.minabox
 
+// Modified for AriSam Tunes: drag deltas are coalesced and gesture velocity is reset so rapid
+// two-dimensional scrolling stays responsive. The upstream source is documented in third_party/minabox.
+
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -25,6 +28,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.min
@@ -156,59 +160,121 @@ private fun PaddingValues.toPx(): Rect {
 private fun Modifier.lazyLayoutPointerInput(
     state: MinaBoxState,
     scrollDirection: MinaBoxScrollDirection,
-): Modifier = pointerInput(Unit) {
+): Modifier = pointerInput(state, scrollDirection) {
     val velocityTracker = VelocityTracker()
     coroutineScope {
+        val dragAccumulator = DragDeltaAccumulator(state, this)
         when (scrollDirection) {
             MinaBoxScrollDirection.BOTH -> detectDragGestures(
-                onDragEnd = { onDragEnd(state, velocityTracker, scrollDirection, this) },
+                onDragStart = { onDragStart(state, velocityTracker, dragAccumulator, this) },
+                onDragEnd = { onDragEnd(state, velocityTracker, scrollDirection, dragAccumulator, this) },
+                onDragCancel = { onDragCancel(velocityTracker, dragAccumulator) },
                 onDrag = { change, dragAmount ->
-                    onDrag(state, change, dragAmount, velocityTracker, this)
+                    onDrag(change, dragAmount, velocityTracker, dragAccumulator)
                 }
             )
 
             MinaBoxScrollDirection.HORIZONTAL -> detectHorizontalDragGestures(
-                onDragEnd = { onDragEnd(state, velocityTracker, scrollDirection, this) },
+                onDragStart = { onDragStart(state, velocityTracker, dragAccumulator, this) },
+                onDragEnd = { onDragEnd(state, velocityTracker, scrollDirection, dragAccumulator, this) },
+                onDragCancel = { onDragCancel(velocityTracker, dragAccumulator) },
                 onHorizontalDrag = { change, dragAmount ->
-                    onDrag(state, change, Offset(dragAmount, 0f), velocityTracker, this)
+                    onDrag(change, Offset(dragAmount, 0f), velocityTracker, dragAccumulator)
                 }
             )
 
             MinaBoxScrollDirection.VERTICAL -> detectVerticalDragGestures(
-                onDragEnd = { onDragEnd(state, velocityTracker, scrollDirection, this) },
+                onDragStart = { onDragStart(state, velocityTracker, dragAccumulator, this) },
+                onDragEnd = { onDragEnd(state, velocityTracker, scrollDirection, dragAccumulator, this) },
+                onDragCancel = { onDragCancel(velocityTracker, dragAccumulator) },
                 onVerticalDrag = { change, dragAmount ->
-                    onDrag(state, change, Offset(0f, dragAmount), velocityTracker, this)
+                    onDrag(change, Offset(0f, dragAmount), velocityTracker, dragAccumulator)
                 }
             )
         }
     }
 }
 
-private fun onDrag(
+private fun onDragStart(
     state: MinaBoxState,
+    velocityTracker: VelocityTracker,
+    dragAccumulator: DragDeltaAccumulator,
+    scope: CoroutineScope,
+) {
+    velocityTracker.resetTracking()
+    dragAccumulator.reset()
+    scope.launch { state.stopAnimation() }
+}
+
+private fun onDrag(
     change: PointerInputChange,
     dragAmount: Offset,
     velocityTracker: VelocityTracker,
-    scope: CoroutineScope
+    dragAccumulator: DragDeltaAccumulator,
 ) {
     change.consume()
     velocityTracker.addPosition(change.uptimeMillis, change.position)
-    scope.launch {
-        state.dragBy(dragAmount)
-    }
+    dragAccumulator.add(dragAmount)
 }
 
 private fun onDragEnd(
     state: MinaBoxState,
     velocityTracker: VelocityTracker,
     scrollDirection: MinaBoxScrollDirection,
-    scope: CoroutineScope
+    dragAccumulator: DragDeltaAccumulator,
+    scope: CoroutineScope,
 ) {
     var velocity = velocityTracker.calculateVelocity()
+    velocityTracker.resetTracking()
     velocity = when (scrollDirection) {
         MinaBoxScrollDirection.BOTH -> velocity
         MinaBoxScrollDirection.HORIZONTAL -> velocity.copy(velocity.x, 0f)
         MinaBoxScrollDirection.VERTICAL -> velocity.copy(0f, velocity.y)
     }
-    scope.launch { state.flingBy(velocity) }
+    scope.launch {
+        dragAccumulator.awaitDrained()
+        state.flingBy(velocity)
+    }
+}
+
+private fun onDragCancel(
+    velocityTracker: VelocityTracker,
+    dragAccumulator: DragDeltaAccumulator,
+) {
+    velocityTracker.resetTracking()
+    dragAccumulator.reset()
+}
+
+private class DragDeltaAccumulator(
+    private val state: MinaBoxState,
+    private val scope: CoroutineScope,
+) {
+    private var pending = Offset.Zero
+    private var drainJob: Job? = null
+
+    fun add(delta: Offset) {
+        pending += delta
+        if (drainJob?.isActive != true) {
+            drainJob = scope.launch { drain() }
+        }
+    }
+
+    fun reset() {
+        pending = Offset.Zero
+        drainJob?.cancel()
+        drainJob = null
+    }
+
+    suspend fun awaitDrained() {
+        drainJob?.join()
+        if (pending != Offset.Zero) drain()
+    }
+
+    private suspend fun drain() {
+        while (pending != Offset.Zero) {
+            val delta = pending
+            pending = Offset.Zero
+            state.dragBy(delta)
+        }
+    }
 }

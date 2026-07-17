@@ -197,19 +197,25 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
         val tileWidth = columns * horizontalStep
         val tileHeight = rows * itemSize.height
         val state = remember(songs.size, tileWidth, tileHeight) {
-            MinaBoxState { Offset(tileWidth, tileHeight) }
+            MinaBoxState {
+                Offset(tileWidth * CenterTileIndex, tileHeight * CenterTileIndex)
+            }
         }
         val scope = rememberCoroutineScope()
 
         LaunchedEffect(state, tileWidth, tileHeight) {
-            snapshotFlow { state.translate?.let { Offset(it.x, it.y) } }
+            snapshotFlow {
+                state.translate?.let { Offset(it.x, it.y) to state.isAnimationRunning }
+            }
                 .filterNotNull()
                 .distinctUntilChanged()
-                .collect { offset ->
-                    val wrappedX = offset.x.wrapIntoCenterTile(tileWidth)
-                    val wrappedY = offset.y.wrapIntoCenterTile(tileHeight)
-                    if (wrappedX != offset.x || wrappedY != offset.y) {
-                        state.snapTo(x = wrappedX, y = wrappedY)
+                .collect { (offset, isAnimationRunning) ->
+                    if (!isAnimationRunning) {
+                        val wrappedX = offset.x.wrapIntoCenterTile(tileWidth)
+                        val wrappedY = offset.y.wrapIntoCenterTile(tileHeight)
+                        if (wrappedX != offset.x || wrappedY != offset.y) {
+                            state.snapTo(x = wrappedX, y = wrappedY)
+                        }
                     }
                 }
         }
@@ -332,8 +338,10 @@ private fun Int.toEven(): Int = if (this % 2 == 0) this else this + 1
 
 private fun Float.wrapIntoCenterTile(period: Float): Float {
     var wrapped = this
-    while (wrapped < period * .5f) wrapped += period
-    while (wrapped >= period * 1.5f) wrapped -= period
+    val lowerBound = period * (CenterTileIndex - .5f)
+    val upperBound = period * (CenterTileIndex + .5f)
+    while (wrapped < lowerBound) wrapped += period
+    while (wrapped >= upperBound) wrapped -= period
     return wrapped
 }
 
@@ -377,5 +385,6 @@ private fun Size.createHexagonPath(): Path = Path().apply {
 private const val MinimumHexagonColumns = 4
 private const val HexagonVertices = 6
 private const val WrapBufferCells = 2
-private const val WrapTileCount = 3
+private const val WrapTileCount = 5
+private const val CenterTileIndex = WrapTileCount / 2
 private val HexagonRadius = 70.dp

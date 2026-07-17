@@ -1,5 +1,8 @@
 package eu.wewox.minabox
 
+// Modified for AriSam Tunes: exposes active motion so an infinite tiled plane can wrap only after
+// a fling or center animation finishes. The upstream source is documented in third_party/minabox.
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.exponentialDecay
@@ -85,6 +88,10 @@ public class MinaBoxState(
      * Offset on the plane, if null state is not initialised.
      */
     public var translate: Translate? by mutableStateOf(null)
+        private set
+
+    /** Whether a fling or programmatic position animation is currently running. */
+    public var isAnimationRunning: Boolean by mutableStateOf(false)
         private set
 
     /**
@@ -176,13 +183,18 @@ public class MinaBoxState(
      * @param y The new offset on the Y axis.
      */
     public suspend fun animateTo(x: Float = translateX.value, y: Float = translateY.value) {
-        coroutineScope {
-            launch {
-                translateX.animateTo(x)
+        isAnimationRunning = true
+        try {
+            coroutineScope {
+                launch {
+                    translateX.animateTo(x)
+                }
+                launch {
+                    translateY.animateTo(y)
+                }
             }
-            launch {
-                translateY.animateTo(y)
-            }
+        } finally {
+            isAnimationRunning = false
         }
     }
 
@@ -209,17 +221,22 @@ public class MinaBoxState(
      * @param velocity The velocity to fling by.
      */
     public suspend fun flingBy(velocity: Velocity) {
-        coroutineScope {
-            launch {
-                if (isRtl) {
-                    translateX.animateDecay(velocity.x, exponentialDecay())
-                } else {
-                    translateX.animateDecay(-velocity.x, exponentialDecay())
+        isAnimationRunning = true
+        try {
+            coroutineScope {
+                launch {
+                    if (isRtl) {
+                        translateX.animateDecay(velocity.x, exponentialDecay())
+                    } else {
+                        translateX.animateDecay(-velocity.x, exponentialDecay())
+                    }
+                }
+                launch {
+                    translateY.animateDecay(-velocity.y, exponentialDecay())
                 }
             }
-            launch {
-                translateY.animateDecay(-velocity.y, exponentialDecay())
-            }
+        } finally {
+            isAnimationRunning = false
         }
     }
 
