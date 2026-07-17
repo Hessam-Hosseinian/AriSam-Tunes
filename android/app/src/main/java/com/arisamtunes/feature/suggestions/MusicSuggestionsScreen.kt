@@ -1,11 +1,11 @@
 package com.arisamtunes.feature.suggestions
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -32,6 +32,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +42,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -57,10 +60,14 @@ import com.arisamtunes.R
 import com.arisamtunes.data.catalog.SongDto
 import eu.wewox.minabox.MinaBox
 import eu.wewox.minabox.MinaBoxItem
+import eu.wewox.minabox.MinaBoxState
+import kotlin.math.ceil
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 @Composable
@@ -175,25 +182,72 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
             height = halfHeight.toPx() * 2f,
         )
     }
-    MinaBox(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-    ) {
-        items(
-            count = songs.size,
-            key = { songs[it].id },
-            layoutInfo = { index ->
-                val column = index % HexagonColumns
-                val row = index / HexagonColumns
-                MinaBoxItem(
-                    x = column * itemSize.width * .75f,
-                    y = (if (column % 2 == 1) itemSize.height * .5f else 0f) + row * itemSize.height,
-                    width = itemSize.width,
-                    height = itemSize.height,
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val viewportWidth = constraints.maxWidth.toFloat()
+        val viewportHeight = constraints.maxHeight.toFloat()
+        val horizontalStep = itemSize.width * .75f
+        val minimumColumns = ceil(viewportWidth / horizontalStep).toInt() + WrapBufferCells
+        val columns = minimumColumns.coerceAtLeast(MinimumHexagonColumns).toEven()
+        val minimumRows = ceil(viewportHeight / itemSize.height).toInt() + WrapBufferCells
+        val rows = maxOf(
+            minimumRows,
+            ceil(songs.size.toFloat() / columns).toInt(),
+        )
+        val cellsPerTile = columns * rows
+        val tileWidth = columns * horizontalStep
+        val tileHeight = rows * itemSize.height
+        val state = remember(songs.size, tileWidth, tileHeight) {
+            MinaBoxState { Offset(tileWidth, tileHeight) }
+        }
+        val scope = rememberCoroutineScope()
+
+        LaunchedEffect(state, tileWidth, tileHeight) {
+            snapshotFlow { state.translate?.let { Offset(it.x, it.y) } }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { offset ->
+                    val wrappedX = offset.x.wrapIntoCenterTile(tileWidth)
+                    val wrappedY = offset.y.wrapIntoCenterTile(tileHeight)
+                    if (wrappedX != offset.x || wrappedY != offset.y) {
+                        state.snapTo(x = wrappedX, y = wrappedY)
+                    }
+                }
+        }
+
+        MinaBox(
+            state = state,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            items(
+                count = cellsPerTile * WrapTileCount * WrapTileCount,
+                key = { index ->
+                    val cell = index % cellsPerTile
+                    val copy = index / cellsPerTile
+                    "$copy:$cell:${songs[cell % songs.size].id}"
+                },
+                layoutInfo = { index ->
+                    val cell = index % cellsPerTile
+                    val copy = index / cellsPerTile
+                    val tileColumn = copy % WrapTileCount
+                    val tileRow = copy / WrapTileCount
+                    val column = cell % columns
+                    val row = cell / columns
+                    MinaBoxItem(
+                        x = tileColumn * tileWidth + column * horizontalStep,
+                        y = tileRow * tileHeight +
+                            (if (column % 2 == 1) itemSize.height * .5f else 0f) +
+                            row * itemSize.height,
+                        width = itemSize.width,
+                        height = itemSize.height,
+                    )
+                },
+            ) { index ->
+                HexagonSong(
+                    song = songs[(index % cellsPerTile) % songs.size],
+                    onClick = { scope.launch { state.animateTo(index) } },
                 )
-            },
-        ) { index ->
-            HexagonSong(songs[index], index)
+            }
         }
     }
 }
@@ -203,13 +257,13 @@ private fun HexagonSongPlane(songs: List<SongDto>) {
  * The upstream Apache-2.0 license is included at third_party/minabox/LICENSE.md.
  */
 @Composable
-private fun HexagonSong(song: SongDto, index: Int) {
-    val rotation = remember(song.id) { Animatable(-10f) }
-    val scale = remember(song.id) { Animatable(.72f) }
-    LaunchedEffect(song.id) {
-        delay((index.coerceAtMost(12) * 28L))
-        launch { scale.animateTo(1f, tween(420, easing = FastOutSlowInEasing)) }
-        launch { rotation.animateTo(0f, tween(420, easing = FastOutSlowInEasing)) }
+private fun HexagonSong(song: SongDto, onClick: () -> Unit) {
+    val rotation = remember { Animatable(-15f) }
+    val scale = remember { Animatable(.5f) }
+    LaunchedEffect(Unit) {
+        delay(100)
+        launch { scale.animateTo(1f) }
+        launch { rotation.animateTo(0f) }
     }
     val shape = remember { GenericShape { size, _ -> addPath(size.createHexagonPath()) } }
 
@@ -226,7 +280,8 @@ private fun HexagonSong(song: SongDto, index: Int) {
                     style = Stroke(width = 3.dp.toPx()),
                 )
             }
-            .clip(shape),
+            .clip(shape)
+            .clickable(onClick = onClick),
     ) {
         AsyncImage(
             model = song.coverImageUrl,
@@ -273,6 +328,15 @@ private fun HexagonSong(song: SongDto, index: Int) {
     }
 }
 
+private fun Int.toEven(): Int = if (this % 2 == 0) this else this + 1
+
+private fun Float.wrapIntoCenterTile(period: Float): Float {
+    var wrapped = this
+    while (wrapped < period * .5f) wrapped += period
+    while (wrapped >= period * 1.5f) wrapped -= period
+    return wrapped
+}
+
 @Composable
 private fun SuggestionError(onRetry: () -> Unit) {
     Column(
@@ -310,6 +374,8 @@ private fun Size.createHexagonPath(): Path = Path().apply {
     close()
 }
 
-private const val HexagonColumns = 4
+private const val MinimumHexagonColumns = 4
 private const val HexagonVertices = 6
+private const val WrapBufferCells = 2
+private const val WrapTileCount = 3
 private val HexagonRadius = 70.dp

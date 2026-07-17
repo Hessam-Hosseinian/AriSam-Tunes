@@ -72,6 +72,17 @@ class CatalogRepository @Inject constructor(
             parameter("size", size)
         }.body<SongPageDto>().normalized()
 
+    suspend fun allSongs(): List<SongDto> {
+        val allSongs = mutableListOf<SongDto>()
+        var page = 0
+        do {
+            val response = songs(page = page, size = AllSongsPageSize)
+            allSongs += response.items
+            page++
+        } while (page < response.pagination.totalPages)
+        return allSongs.distinctBy(SongDto::id)
+    }
+
     suspend fun song(id: String): SongDto = CatalogUrlNormalizer.song(client.get("songs/$id").body())
 
     suspend fun songSpectrum(id: String): SongSpectrumDto = client.get("songs/$id/spectrum").body()
@@ -182,6 +193,7 @@ class CatalogRepository @Inject constructor(
         const val ScopeSongs = "songs"
         const val ScopeSearch = "song_search"
         const val CacheKeyAllSongs = "all"
+        const val AllSongsPageSize = 100
         const val PlaylistPlaybackPageSize = 100
     }
 }

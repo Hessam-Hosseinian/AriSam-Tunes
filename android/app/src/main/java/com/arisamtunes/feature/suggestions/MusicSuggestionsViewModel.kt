@@ -31,13 +31,11 @@ class MusicSuggestionsViewModel @Inject constructor(
         if (_state.value.isLoading && _state.value.songs.isNotEmpty()) return
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, hasError = false)
-            runCatching { catalogRepository.home() }
-                .onSuccess { catalog ->
+            runCatching { catalogRepository.allSongs() }
+                .onSuccess { songs ->
                     _state.value = MusicSuggestionsUiState(
                         isLoading = false,
-                        songs = (catalog.trending + catalog.popular + catalog.newReleases)
-                            .distinctBy(SongDto::id)
-                            .take(MaxSuggestionCount),
+                        songs = songs,
                     )
                 }
                 .onFailure {
@@ -46,7 +44,4 @@ class MusicSuggestionsViewModel @Inject constructor(
         }
     }
 
-    private companion object {
-        const val MaxSuggestionCount = 30
-    }
 }
