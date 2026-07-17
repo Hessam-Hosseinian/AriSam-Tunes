@@ -330,4 +330,9 @@
     <string name="profile_photo_uploading">در حال بارگذاری عکس…</string>
     <string name="profile_photo_updated">عکس پروفایل به‌روزرسانی شد.</string>
     <string name="profile_photo_upload_failed">بارگذاری عکس پروفایل انجام نشد؛ یک تصویر JPEG، PNG یا WebP کوچک‌تر از ۵ مگابایت انتخاب کنید.</string>
+    <string name="music_suggestions_title">دنیایی از موسیقی برای تو</string>
+    <string name="music_suggestions_subtitle">بین آهنگ‌ها بچرخ؛ در مرحلهٔ بعد می‌توانی پیشنهادها را مطابق سلیقه‌ات تنظیم کنی.</string>
+    <string name="music_suggestions_continue">ورود به آری‌سام تیونز</string>
+    <string name="music_suggestions_error">فعلاً نتوانستیم پیشنهادهای موسیقی را بارگذاری کنیم.</string>
+    <string name="music_suggestions_empty">به‌زودی پیشنهادهای تازهٔ موسیقی اینجا نمایش داده می‌شوند.</string>
 </resources>

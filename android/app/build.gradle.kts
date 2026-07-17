@@ -93,6 +93,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        optIn.add("androidx.compose.foundation.ExperimentalFoundationApi")
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

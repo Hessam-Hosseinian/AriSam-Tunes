@@ -22,7 +22,7 @@ class AuthRepository @Inject constructor(private val api: AuthApi, private val t
         } catch (failure: Throwable) {
             throw failure.asAuthConnectionFailure()
         }
-        tokenStore.save(tokens)
+        tokenStore.save(tokens, shouldShowMusicSuggestions = mode == AuthMode.Register)
     }
 
     /**

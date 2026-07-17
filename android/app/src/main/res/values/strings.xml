@@ -330,4 +330,9 @@
     <string name="profile_photo_uploading">Uploading photo…</string>
     <string name="profile_photo_updated">Profile photo updated.</string>
     <string name="profile_photo_upload_failed">Couldn’t upload the profile photo. Try a JPEG, PNG, or WebP image under 5 MB.</string>
+    <string name="music_suggestions_title">A world of music for you</string>
+    <string name="music_suggestions_subtitle">Explore the songs around you. You’ll be able to tune these suggestions next.</string>
+    <string name="music_suggestions_continue">Continue to AriSam Tunes</string>
+    <string name="music_suggestions_error">We couldn’t load the music suggestions right now.</string>
+    <string name="music_suggestions_empty">New music suggestions will appear here soon.</string>
 </resources>
