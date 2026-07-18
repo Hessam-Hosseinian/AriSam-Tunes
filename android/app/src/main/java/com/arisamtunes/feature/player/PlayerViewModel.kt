@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.arisamtunes.data.catalog.CatalogRepository
 import com.arisamtunes.data.catalog.SongDto
+import com.arisamtunes.data.catalog.SongSpectrumDto
 import com.arisamtunes.data.local.LocalLibraryRepository
 import com.arisamtunes.feature.downloads.DownloadWorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,6 +62,9 @@ class PlayerViewModel @Inject constructor(
     fun seekTo(seconds: Int) = playbackController.seekTo(seconds)
 
     fun seekToMillis(positionMillis: Long) = playbackController.seekToMillis(positionMillis)
+
+    suspend fun songSpectrum(songId: String): SongSpectrumDto? =
+        runCatching { catalogRepository.songSpectrum(songId) }.getOrNull()
 
     fun close() = playbackController.close()
 }

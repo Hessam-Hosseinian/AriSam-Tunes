@@ -68,6 +68,7 @@ import com.arisamtunes.feature.player.MiniPlayer
 import com.arisamtunes.feature.player.ChatMiniPlayer
 import com.arisamtunes.feature.player.NowPlayingRoute
 import com.arisamtunes.feature.player.PlayerViewModel
+import com.arisamtunes.feature.player.RhythmGameRoute
 import com.arisamtunes.feature.settings.SettingsRoute
 import com.arisamtunes.feature.songdetail.SongDetailRoute
 import com.arisamtunes.feature.social.SocialProfileRoute
@@ -79,6 +80,7 @@ private const val SettingsRoutePath = "settings"
 private const val PlaylistDetailRoutePattern = "playlist/{playlistId}"
 private const val SongDetailRoutePattern = "song/{songId}"
 private const val NowPlayingRoutePath = "now-playing"
+private const val RhythmGameRoutePath = "rhythm-game"
 private const val UserProfileRoutePattern = "social/user/{userId}"
 private const val UserListRoutePattern = "social/users/{userId}/{kind}"
 private const val ChatDetailRoutePattern = "chat/{userId}"
@@ -115,7 +117,9 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
     val currentMainDestination = currentRoute?.mainDestination()
     val showMainChrome = currentRoute in MainDestinations.map(AppDestination::route)
     val showHomeBrand = currentMainDestination == AppDestination.Home
-    val isFullscreenDestination = currentRoute == NowPlayingRoutePath || currentRoute == ChatDetailRoutePattern
+    val isFullscreenDestination = currentRoute == NowPlayingRoutePath ||
+        currentRoute == RhythmGameRoutePath ||
+        currentRoute == ChatDetailRoutePattern
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -315,6 +319,16 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                         onShowSongInfo = { navController.navigate(songRoute(it)) },
                         onArtistClick = { navController.navigate(artistRoute(it)) },
                         onShareSong = { navController.navigate(shareSongRoute(it)) },
+                        onOpenRhythmGame = { navController.navigateSingleTop(RhythmGameRoutePath) },
+                    )
+                }
+                composable(RhythmGameRoutePath) {
+                    RhythmGameRoute(
+                        onBack = {
+                            if (!navController.popBackStack()) {
+                                navController.navigateSingleTop(NowPlayingRoutePath)
+                            }
+                        },
                     )
                 }
                 composable(AppDestination.Profile.route) {

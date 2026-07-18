@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Favorite
@@ -231,6 +232,7 @@ fun NowPlayingRoute(
     onShowSongInfo: (String) -> Unit,
     onArtistClick: (String) -> Unit,
     onShareSong: (String) -> Unit,
+    onOpenRhythmGame: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -327,6 +329,7 @@ fun NowPlayingRoute(
                     //     QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
                     // }
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        PlayerTextAction(Icons.Rounded.SportsEsports, stringResource(R.string.rhythm_game)) { onOpenRhythmGame() }
                         PlayerTextAction(Icons.Rounded.Share, stringResource(R.string.chat_share_song)) { onShareSong(song.id) }
                         PlayerTextAction(Icons.Rounded.Info, stringResource(R.string.song_information)) {
                             onShowSongInfo(song.id)
