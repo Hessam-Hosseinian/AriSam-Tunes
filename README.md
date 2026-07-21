@@ -89,6 +89,48 @@ When the video is ready:
       <br><sub>Interactive hexagonal song selection for building a personalized first mix</sub>
     </td>
   </tr>
+  <tr>
+    <th>Fast Catalog Search</th>
+    <th>Downloads &amp; Offline Playback</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/media/search-results.png" width="360" alt="AriSam Tunes paginated music search results">
+      <br><sub>Debounced search with category filters, rich metadata, and direct playback</sub>
+    </td>
+    <td align="center">
+      <img src="docs/media/offline-downloads.png" width="360" alt="AriSam Tunes offline downloads library">
+      <br><sub>Premium downloads, sorting, progress states, and local-first playback</sub>
+    </td>
+  </tr>
+  <tr>
+    <th>Playlist Details</th>
+    <th>Social Profile</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/media/playlist-details.png" width="360" alt="AriSam Tunes playlist details screen">
+      <br><sub>Play all, shuffle, visibility, and editable track management</sub>
+    </td>
+    <td align="center">
+      <img src="docs/media/social-profile.png" width="360" alt="AriSam Tunes social profile screen">
+      <br><sub>Avatar, premium identity, followers, following, and public profile details</sub>
+    </td>
+  </tr>
+  <tr>
+    <th>Realtime Song Sharing</th>
+    <th>Persian RTL &amp; Light Theme</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/media/realtime-chat.png" width="360" alt="AriSam Tunes realtime chat with a shared song">
+      <br><sub>WebSocket messaging, presence, shared tracks, receipts, and offline sync</sub>
+    </td>
+    <td align="center">
+      <img src="docs/media/persian-light-settings.png" width="360" alt="AriSam Tunes Persian RTL settings in light theme">
+      <br><sub>Runtime localization, correct RTL direction, theme selection, and font scaling</sub>
+    </td>
+  </tr>
 </table>
 
 ## Highlights
