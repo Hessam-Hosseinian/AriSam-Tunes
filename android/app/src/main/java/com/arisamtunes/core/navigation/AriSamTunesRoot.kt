@@ -38,11 +38,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -106,6 +108,7 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
 @Composable
 private fun SplashScreen(onFinished: () -> Unit) {
+    val horizontalDirection = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1f else -1f
     val finalContentOffsetX = (-22).dp
     val finalMarkOffsetX = (-88).dp
     val textStartX = 112.dp
@@ -206,7 +209,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFF07151E), Color(0xFF0B1B26), Color(0xFF0C202D)),
+                    listOf(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.surfaceContainer),
                 ),
         ),
         contentAlignment = Alignment.Center,
@@ -228,13 +231,13 @@ private fun SplashScreen(onFinished: () -> Unit) {
         Box(
             modifier = Modifier
                 .size(width = 330.dp * frameScaleX, height = 92.dp * frameScaleY)
-                .offset(x = contentOffsetX * frameScaleX)
+                .offset(x = contentOffsetX * (frameScaleX * horizontalDirection))
                 .alpha(markAlpha),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .offset(x = markOffsetX * frameScaleX, y = markOffsetY * frameScaleY)
+                    .offset(x = markOffsetX * (frameScaleX * horizontalDirection), y = markOffsetY * frameScaleY)
                     .size(markSize)
                     .scale(markScale)
                     .clip(CircleShape)
@@ -268,7 +271,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
                 exit = fadeOut(tween(120)),
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .offset(x = textStartX * frameScaleX),
+                    .offset(x = textStartX * (frameScaleX * horizontalDirection)),
             ) {
                 Box(
                     modifier = Modifier
@@ -285,7 +288,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
                     ) {
                         Text(
                             text = "AriSam Tunes",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 35.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,

@@ -23,6 +23,9 @@ data class PlaylistsUiState(
     val editingPlaylist: PlaylistDto? = null,
     val showEditor: Boolean = false,
     val actionFailed: Boolean = false,
+    val globalPlaylists: List<PlaylistDto> = emptyList(),
+    val localPlaylists: List<PlaylistDto> = emptyList(),
+    val userPlaylists: List<PlaylistDto> = emptyList(),
 )
 
 @HiltViewModel
@@ -32,8 +35,17 @@ class PlaylistsViewModel @Inject constructor(private val repository: CatalogRepo
     init { refresh() }
     fun refresh() = viewModelScope.launch {
         _state.value = _state.value.copy(isLoading = true, hasError = false, actionFailed = false)
-        runCatching { repository.playlists() }
-            .onSuccess { _state.value = _state.value.copy(isLoading = false, items = it, hasError = false) }
+        runCatching { repository.playlistSections() }
+            .onSuccess { sections ->
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    items = sections.global + sections.local + sections.user,
+                    globalPlaylists = sections.global,
+                    localPlaylists = sections.local,
+                    userPlaylists = sections.user,
+                    hasError = false,
+                )
+            }
             .onFailure { _state.value = _state.value.copy(isLoading = false, hasError = true) }
     }
 
@@ -59,9 +71,18 @@ class PlaylistsViewModel @Inject constructor(private val repository: CatalogRepo
             current.editingPlaylist?.let { playlist ->
                 repository.updatePlaylist(playlist.id, safeName, description?.trim(), isPublic)
             } ?: repository.createPlaylist(safeName, description?.trim(), isPublic)
-            repository.playlists()
-        }.onSuccess { playlists ->
-            _state.value = _state.value.copy(items = playlists, isSaving = false, showEditor = false, editingPlaylist = null, actionFailed = false)
+            repository.playlistSections()
+        }.onSuccess { sections ->
+            _state.value = _state.value.copy(
+                items = sections.global + sections.local + sections.user,
+                globalPlaylists = sections.global,
+                localPlaylists = sections.local,
+                userPlaylists = sections.user,
+                isSaving = false,
+                showEditor = false,
+                editingPlaylist = null,
+                actionFailed = false,
+            )
         }.onFailure {
             _state.value = _state.value.copy(isSaving = false, actionFailed = true)
         }
@@ -72,9 +93,18 @@ class PlaylistsViewModel @Inject constructor(private val repository: CatalogRepo
         _state.value = _state.value.copy(isSaving = true, actionFailed = false)
         runCatching {
             repository.deletePlaylist(playlist.id)
-            repository.playlists()
-        }.onSuccess { playlists ->
-            _state.value = _state.value.copy(items = playlists, isSaving = false, showEditor = false, editingPlaylist = null, actionFailed = false)
+            repository.playlistSections()
+        }.onSuccess { sections ->
+            _state.value = _state.value.copy(
+                items = sections.global + sections.local + sections.user,
+                globalPlaylists = sections.global,
+                localPlaylists = sections.local,
+                userPlaylists = sections.user,
+                isSaving = false,
+                showEditor = false,
+                editingPlaylist = null,
+                actionFailed = false,
+            )
         }.onFailure {
             _state.value = _state.value.copy(isSaving = false, actionFailed = true)
         }

@@ -2,6 +2,7 @@ package com.arisamtunes.data.auth
 
 import com.arisamtunes.core.navigation.SessionBootstrapper
 import com.arisamtunes.feature.auth.AuthMode
+import com.arisamtunes.data.preferences.UserPreferencesStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -13,9 +14,18 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.Base64
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.flow.first
 
 @Singleton
-class AuthRepository @Inject constructor(private val api: AuthApi, private val tokenStore: AuthTokenStore) : SessionBootstrapper {
+class AuthRepository @Inject constructor(
+    private val api: AuthApi,
+    private val tokenStore: AuthTokenStore,
+    private val preferencesStore: UserPreferencesStore,
+) : SessionBootstrapper {
     suspend fun authenticate(mode: AuthMode, email: String, password: String, displayName: String) {
         val tokens = try {
             if (mode == AuthMode.Login) api.login(email, password) else api.register(email, password, displayName)
@@ -31,12 +41,29 @@ class AuthRepository @Inject constructor(private val api: AuthApi, private val t
      * not reach the server. Requests refresh their bearer token when a network
      * connection is available; only an explicit logout removes local tokens.
      */
-    override suspend fun restoreOrRefreshSession(): Boolean = tokenStore.load() != null
+    override suspend fun restoreOrRefreshSession(): Boolean {
+        val tokens = tokenStore.load() ?: return false
+        if (preferencesStore.preferences.first().currentUserId == null) {
+            accessTokenSubject(tokens.accessToken)?.let { preferencesStore.setCurrentUser(it) }
+        }
+        return true
+    }
+
+    suspend fun updatePremium(isPremium: Boolean) {
+        val user = api.updatePremium(isPremium)
+        preferencesStore.setCurrentUser(user.id, user.isPremium)
+    }
 
     suspend fun logout() {
         tokenStore.clear()
     }
 }
+
+private fun accessTokenSubject(accessToken: String): String? = runCatching {
+    val payload = accessToken.split('.').getOrNull(1) ?: return null
+    val decoded = Base64.getUrlDecoder().decode(payload.padEnd((payload.length + 3) / 4 * 4, '='))
+    Json.parseToJsonElement(decoded.decodeToString()).jsonObject["sub"]?.jsonPrimitive?.content
+}.getOrNull()
 
 class AuthConnectionFailure(val issue: AuthConnectionIssue, cause: Throwable) : RuntimeException(cause)
 

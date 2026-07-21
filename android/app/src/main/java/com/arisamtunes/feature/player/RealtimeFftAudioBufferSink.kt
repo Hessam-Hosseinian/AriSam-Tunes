@@ -1,7 +1,9 @@
 package com.arisamtunes.feature.player
 
 import android.os.SystemClock
+import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.audio.TeeAudioProcessor
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -25,6 +27,7 @@ import kotlin.math.sqrt
  * API requires RECORD_AUDIO on modern Android. The signal here is the actual
  * song PCM that ExoPlayer is about to send to AudioTrack.
  */
+@OptIn(UnstableApi::class)
 class RealtimeFftAudioBufferSink(
     private val onBands: (List<Float>) -> Unit,
 ) : TeeAudioProcessor.AudioBufferSink {
@@ -223,7 +226,7 @@ class RealtimeFftAudioBufferSink(
         const val BandCount = 32
         const val WindowSize = 2048
         const val AnalysisHopSamples = 384
-        const val MinUpdateIntervalMillis = 24L
+        const val MinUpdateIntervalMillis = 32L
         const val IdleLevel = 0.025f
         const val DefaultSampleRateHz = 44_100
         const val ShortBytes = 2
@@ -234,7 +237,7 @@ class RealtimeFftAudioBufferSink(
         const val NoiseFloorDb = -76f
         const val CeilingDb = -14f
         const val MinMagnitude = 0.000_000_1f
-        const val AttackSmoothing = 0.82f
-        const val ReleaseSmoothing = 0.28f
+        const val AttackSmoothing = 0.46f
+        const val ReleaseSmoothing = 0.18f
     }
 }

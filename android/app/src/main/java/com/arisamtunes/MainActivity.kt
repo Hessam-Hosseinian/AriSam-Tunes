@@ -16,11 +16,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.arisamtunes.feature.player.Media3PlaybackController
 import dagger.hilt.android.AndroidEntryPoint
 import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.navigation.AriSamTunesRoot
@@ -29,19 +29,33 @@ import com.arisamtunes.data.preferences.LanguagePreference
 import com.arisamtunes.data.preferences.ThemePreference
 import android.content.res.Configuration
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    @Inject lateinit var playbackController: Media3PlaybackController
+
+    private val runtimePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        if (grants[Manifest.permission.READ_PHONE_STATE] == true) {
+            playbackController.enablePhoneCallMonitoring()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        val missingPermissions = buildList {
+            if (
+                packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY) &&
+                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED
+            ) add(Manifest.permission.READ_PHONE_STATE)
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) add(Manifest.permission.POST_NOTIFICATIONS)
         }
+        if (missingPermissions.isNotEmpty()) runtimePermissions.launch(missingPermissions.toTypedArray())
+        else playbackController.enablePhoneCallMonitoring()
         setContent { AriSamTunesApp() }
     }
 }

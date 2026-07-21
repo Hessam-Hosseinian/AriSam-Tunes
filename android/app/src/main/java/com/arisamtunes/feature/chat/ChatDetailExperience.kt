@@ -38,6 +38,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -54,6 +55,7 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.MusicOff
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.AlertDialog
@@ -79,6 +81,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -88,6 +91,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
@@ -304,10 +308,14 @@ fun ChatExperienceRoute(
                     }
                 }
                 if (messages.loadState.append is LoadState.Loading) item { CircularProgressIndicator(Modifier.size(22.dp)) }
+                if (messages.loadState.append is LoadState.Error) item { ConversationPagingRetry(messages::retry) }
                 if (messages.loadState.refresh is LoadState.Loading && messages.itemCount == 0) {
                     items(6) { ShimmerBox(Modifier.fillMaxWidth(.72f).height(68.dp)) }
                 }
-                if (messages.itemCount == 0 && messages.loadState.refresh !is LoadState.Loading) {
+                if (messages.loadState.refresh is LoadState.Error && messages.itemCount == 0) {
+                    item(key = "conversation-refresh-error") { ConversationPagingRetry(messages::retry) }
+                }
+                if (messages.itemCount == 0 && messages.loadState.refresh is LoadState.NotLoading) {
                     item { NewConversationHero(state.peer?.displayName ?: stringResource(R.string.chat)) }
                 }
             }
@@ -361,6 +369,14 @@ fun ChatExperienceRoute(
                 dismissButton = { TextButton(onClick = { pendingDelete.value = null }) { Text(stringResource(R.string.cancel)) } },
             )
         }
+    }
+}
+
+@Composable
+private fun ConversationPagingRetry(onRetry: () -> Unit) {
+    TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+        Icon(Icons.Rounded.Refresh, null)
+        Text(stringResource(R.string.retry), modifier = Modifier.padding(start = 6.dp))
     }
 }
 
@@ -594,15 +610,15 @@ private fun ExperienceMessageBubble(
         label = "message-highlight",
     )
     val bubbleShape = if (isMine) {
-        RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 7.dp, bottomStart = 24.dp)
+        AbsoluteRoundedCornerShape(24.dp, 24.dp, 7.dp, 24.dp)
     } else {
-        RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 24.dp, bottomStart = 7.dp)
+        AbsoluteRoundedCornerShape(24.dp, 24.dp, 24.dp, 7.dp)
     }
     val messageColor = if (isMine) Color.White else MaterialTheme.colorScheme.onSurface
     val secondaryMessageColor = if (isMine) Color.White.copy(alpha = .7f) else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onLongPress),
-        horizontalAlignment = if (isMine) Alignment.End else Alignment.Start,
+        horizontalAlignment = if (isMine) AbsoluteAlignment.Right else AbsoluteAlignment.Left,
     ) {
         Box(
             modifier = Modifier
@@ -665,7 +681,7 @@ private fun ExperienceMessageBubble(
                     message.messageType == ChatMessageTypeDto.SONG -> NocturneSongCard(song, songUnavailable, isMine, onPlaySong)
                     else -> Text(message.content.orEmpty(), style = MaterialTheme.typography.bodyLarge, color = messageColor)
                 }
-                Row(Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.align(AbsoluteAlignment.Right).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (message.editedAt != null && !deleted) {
                         Text(stringResource(R.string.chat_edited), style = MaterialTheme.typography.labelSmall, color = secondaryMessageColor)
                     }
@@ -774,6 +790,7 @@ private fun NocturneSongCard(
                         AsyncImage(
                             model = song.coverImageUrl,
                             contentDescription = song.title,
+                            error = painterResource(R.drawable.arisam_app_icon_dark),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(58.dp).clip(RoundedCornerShape(15.dp)),
                         )

@@ -1,8 +1,10 @@
 package com.arisamtunes.data.preferences
 
 import android.content.Context
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -13,7 +15,10 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.userPreferencesDataStore by preferencesDataStore("auth_tokens")
+private val Context.userPreferencesDataStore by preferencesDataStore(
+    name = "auth_tokens",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
 
 enum class LanguagePreference { System, English, Persian }
 enum class ThemePreference { System, Light, Dark }
@@ -25,6 +30,7 @@ data class UserPreferences(
     val theme: ThemePreference = ThemePreference.System,
     val fontScale: Float = 1f,
     val isPremium: Boolean = false,
+    val currentUserId: String? = null,
     val hasAuthTokens: Boolean = false,
     val shouldShowMusicSuggestions: Boolean = false,
 )
@@ -37,14 +43,16 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
     private val themeKey = stringPreferencesKey("theme")
     private val fontScaleKey = floatPreferencesKey("font_scale")
     private val isPremiumKey = booleanPreferencesKey("is_premium")
+    private val currentUserIdKey = stringPreferencesKey("current_user_id")
     private val shouldShowMusicSuggestionsKey = booleanPreferencesKey("should_show_music_suggestions")
 
     val preferences: Flow<UserPreferences> = context.userPreferencesDataStore.data.map { values ->
         UserPreferences(
             language = values[languageKey].toEnum(LanguagePreference.System),
             theme = values[themeKey].toEnum(ThemePreference.System),
-            fontScale = (values[fontScaleKey] ?: 1f).coerceIn(MinFontScale, MaxFontScale),
+            fontScale = sanitizeFontScale(values[fontScaleKey]),
             isPremium = values[isPremiumKey] ?: false,
+            currentUserId = values[currentUserIdKey],
             hasAuthTokens = !values[accessTokenKey].isNullOrBlank() && !values[refreshTokenKey].isNullOrBlank(),
             shouldShowMusicSuggestions = values[shouldShowMusicSuggestionsKey] ?: false,
         )
@@ -59,11 +67,13 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
     suspend fun saveTokens(
         accessToken: String,
         refreshToken: String,
+        userId: String? = null,
         shouldShowMusicSuggestions: Boolean? = null,
     ) {
         context.userPreferencesDataStore.edit { values ->
             values[accessTokenKey] = accessToken
             values[refreshTokenKey] = refreshToken
+            userId?.let { values[currentUserIdKey] = it }
             shouldShowMusicSuggestions?.let { values[shouldShowMusicSuggestionsKey] = it }
         }
     }
@@ -80,6 +90,8 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
             values.remove(accessTokenKey)
             values.remove(refreshTokenKey)
             values.remove(shouldShowMusicSuggestionsKey)
+            values.remove(isPremiumKey)
+            values.remove(currentUserIdKey)
         }
     }
 
@@ -92,11 +104,18 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
     }
 
     suspend fun setFontScale(fontScale: Float) {
-        context.userPreferencesDataStore.edit { it[fontScaleKey] = fontScale.coerceIn(MinFontScale, MaxFontScale) }
+        context.userPreferencesDataStore.edit { it[fontScaleKey] = sanitizeFontScale(fontScale) }
     }
 
     suspend fun setPremium(isPremium: Boolean) {
         context.userPreferencesDataStore.edit { it[isPremiumKey] = isPremium }
+    }
+
+    suspend fun setCurrentUser(userId: String, isPremium: Boolean? = null) {
+        context.userPreferencesDataStore.edit { values ->
+            values[currentUserIdKey] = userId
+            isPremium?.let { values[isPremiumKey] = it }
+        }
     }
 
     suspend fun clearAll() {
@@ -105,9 +124,12 @@ class UserPreferencesStore @Inject constructor(@param:ApplicationContext private
 
     private inline fun <reified T : Enum<T>> String?.toEnum(default: T): T =
         this?.let { value -> enumValues<T>().firstOrNull { it.name == value } } ?: default
-
-    private companion object {
-        const val MinFontScale = 0.85f
-        const val MaxFontScale = 1.35f
-    }
 }
+
+internal const val MinFontScale = 0.85f
+internal const val MaxFontScale = 1.35f
+
+internal fun sanitizeFontScale(value: Float?): Float = value
+    ?.takeIf(Float::isFinite)
+    ?.coerceIn(MinFontScale, MaxFontScale)
+    ?: 1f

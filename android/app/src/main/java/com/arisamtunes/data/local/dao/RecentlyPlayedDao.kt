@@ -15,6 +15,9 @@ interface RecentlyPlayedDao {
     @Query("SELECT * FROM recently_played ORDER BY playedAt DESC LIMIT :limit")
     fun observeRecent(limit: Int = 30): Flow<List<RecentlyPlayedEntity>>
 
+    @Query("SELECT * FROM recently_played ORDER BY playedAt DESC")
+    fun observeAll(): Flow<List<RecentlyPlayedEntity>>
+
     @Upsert
     suspend fun upsert(item: RecentlyPlayedEntity)
 

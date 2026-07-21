@@ -58,6 +58,8 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -89,6 +91,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -130,6 +133,7 @@ fun SocialProfileRoute(
     onFollowingClick: (String) -> Unit,
     onPlaylistClick: (PlaylistDto) -> Unit,
     onMessageClick: (String) -> Unit,
+    onSettingsClick: (() -> Unit)? = null,
     viewModel: SocialProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -138,6 +142,8 @@ fun SocialProfileRoute(
     val actionFailed = stringResource(R.string.social_action_failed)
     val avatarUpdated = stringResource(R.string.profile_photo_updated)
     val avatarUploadFailed = stringResource(R.string.profile_photo_upload_failed)
+    val premiumUpdated = stringResource(R.string.profile_premium_updated)
+    val premiumUpdateFailed = stringResource(R.string.profile_premium_update_failed)
     val snackbarBottomPadding = if (onBack != null) {
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     } else {
@@ -159,13 +165,15 @@ fun SocialProfileRoute(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(viewModel, actionFailed, avatarUpdated, avatarUploadFailed) {
+    LaunchedEffect(viewModel, actionFailed, avatarUpdated, avatarUploadFailed, premiumUpdated, premiumUpdateFailed) {
         viewModel.effects.collect { effect ->
             snackbarHostState.showSnackbar(
                 when (effect) {
                     SocialEffect.ActionFailed -> actionFailed
                     SocialEffect.AvatarUpdated -> avatarUpdated
                     SocialEffect.AvatarUploadFailed -> avatarUploadFailed
+                    SocialEffect.PremiumUpdated -> premiumUpdated
+                    SocialEffect.PremiumUpdateFailed -> premiumUpdateFailed
                 },
             )
         }
@@ -185,6 +193,7 @@ fun SocialProfileRoute(
                 playlists = playlists,
                 isUpdatingFollow = state.isUpdatingFollow,
                 isUploadingAvatar = state.isUploadingAvatar,
+                isUpdatingPremium = state.isUpdatingPremium,
                 isOwnProfile = state.isOwnProfile,
                 onBack = onBack,
                 onFollowClick = viewModel::toggleFollow,
@@ -197,6 +206,8 @@ fun SocialProfileRoute(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
+                onPremiumClick = viewModel::activatePremium,
+                onSettingsClick = onSettingsClick,
             ) } ?: ProfileEmptyState()
         }
         SnackbarHost(
@@ -212,6 +223,7 @@ private fun ProfileContent(
     playlists: LazyPagingItems<PlaylistDto>,
     isUpdatingFollow: Boolean,
     isUploadingAvatar: Boolean,
+    isUpdatingPremium: Boolean,
     isOwnProfile: Boolean,
     onBack: (() -> Unit)?,
     onFollowClick: () -> Unit,
@@ -220,6 +232,8 @@ private fun ProfileContent(
     onPlaylistClick: (PlaylistDto) -> Unit,
     onMessageClick: () -> Unit,
     onAvatarClick: () -> Unit,
+    onPremiumClick: () -> Unit,
+    onSettingsClick: (() -> Unit)?,
 ) {
     val spacing = AriSamThemeTokens.spacing
     val listState = rememberLazyListState()
@@ -286,9 +300,13 @@ private fun ProfileContent(
                     isFollowing = user.isFollowing,
                     isUpdatingFollow = isUpdatingFollow,
                     isUploadingAvatar = isUploadingAvatar,
+                    isPremium = user.isPremium,
+                    isUpdatingPremium = isUpdatingPremium,
                     onFollowClick = onFollowClick,
                     onMessageClick = onMessageClick,
                     onAvatarClick = onAvatarClick,
+                    onPremiumClick = onPremiumClick,
+                    onSettingsClick = onSettingsClick,
                 )
             }
         }
@@ -821,27 +839,57 @@ private fun ProfileActions(
     isFollowing: Boolean,
     isUpdatingFollow: Boolean,
     isUploadingAvatar: Boolean,
+    isPremium: Boolean,
+    isUpdatingPremium: Boolean,
     onFollowClick: () -> Unit,
     onMessageClick: () -> Unit,
     onAvatarClick: () -> Unit,
+    onPremiumClick: () -> Unit,
+    onSettingsClick: (() -> Unit)?,
 ) {
     if (isOwnProfile) {
-        FilledTonalButton(
-            onClick = onAvatarClick,
-            enabled = !isUploadingAvatar,
-            modifier = Modifier.fillMaxWidth().height(54.dp),
-            shape = MaterialTheme.shapes.large,
-        ) {
-            if (isUploadingAvatar) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else {
-                Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(19.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = if (isPremium) Color(0xFFFFC857).copy(alpha = .16f) else MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(1.dp, if (isPremium) Color(0xFFFFC857).copy(alpha = .55f) else MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Rounded.WorkspacePremium, null, tint = Color(0xFFFFC857))
+                        Text(
+                            stringResource(if (isPremium) R.string.premium_active else R.string.profile_premium_demo_title),
+                            modifier = Modifier.weight(1f),
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Text(stringResource(R.string.profile_premium_demo_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Button(onClick = onPremiumClick, enabled = !isUpdatingPremium, modifier = Modifier.fillMaxWidth()) {
+                        if (isUpdatingPremium) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Rounded.WorkspacePremium, null, Modifier.size(19.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(if (isPremium) R.string.profile_premium_renew else R.string.profile_premium_activate))
+                    }
+                }
             }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                stringResource(if (isUploadingAvatar) R.string.profile_photo_uploading else R.string.profile_change_photo),
-                fontWeight = FontWeight.Bold,
-            )
+            FilledTonalButton(
+                onClick = onAvatarClick,
+                enabled = !isUploadingAvatar,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                shape = MaterialTheme.shapes.large,
+            ) {
+                if (isUploadingAvatar) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                else Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(19.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(if (isUploadingAvatar) R.string.profile_photo_uploading else R.string.profile_change_photo), fontWeight = FontWeight.Bold)
+            }
+            onSettingsClick?.let { openSettings ->
+                OutlinedButton(onClick = openSettings, modifier = Modifier.fillMaxWidth().height(54.dp), shape = MaterialTheme.shapes.large) {
+                    Icon(Icons.Rounded.Settings, null, Modifier.size(19.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold)
+                }
+            }
         }
     } else {
         Row(
@@ -1000,6 +1048,7 @@ private fun CinematicPlaylistCard(playlist: PlaylistDto) {
                     AsyncImage(
                         model = playlist.coverImageUrl,
                         contentDescription = playlist.name,
+                        error = painterResource(R.drawable.arisam_app_icon_dark),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )

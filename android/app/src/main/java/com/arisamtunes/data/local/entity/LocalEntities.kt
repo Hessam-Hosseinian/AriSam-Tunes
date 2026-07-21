@@ -1,5 +1,6 @@
 package com.arisamtunes.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -22,23 +23,34 @@ data class LikedSongEntity(
     val title: String,
     val artistName: String,
     val album: String? = null,
+    @ColumnInfo(defaultValue = "''") val audioUrl: String = "",
     val coverImageUrl: String? = null,
     val durationSeconds: Int = 0,
     val likedAt: Long,
 )
 
-@Entity(tableName = "downloaded_songs", indices = [Index("downloadedAt"), Index("localFilePath", unique = true)])
+@Entity(
+    tableName = "downloaded_songs",
+    primaryKeys = ["ownerUserId", "songId"],
+    indices = [Index("downloadedAt"), Index("localFilePath")],
+)
 data class DownloadedSongEntity(
-    @PrimaryKey val songId: String,
+    val ownerUserId: String,
+    val songId: String,
     val title: String,
     val artistName: String,
     val album: String? = null,
     val audioUrl: String,
     val coverImageUrl: String? = null,
+    val durationSeconds: Int = 0,
+    val lyrics: String? = null,
+    val extraMetadataJson: String = "{}",
     val localFilePath: String,
     val mimeType: String? = null,
     val fileSizeBytes: Long? = null,
     val downloadState: String,
+    val downloadProgress: Int = 0,
+    val failureReason: String? = null,
     val downloadedAt: Long,
 )
 
@@ -48,11 +60,20 @@ data class RecentlyPlayedEntity(
     val title: String,
     val artistName: String,
     val album: String? = null,
+    @ColumnInfo(defaultValue = "''") val audioUrl: String = "",
     val coverImageUrl: String? = null,
     val durationSeconds: Int = 0,
     val lastPositionSeconds: Int = 0,
     val playCount: Long = 1,
     val playedAt: Long,
+)
+
+@Entity(tableName = "followed_artists", indices = [Index("followedAt")])
+data class FollowedArtistEntity(
+    @PrimaryKey val artistId: String,
+    val name: String,
+    val imageUri: String,
+    val followedAt: Long,
 )
 
 @Entity(

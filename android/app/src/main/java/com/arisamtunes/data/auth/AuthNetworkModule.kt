@@ -21,11 +21,15 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AuthNetworkModule {
+    @Provides @Singleton
+    fun provideDownloadHttpClient(): OkHttpClient = OkHttpClient()
+
     @Provides @Singleton
     fun provideHttpClient(tokenStore: AuthTokenStore): HttpClient = HttpClient(OkHttp) {
         expectSuccess = false

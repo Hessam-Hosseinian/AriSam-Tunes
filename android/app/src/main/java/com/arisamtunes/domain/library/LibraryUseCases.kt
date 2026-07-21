@@ -17,7 +17,7 @@ class ToggleLikedSongUseCase @Inject constructor(private val repository: LocalLi
 }
 
 class ObserveDownloadsUseCase @Inject constructor(private val repository: LocalLibraryRepository) {
-    operator fun invoke() = repository.downloads()
+    operator fun invoke(ownerUserId: String) = repository.downloads(ownerUserId)
 }
 
 class SaveDownloadedSongUseCase @Inject constructor(private val repository: LocalLibraryRepository) {

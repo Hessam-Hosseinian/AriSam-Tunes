@@ -50,6 +50,7 @@ fun SongDto.toLikedSongEntity(likedAt: Long = System.currentTimeMillis()) = Like
     title = title,
     artistName = artistName,
     album = album,
+    audioUrl = audioUrl,
     coverImageUrl = coverImageUrl,
     durationSeconds = durationSeconds,
     likedAt = likedAt,
@@ -60,23 +61,37 @@ fun SongDto.toRecentlyPlayedEntity(positionSeconds: Int = 0, playedAt: Long = Sy
     title = title,
     artistName = artistName,
     album = album,
+    audioUrl = audioUrl,
     coverImageUrl = coverImageUrl,
     durationSeconds = durationSeconds,
     lastPositionSeconds = positionSeconds,
     playedAt = playedAt,
 )
 
-fun SongDto.toDownloadedSongEntity(localFilePath: String, state: String, downloadedAt: Long = System.currentTimeMillis()) = DownloadedSongEntity(
+fun SongDto.toDownloadedSongEntity(
+    ownerUserId: String,
+    localFilePath: String,
+    state: String,
+    progress: Int = 0,
+    failureReason: String? = null,
+    downloadedAt: Long = System.currentTimeMillis(),
+) = DownloadedSongEntity(
+    ownerUserId = ownerUserId,
     songId = id,
     title = title,
     artistName = artistName,
     album = album,
     audioUrl = audioUrl,
     coverImageUrl = coverImageUrl,
+    durationSeconds = durationSeconds,
+    lyrics = lyrics,
+    extraMetadataJson = metadataJson.encodeToString(extraMetadata),
     localFilePath = localFilePath,
     mimeType = fileFormat?.lowercase()?.let { "audio/$it" },
     fileSizeBytes = audioFileSize,
     downloadState = state,
+    downloadProgress = progress,
+    failureReason = failureReason,
     downloadedAt = downloadedAt,
 )
 
@@ -85,8 +100,13 @@ fun DownloadedSongEntity.toSongDto() = SongDto(
     title = title,
     artistName = artistName,
     album = album,
+    durationSeconds = durationSeconds,
     audioUrl = audioUrl,
     coverImageUrl = coverImageUrl.orEmpty(),
+    lyrics = lyrics,
+    extraMetadata = runCatching {
+        metadataJson.decodeFromString<JsonObject>(extraMetadataJson)
+    }.getOrDefault(JsonObject(emptyMap())),
 )
 
 fun CachedSongEntity.toSongDto() = SongDto(

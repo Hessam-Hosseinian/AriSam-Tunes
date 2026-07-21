@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
@@ -15,6 +16,9 @@ class AuthApi @Inject constructor(private val client: HttpClient) {
     suspend fun login(email: String, password: String) = client.post("auth/login") { json(LoginDto(email, password)) }.token()
     suspend fun register(email: String, password: String, name: String) = client.post("auth/register") { json(RegisterDto(email, password, name)) }.token()
     suspend fun me(): UserDto = client.get("auth/me").successBody()
+    suspend fun updatePremium(isPremium: Boolean): UserDto = client.put("users/me/premium") {
+        json(PremiumStatusDto(isPremium))
+    }.successBody()
 
     private suspend fun HttpResponse.token(): TokenDto = successBody()
     private suspend inline fun <reified T> HttpResponse.successBody(): T {

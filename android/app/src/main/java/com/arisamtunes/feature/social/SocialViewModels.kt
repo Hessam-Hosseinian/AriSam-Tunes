@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.filter
 import androidx.paging.map
 import com.arisamtunes.data.catalog.PlaylistDto
+import com.arisamtunes.data.auth.AuthRepository
 import com.arisamtunes.data.social.PublicUserDto
 import com.arisamtunes.data.social.SocialRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +32,8 @@ sealed interface SocialEffect {
     data object ActionFailed : SocialEffect
     data object AvatarUpdated : SocialEffect
     data object AvatarUploadFailed : SocialEffect
+    data object PremiumUpdated : SocialEffect
+    data object PremiumUpdateFailed : SocialEffect
 }
 
 data class SocialProfileUiState(
@@ -39,12 +43,14 @@ data class SocialProfileUiState(
     val isUpdatingFollow: Boolean = false,
     val isUploadingAvatar: Boolean = false,
     val isOwnProfile: Boolean = false,
+    val isUpdatingPremium: Boolean = false,
 )
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class SocialProfileViewModel @Inject constructor(
     private val repository: SocialRepository,
+    private val authRepository: AuthRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val requestedUserId: String? = savedStateHandle["userId"]
@@ -152,6 +158,22 @@ class SocialProfileViewModel @Inject constructor(
                 _effects.send(SocialEffect.AvatarUploadFailed)
             }
     }
+
+    fun activatePremium() = viewModelScope.launch {
+        val before = _state.value
+        if (!before.isOwnProfile || before.isUpdatingPremium) return@launch
+        _state.update { it.copy(isUpdatingPremium = true) }
+        runCatching {
+            authRepository.updatePremium(true)
+            repository.currentUser()
+        }.onSuccess { user ->
+            _state.update { it.copy(user = user, isUpdatingPremium = false) }
+            _effects.send(SocialEffect.PremiumUpdated)
+        }.onFailure {
+            _state.update { it.copy(isUpdatingPremium = false) }
+            _effects.send(SocialEffect.PremiumUpdateFailed)
+        }
+    }
 }
 
 enum class SocialListKind { Following, Followers }
@@ -177,6 +199,7 @@ class SocialUsersViewModel @Inject constructor(
     // pageEventFlow and Paging crashes when Compose starts collecting the update.
     val users: Flow<PagingData<PublicUserDto>> = source.cachedIn(viewModelScope).combine(overrides) { page, updates ->
         page.map { updates[it.id] ?: it }
+            .filter { user -> kind != SocialListKind.Following || user.isFollowing }
     }
     private val _effects = Channel<SocialEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
