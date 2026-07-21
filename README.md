@@ -22,6 +22,8 @@ AriSam Tunes is a complete client–server music application built as a native A
 
 The app supports both **English and Persian**, including runtime language switching, correct **LTR/RTL** behavior, and light, dark, and system themes.
 
+The detailed implementation report and per-section contribution breakdown are available in [PROJECT_REPORT.md](PROJECT_REPORT.md).
+
 ## Table of contents
 
 - [Demo](#demo)
@@ -58,45 +60,36 @@ When the video is ready:
 
 ## Screenshots
 
-> 📱 Application screenshots will be added here after the final capture session.
-
-<!--
-Suggested portrait size: 1080 × 2400 or another consistent phone resolution.
-Save the images under docs/media/ and remove this comment wrapper.
-
 <table>
   <tr>
-    <th>Home</th>
-    <th>Search</th>
-    <th>Now Playing</th>
+    <th>Home &amp; Discovery</th>
+    <th>Immersive Now Playing</th>
   </tr>
   <tr>
-    <td><img src="docs/media/home.png" width="260" alt="AriSam Tunes home screen"></td>
-    <td><img src="docs/media/search.png" width="260" alt="AriSam Tunes search screen"></td>
-    <td><img src="docs/media/player.png" width="260" alt="AriSam Tunes now playing screen"></td>
+    <td align="center">
+      <img src="docs/media/home-discovery.png" width="360" alt="AriSam Tunes home and music discovery screen">
+      <br><sub>Curated spotlight, release radar, and quick access to the music catalog</sub>
+    </td>
+    <td align="center">
+      <img src="docs/media/now-playing.png" width="360" alt="AriSam Tunes immersive now playing screen">
+      <br><sub>Dynamic artwork, real-time visualizer, crossfade, queue, and playback controls</sub>
+    </td>
   </tr>
   <tr>
-    <th>Downloads</th>
-    <th>Playlists</th>
-    <th>Profile</th>
+    <th>Synchronized Live Lyrics</th>
+    <th>Personalized Music Suggestions</th>
   </tr>
   <tr>
-    <td><img src="docs/media/downloads.png" width="260" alt="AriSam Tunes downloads screen"></td>
-    <td><img src="docs/media/playlists.png" width="260" alt="AriSam Tunes playlists screen"></td>
-    <td><img src="docs/media/profile.png" width="260" alt="AriSam Tunes profile screen"></td>
-  </tr>
-  <tr>
-    <th>Chat</th>
-    <th>Persian / RTL</th>
-    <th>Light Theme</th>
-  </tr>
-  <tr>
-    <td><img src="docs/media/chat.png" width="260" alt="AriSam Tunes chat screen"></td>
-    <td><img src="docs/media/persian-rtl.png" width="260" alt="AriSam Tunes Persian RTL interface"></td>
-    <td><img src="docs/media/light-theme.png" width="260" alt="AriSam Tunes light theme"></td>
+    <td align="center">
+      <img src="docs/media/live-lyrics.png" width="360" alt="AriSam Tunes synchronized live lyrics screen">
+      <br><sub>Focused lyric reading with active-line highlighting and playback-aware motion</sub>
+    </td>
+    <td align="center">
+      <img src="docs/media/music-suggestions.png" width="360" alt="AriSam Tunes personalized music suggestions screen">
+      <br><sub>Interactive hexagonal song selection for building a personalized first mix</sub>
+    </td>
   </tr>
 </table>
--->
 
 ## Highlights
 
@@ -236,6 +229,7 @@ flowchart LR
 ├── music_data/          Development music catalog and generated covers
 ├── docs/                Supporting setup documentation
 ├── tools/               Development, deployment, and diagnostics scripts
+├── PROJECT_REPORT.md    Technical report and team contribution breakdown
 ├── docker-compose.yml   PostgreSQL and backend services
 └── .env.example         Safe environment-variable template
 ```
