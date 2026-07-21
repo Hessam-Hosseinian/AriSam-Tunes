@@ -43,12 +43,12 @@ The detailed implementation report and per-section contribution breakdown are av
 ## Demo
 
 <p align="center">
-  <a href="docs/media/arisam-tunes-demo.mp4">
+  <a href="https://hessam-hosseinian.github.io/AriSam-Tunes/demo.html">
     <img src="docs/media/home-discovery.png" width="360" alt="Watch the AriSam Tunes application demo">
   </a>
 </p>
 <p align="center">
-  <strong><a href="docs/media/arisam-tunes-demo.mp4">▶ Watch the full application walkthrough</a></strong>
+  <strong><a href="https://hessam-hosseinian.github.io/AriSam-Tunes/demo.html">▶ Watch the full application walkthrough</a></strong>
 </p>
 
 ## Screenshots
