@@ -149,7 +149,10 @@ jobs:
           test -n "$apksigner_path"
           "$apksigner_path" verify --verbose --print-certs "$asset_apk"
 
-          sha256sum "$asset_apk" > "$checksum"
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum "$(basename "$asset_apk")" > "$(basename "$checksum")"
+          )
           echo "apk=$asset_apk" >> "$GITHUB_OUTPUT"
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
 
