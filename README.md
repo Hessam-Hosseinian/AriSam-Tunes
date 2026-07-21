@@ -13,6 +13,7 @@ all from a native Kotlin and Jetpack Compose application backed by Ktor and Post
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
 ![Ktor](https://img.shields.io/badge/Ktor-3.5-087CFA?style=for-the-badge&logo=ktor&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![CI](https://img.shields.io/github/actions/workflow/status/Hessam-Hosseinian/AriSam-Tunes/ci.yml?branch=main&style=for-the-badge&label=CI)
 
 </div>
 
@@ -37,16 +38,19 @@ The detailed implementation report and per-section contribution breakdown are av
 - [Configuration](#configuration)
 - [API overview](#api-overview)
 - [Testing and quality checks](#testing-and-quality-checks)
+- [CI/CD and releases](#cicd-and-releases)
 - [Production notes](#production-notes)
 - [Media rights](#media-rights)
 
 ## Demo
 
+<div align="center">
+
 https://github.com/user-attachments/assets/c97fa63e-8072-491a-8f0c-2cb0f5da7015
 
-<p align="center">
-  <sub><a href="https://hessam-hosseinian.github.io/AriSam-Tunes/demo.html">Open the standalone video player</a></sub>
-</p>
+<sub><a href="https://hessam-hosseinian.github.io/AriSam-Tunes/demo.html">Open the standalone video player</a></sub>
+
+</div>
 
 ## Screenshots
 
@@ -454,6 +458,43 @@ docker compose config
 ```
 
 The test suite covers playback behavior, local-first source selection, preference validation, download decisions, metadata discovery, duplicate detection, and backend API/domain behavior.
+
+## CI/CD and releases
+
+GitHub Actions runs Android unit tests and lint alongside the backend test suite for every pull request and every push to `main`.
+
+The release workflow is triggered by a SemVer tag such as `v1.0.0` or from the **Run workflow** button. It builds the minified release variant, verifies that the APK is signed, generates a SHA-256 checksum, preserves both files as workflow artifacts, and publishes them to GitHub Releases with automatically generated release notes.
+
+Configure these repository secrets before the first release:
+
+| Secret | Purpose |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded release keystore |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Release key alias |
+| `ANDROID_KEY_PASSWORD` | Release key password |
+
+Keep the original keystore backed up securely and reuse it for every application update. On Linux, the keystore secret can be configured with:
+
+```bash
+base64 -w 0 /secure/path/arisam-tunes-release.jks | gh secret set ANDROID_KEYSTORE_BASE64
+gh secret set ANDROID_KEYSTORE_PASSWORD
+gh secret set ANDROID_KEY_ALIAS
+gh secret set ANDROID_KEY_PASSWORD
+```
+
+Optionally set the production backend URL as a repository variable:
+
+```bash
+gh variable set API_BASE_URL --body "https://api.example.com"
+```
+
+Create a release by pushing a version tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ## Production notes
 

@@ -37,10 +37,36 @@ fun detectLanIp(): String? {
         ?.second
 }
 
-val apiBaseUrl = localProperties.getProperty("API_BASE_URL")
+val apiBaseUrl = System.getenv("API_BASE_URL")
+    ?.takeIf { it.isNotBlank() }
+    ?: localProperties.getProperty("API_BASE_URL")
     ?.takeIf { it.isNotBlank() }
     ?: detectLanIp()?.let { "http://$it:8080" }
     ?: "http://10.0.2.2:8080"
+
+val releaseVersionName = System.getenv("RELEASE_VERSION_NAME")
+    ?.takeIf { it.isNotBlank() }
+    ?: "1.0.0"
+val releaseVersionCode = System.getenv("RELEASE_VERSION_CODE")
+    ?.toIntOrNull()
+    ?.takeIf { it > 0 }
+    ?: 1
+
+val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+val releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+val releaseSigningValues = listOf(
+    releaseKeystorePath,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+)
+val hasReleaseSigning = releaseSigningValues.all { it != null }
+
+check(releaseSigningValues.none { it != null } || hasReleaseSigning) {
+    "Release signing is only partially configured. Provide all ANDROID_KEYSTORE_* and ANDROID_KEY_* environment variables."
+}
 
 logger.lifecycle("AriSam Tunes API_BASE_URL = ${apiBaseUrl.trimEnd('/')}")
 
@@ -54,10 +80,21 @@ android {
         applicationId = "com.arisamtunes"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = releaseVersionCode
+        versionName = releaseVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.trimEnd('/')}\"")
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseKeystorePath))
+                storePassword = requireNotNull(releaseKeystorePassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
+                keyPassword = requireNotNull(releaseKeyPassword)
+            }
+        }
     }
 
     buildTypes {
@@ -70,6 +107,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
