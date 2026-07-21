@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.chat
 
+import com.arisamtunes.core.design.colors.AriSamPalette
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -195,9 +197,9 @@ private fun LegacyChatDetailContent(
                         }
                     }
                 }
-                if (messages.loadState.append is LoadState.Loading) item { CircularProgressIndicator(Modifier.size(24.dp)) }
+                if (messages.loadState.append is LoadState.Loading) item { CircularProgressIndicator(Modifier.size(AriSamDimensions.dp24)) }
                 if (messages.loadState.append is LoadState.Error) item { ChatPagingRetry(messages::retry) }
-                if (messages.loadState.refresh is LoadState.Loading && messages.itemCount == 0) items(5) { ShimmerBox(Modifier.fillMaxWidth(.72f).height(64.dp)) }
+                if (messages.loadState.refresh is LoadState.Loading && messages.itemCount == 0) items(5) { ShimmerBox(Modifier.fillMaxWidth(.72f).height(AriSamDimensions.dp64)) }
                 if (messages.loadState.refresh is LoadState.Error && messages.itemCount == 0) {
                     item(key = "chat-refresh-error") { ChatPagingRetry(messages::retry) }
                 }
@@ -236,21 +238,21 @@ private fun ChatTopBar(
         modifier = Modifier.fillMaxWidth(),
         shape = RectangleShape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
+        tonalElevation = AriSamDimensions.dp4,
     ) {
         Column {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = 10.dp),
+                Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamDimensions.dp10),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                    IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(AriSamDimensions.dp40)) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
                     }
                 }
                 Box(Modifier.padding(start = AriSamThemeTokens.spacing.sm)) {
                     state.peer?.let {
-                        UserAvatar(it, Modifier.size(46.dp).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape).padding(2.dp))
+                        UserAvatar(it, Modifier.size(AriSamDimensions.dp46).border(AriSamDimensions.dp2, MaterialTheme.colorScheme.primary, CircleShape).padding(AriSamDimensions.dp2))
                     }
                 }
                 Column(Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.md)) {
@@ -263,18 +265,18 @@ private fun ChatTopBar(
                         )
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6)) {
                     if (state.hasPeerError) {
-                        HeaderAction(onClick = onRetryPeer) { Icon(Icons.Rounded.Refresh, stringResource(R.string.retry), Modifier.size(18.dp)) }
+                        HeaderAction(onClick = onRetryPeer) { Icon(Icons.Rounded.Refresh, stringResource(R.string.retry), Modifier.size(AriSamDimensions.dp18)) }
                     }
                     HeaderAction(onClick = onToggleLanguage) {
                         Text(if (isPersian) "EN" else "فا", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
                     }
                     HeaderAction(onClick = onToggleTheme) {
-                        Icon(if (isDark) Icons.Rounded.WbSunny else Icons.Rounded.DarkMode, null, Modifier.size(19.dp))
+                        Icon(if (isDark) Icons.Rounded.WbSunny else Icons.Rounded.DarkMode, null, Modifier.size(AriSamDimensions.dp19))
                     }
                     HeaderAction(onClick = {}, enabled = false) {
-                        Icon(Icons.Rounded.Phone, null, Modifier.size(19.dp))
+                        Icon(Icons.Rounded.Phone, null, Modifier.size(AriSamDimensions.dp19))
                     }
                 }
             }
@@ -286,11 +288,11 @@ private fun ChatTopBar(
 @Composable
 private fun HeaderAction(onClick: () -> Unit, enabled: Boolean = true, content: @Composable () -> Unit) {
     Surface(
-        modifier = Modifier.size(40.dp),
+        modifier = Modifier.size(AriSamDimensions.dp40),
         shape = MaterialTheme.shapes.large,
-        color = androidx.compose.ui.graphics.Color.Transparent,
+        color = AriSamPalette.transparent,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
     ) {
         IconButton(onClick = onClick, enabled = enabled) { content() }
     }
@@ -306,8 +308,8 @@ private fun ConnectionBanner(status: ChatConnectionStatus, onRetry: () -> Unit) 
         contentColor = if (isOffline) MaterialTheme.colorScheme.onError else AriSamThemeTokens.onTehranAmber,
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamThemeTokens.spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            if (isOffline) Icon(Icons.Rounded.WifiOff, null, Modifier.size(18.dp))
-            else CircularProgressIndicator(Modifier.size(17.dp), strokeWidth = 2.dp, color = AriSamThemeTokens.onTehranAmber)
+            if (isOffline) Icon(Icons.Rounded.WifiOff, null, Modifier.size(AriSamDimensions.dp18))
+            else CircularProgressIndicator(Modifier.size(AriSamDimensions.dp17), strokeWidth = AriSamDimensions.dp2, color = AriSamThemeTokens.onTehranAmber)
             Text(
                 stringResource(if (isOffline) R.string.chat_offline_queue_hint else R.string.chat_reconnecting_hint),
                 modifier = Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.sm),
@@ -329,24 +331,24 @@ private fun ChatComposer(draft: String, onDraftChange: (String) -> Unit, onSend:
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
         shape = RectangleShape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
+        tonalElevation = AriSamDimensions.dp6,
     ) {
         Column {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = 10.dp),
+                Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamDimensions.dp10),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm),
             ) {
                 Surface(
-                    modifier = Modifier.size(50.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp50),
                     shape = MaterialTheme.shapes.large,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     IconButton(onClick = { onShareSong?.invoke() }, enabled = onShareSong != null) {
-                        Icon(Icons.Rounded.MusicNote, stringResource(R.string.chat_share_current_song), Modifier.size(21.dp))
+                        Icon(Icons.Rounded.MusicNote, stringResource(R.string.chat_share_current_song), Modifier.size(AriSamDimensions.dp21))
                     }
                 }
                 OutlinedTextField(
@@ -365,11 +367,11 @@ private fun ChatComposer(draft: String, onDraftChange: (String) -> Unit, onSend:
                 )
                 PressScaleBox(onClick = onSend, enabled = draft.isNotBlank()) {
                     Surface(
-                        Modifier.size(50.dp),
+                        Modifier.size(AriSamDimensions.dp50),
                         MaterialTheme.shapes.large,
                         if (draft.isBlank()) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.primary,
                         contentColor = if (draft.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary,
-                        tonalElevation = if (draft.isBlank()) 0.dp else 5.dp,
+                        tonalElevation = if (draft.isBlank()) AriSamDimensions.dp0 else AriSamDimensions.dp5,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
@@ -386,22 +388,22 @@ private fun MessageBubble(message: ChatMessageDto, isMine: Boolean, song: SongDt
     Column(
         Modifier.fillMaxWidth(),
         horizontalAlignment = if (isMine) AbsoluteAlignment.Right else AbsoluteAlignment.Left,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4),
     ) {
         Surface(
             color = if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
             contentColor = if (isMine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-            shape = if (isMine) AbsoluteRoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else AbsoluteRoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
-            modifier = Modifier.widthIn(min = 72.dp, max = 330.dp),
-            border = if (isMine) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            tonalElevation = 2.dp,
+            shape = if (isMine) AbsoluteRoundedCornerShape(AriSamDimensions.dp20, AriSamDimensions.dp20, AriSamDimensions.dp6, AriSamDimensions.dp20) else AbsoluteRoundedCornerShape(AriSamDimensions.dp20, AriSamDimensions.dp20, AriSamDimensions.dp20, AriSamDimensions.dp6),
+            modifier = Modifier.widthIn(min = AriSamDimensions.dp72, max = AriSamDimensions.dp330),
+            border = if (isMine) null else BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = AriSamDimensions.dp2,
         ) {
-            Column(Modifier.padding(horizontal = AriSamThemeTokens.spacing.md, vertical = 11.dp)) {
+            Column(Modifier.padding(horizontal = AriSamThemeTokens.spacing.md, vertical = AriSamDimensions.dp11)) {
                 if (message.messageType == ChatMessageTypeDto.SONG) SharedSongCard(song, songUnavailable, isMine, onPlaySong)
                 else Text(message.content.orEmpty(), style = MaterialTheme.typography.bodyLarge)
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4)) {
             Text(messageTime(message.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (isMine) AnimatedContent(message.status, label = "message-status") { status -> MessageStatusIcon(status) }
             if (message.status == ChatMessageStatusDto.FAILED) TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
@@ -416,16 +418,16 @@ internal fun SharedSongCard(song: SongDto?, unavailable: Boolean, isMine: Boolea
         Surface(
             shape = MaterialTheme.shapes.large,
             color = if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .14f) else MaterialTheme.colorScheme.surfaceContainer,
-            border = BorderStroke(1.dp, if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .2f) else MaterialTheme.colorScheme.outlineVariant),
+            border = BorderStroke(AriSamDimensions.dp1, if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .2f) else MaterialTheme.colorScheme.outlineVariant),
         ) {
-            Row(Modifier.widthIn(min = 240.dp, max = 290.dp).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.widthIn(min = AriSamDimensions.dp240, max = AriSamDimensions.dp290).padding(AriSamDimensions.dp8), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp48),
                     shape = MaterialTheme.shapes.medium,
                     color = if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .12f) else MaterialTheme.colorScheme.surfaceContainerHighest,
                     contentColor = secondaryContent,
                 ) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MusicOff, null, Modifier.size(23.dp)) }
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MusicOff, null, Modifier.size(AriSamDimensions.dp23)) }
                 }
                 Column(Modifier.padding(horizontal = AriSamThemeTokens.spacing.sm)) {
                     Text(stringResource(R.string.chat_song_unavailable), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -442,26 +444,26 @@ internal fun SharedSongCard(song: SongDto?, unavailable: Boolean, isMine: Boolea
         Surface(
             shape = MaterialTheme.shapes.large,
             color = if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .12f) else MaterialTheme.colorScheme.surfaceContainer,
-            border = BorderStroke(1.dp, if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .18f) else MaterialTheme.colorScheme.outlineVariant),
+            border = BorderStroke(AriSamDimensions.dp1, if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = .18f) else MaterialTheme.colorScheme.outlineVariant),
         ) {
-            Row(Modifier.widthIn(min = 240.dp, max = 290.dp).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.widthIn(min = AriSamDimensions.dp240, max = AriSamDimensions.dp290).padding(AriSamDimensions.dp6), verticalAlignment = Alignment.CenterVertically) {
                 Box {
                     AsyncImage(
                         model = song.coverImageUrl,
                         contentDescription = song.title,
                         error = painterResource(R.drawable.arisam_app_icon_dark),
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(48.dp).clip(MaterialTheme.shapes.medium),
+                        modifier = Modifier.size(AriSamDimensions.dp48).clip(MaterialTheme.shapes.medium),
                     )
-                    Surface(Modifier.align(Alignment.Center).size(26.dp), CircleShape, MaterialTheme.colorScheme.scrim.copy(alpha = .55f), contentColor = androidx.compose.ui.graphics.Color.White) {
-                        Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), Modifier.padding(4.dp))
+                    Surface(Modifier.align(Alignment.Center).size(AriSamDimensions.dp26), CircleShape, MaterialTheme.colorScheme.scrim.copy(alpha = .55f), contentColor = AriSamPalette.white) {
+                        Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), Modifier.padding(AriSamDimensions.dp4))
                     }
                 }
                 Column(Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.sm)) {
                     Text(song.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(song.artistName, style = MaterialTheme.typography.bodySmall, color = secondaryContent, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Icon(Icons.Rounded.MusicNote, null, tint = secondaryContent, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.MusicNote, null, tint = secondaryContent, modifier = Modifier.size(AriSamDimensions.dp20))
             }
         }
     }
@@ -478,21 +480,21 @@ private fun TypingBubble(peer: PublicUserDto?) {
             label = "typing-dot-$index",
         )
     }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (peer != null) UserAvatar(peer, Modifier.size(28.dp))
-        else Box(Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer))
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
+        if (peer != null) UserAvatar(peer, Modifier.size(AriSamDimensions.dp28))
+        else Box(Modifier.size(AriSamDimensions.dp28).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer))
         Surface(
-            shape = RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp),
+            shape = RoundedCornerShape(AriSamDimensions.dp18, AriSamDimensions.dp18, AriSamDimensions.dp18, AriSamDimensions.dp6),
             color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            tonalElevation = 2.dp,
+            border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = AriSamDimensions.dp2,
         ) {
-            Row(Modifier.padding(horizontal = 15.dp, vertical = 13.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(Modifier.padding(horizontal = AriSamDimensions.dp15, vertical = AriSamDimensions.dp13), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5)) {
                 dotAlphas.forEach { alpha ->
                     Box(
-                        Modifier.size(7.dp).graphicsLayer {
+                        Modifier.size(AriSamDimensions.dp7).graphicsLayer {
                             this.alpha = alpha.value
-                            translationY = -2.dp.toPx() * alpha.value
+                            translationY = AriSamDimensions.negative2.toPx() * alpha.value
                         }.background(MaterialTheme.colorScheme.primary, CircleShape),
                     )
                 }
@@ -512,7 +514,7 @@ internal fun DateSeparator(value: String) {
         ) {
             Text(
                 messageDateLabel(value),
-                Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                Modifier.padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp5),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
@@ -530,13 +532,13 @@ private fun ChatEmptyState(peerName: String, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
     ) {
         Surface(
-            modifier = Modifier.size(80.dp),
+            modifier = Modifier.size(AriSamDimensions.dp80),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Headphones, null, Modifier.size(38.dp))
+                Icon(Icons.Rounded.Headphones, null, Modifier.size(AriSamDimensions.dp38))
             }
         }
         Text(
@@ -558,11 +560,11 @@ private fun ChatEmptyState(peerName: String, modifier: Modifier = Modifier) {
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ) {
             Row(
-                Modifier.padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = 10.dp),
+                Modifier.padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = AriSamDimensions.dp10),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm),
             ) {
-                Icon(Icons.Rounded.MusicNote, null, Modifier.size(18.dp))
+                Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp18))
                 Text(stringResource(R.string.chat_be_first_to_vibe), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -571,10 +573,10 @@ private fun ChatEmptyState(peerName: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun MessageStatusIcon(status: ChatMessageStatusDto) = when (status) {
-    ChatMessageStatusDto.PENDING -> Icon(Icons.Rounded.AccessTime, stringResource(R.string.chat_status_sending), Modifier.size(16.dp))
-    ChatMessageStatusDto.FAILED -> Icon(Icons.Rounded.ErrorOutline, stringResource(R.string.chat_status_failed), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
-    ChatMessageStatusDto.READ -> Icon(Icons.Rounded.DoneAll, stringResource(R.string.chat_status_read), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
-    else -> Icon(Icons.Rounded.Done, stringResource(R.string.chat_status_sent), Modifier.size(16.dp))
+    ChatMessageStatusDto.PENDING -> Icon(Icons.Rounded.AccessTime, stringResource(R.string.chat_status_sending), Modifier.size(AriSamDimensions.dp16))
+    ChatMessageStatusDto.FAILED -> Icon(Icons.Rounded.ErrorOutline, stringResource(R.string.chat_status_failed), Modifier.size(AriSamDimensions.dp16), tint = MaterialTheme.colorScheme.error)
+    ChatMessageStatusDto.READ -> Icon(Icons.Rounded.DoneAll, stringResource(R.string.chat_status_read), Modifier.size(AriSamDimensions.dp16), tint = MaterialTheme.colorScheme.secondary)
+    else -> Icon(Icons.Rounded.Done, stringResource(R.string.chat_status_sent), Modifier.size(AriSamDimensions.dp16))
 }
 
 @Composable
@@ -602,7 +604,7 @@ fun ShareSongRoute(onBack: () -> Unit, viewModel: ShareSongViewModel = hiltViewM
                     contentDescription = song.title,
                     error = painterResource(R.drawable.arisam_app_icon_dark),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(64.dp).clip(MaterialTheme.shapes.medium),
+                    modifier = Modifier.size(AriSamDimensions.dp64).clip(MaterialTheme.shapes.medium),
                 )
                 Column(Modifier.padding(horizontal = AriSamThemeTokens.spacing.md)) { Text(song.title, fontWeight = FontWeight.Bold); Text(song.artistName) }
             }
@@ -612,14 +614,14 @@ fun ShareSongRoute(onBack: () -> Unit, viewModel: ShareSongViewModel = hiltViewM
         }
         Text(stringResource(R.string.chat_choose_friend), Modifier.padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = AriSamThemeTokens.spacing.sm), style = MaterialTheme.typography.titleMedium)
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = AriSamThemeTokens.spacing.xl)) {
-            if (friends.loadState.refresh is LoadState.Loading) items(5) { ShimmerBox(Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg).height(68.dp)) }
+            if (friends.loadState.refresh is LoadState.Loading) items(5) { ShimmerBox(Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg).height(AriSamDimensions.dp68)) }
             if (friends.loadState.refresh is LoadState.Error) item { ErrorState(friends::retry) }
             if (friends.loadState.refresh !is LoadState.Loading && friends.itemCount == 0) item { EmptyState(R.string.social_users_empty) }
             items(friends.itemCount, key = { friends.peek(it)?.id ?: it }) { index -> friends[index]?.let { user ->
                 PressScaleBox({ viewModel.sendTo(user) }, Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = AriSamThemeTokens.spacing.xs)) {
                     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
                         Row(Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                            UserAvatar(user, Modifier.size(48.dp)); Text(user.displayName, Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.md), fontWeight = FontWeight.Bold)
+                            UserAvatar(user, Modifier.size(AriSamDimensions.dp48)); Text(user.displayName, Modifier.weight(1f).padding(horizontal = AriSamThemeTokens.spacing.md), fontWeight = FontWeight.Bold)
                             Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
                         }
                     }
@@ -639,7 +641,7 @@ internal fun UserAvatar(user: PublicUserDto, modifier: Modifier) {
 
 @Composable private fun SectionTitle(text: String) = Text(text, Modifier.padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = AriSamThemeTokens.spacing.md), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-@Composable private fun ChatListSkeleton() = Column(Modifier.fillMaxSize().padding(AriSamThemeTokens.spacing.lg), verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) { repeat(7) { ShimmerBox(Modifier.fillMaxWidth().height(76.dp)) } }
+@Composable private fun ChatListSkeleton() = Column(Modifier.fillMaxSize().padding(AriSamThemeTokens.spacing.lg), verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) { repeat(7) { ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp76)) } }
 
 @Composable private fun ErrorState(onRetry: () -> Unit) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { TextButton(onClick = onRetry) { Icon(Icons.Rounded.Refresh, null); Text(stringResource(R.string.retry)) } }
 
@@ -647,11 +649,11 @@ internal fun UserAvatar(user: PublicUserDto, modifier: Modifier) {
 private fun ChatPagingRetry(onRetry: () -> Unit) {
     TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
         Icon(Icons.Rounded.Refresh, null)
-        Text(stringResource(R.string.retry), modifier = Modifier.padding(start = 6.dp))
+        Text(stringResource(R.string.retry), modifier = Modifier.padding(start = AriSamDimensions.dp6))
     }
 }
 
-@Composable private fun EmptyState(message: Int) = Box(Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.xxl), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.AutoMirrored.Rounded.Chat, null, Modifier.size(48.dp)); Text(stringResource(message), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+@Composable private fun EmptyState(message: Int) = Box(Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.xxl), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.AutoMirrored.Rounded.Chat, null, Modifier.size(AriSamDimensions.dp48)); Text(stringResource(message), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
 
 internal fun messageTime(value: String): String = runCatching { DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(Instant.parse(value)) }.getOrDefault("")
 

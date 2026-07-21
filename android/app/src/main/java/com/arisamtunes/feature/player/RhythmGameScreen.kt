@@ -1,5 +1,8 @@
 package com.arisamtunes.feature.player
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
+import com.arisamtunes.core.design.typography.AriSamTypographyTokens
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -84,9 +87,9 @@ private const val EventLateWindowMillis = 285L
 private const val PadYFraction = .56f
 
 private val PulseColors = listOf(
-    Color(0xFF24F2C9),
-    Color(0xFFFF3E9D),
-    Color(0xFFFFE24B),
+    AriSamPalette.mintAccent,
+    AriSamPalette.pink500,
+    AriSamPalette.yellow300,
 )
 
 private val PadXFractions = floatArrayOf(.18f, .50f, .82f)
@@ -236,7 +239,7 @@ fun RhythmGameRoute(
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val tap = down.position
-                        val padRadius = 86.dp.toPx()
+                        val padRadius = AriSamDimensions.dp86.toPx()
                         val lane = PadXFractions.indices.minBy { laneIndex ->
                             val dx = tap.x - PadXFractions[laneIndex] * size.width
                             val dy = tap.y - PadYFraction * size.height
@@ -284,16 +287,16 @@ fun RhythmGameRoute(
             isPlaying = state.isPlaying,
         )
 
-        PadLabels(Modifier.align(Alignment.Center).offset(y = 51.dp))
+        PadLabels(Modifier.align(Alignment.Center).offset(y = AriSamDimensions.dp51))
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 18.dp, vertical = 8.dp),
+                .padding(horizontal = AriSamDimensions.dp18, vertical = AriSamDimensions.dp8),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp14)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -306,19 +309,15 @@ fun RhythmGameRoute(
                         Text(
                             stringResource(R.string.rhythm_game_title),
                             color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 3.sp,
-                            fontSize = 15.sp,
+                            style = AriSamTypographyTokens.rhythmTitle,
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(5.dp).clip(CircleShape).background(PulseColors[0]))
-                            Spacer(Modifier.width(5.dp))
+                            Box(Modifier.size(AriSamDimensions.dp5).clip(CircleShape).background(PulseColors[0]))
+                            Spacer(Modifier.width(AriSamDimensions.dp5))
                             Text(
                                 stringResource(R.string.rhythm_game_live),
                                 color = PulseColors[0].copy(alpha = .78f),
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                fontSize = 9.sp,
+                                style = AriSamTypographyTokens.rhythmLive,
                             )
                         }
                     }
@@ -335,14 +334,14 @@ fun RhythmGameRoute(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    fontSize = 12.sp,
+                    style = AriSamTypographyTokens.rhythmSong,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
                     GameStat(stringResource(R.string.rhythm_game_score), score.toString().padStart(6, '0'), PulseColors[0], Modifier.weight(1.35f))
-                    GameStat(stringResource(R.string.rhythm_game_combo), "${combo}×", PulseColors[1], Modifier.weight(1f))
-                    GameStat(stringResource(R.string.rhythm_game_accuracy), "$accuracy%", PulseColors[2], Modifier.weight(1f))
+                    GameStat(stringResource(R.string.rhythm_game_combo), stringResource(R.string.rhythm_combo_value, combo), PulseColors[1], Modifier.weight(1f))
+                    GameStat(stringResource(R.string.rhythm_game_accuracy), stringResource(R.string.rhythm_accuracy_value, accuracy), PulseColors[2], Modifier.weight(1f))
                 }
             }
 
@@ -356,23 +355,25 @@ fun RhythmGameRoute(
                     Text(
                         stringResource(grade.labelResource()),
                         color = grade.color(),
-                        fontSize = if (grade == RhythmGrade.Perfect) 26.sp else 21.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp,
+                        style = if (grade == RhythmGrade.Perfect) {
+                            AriSamTypographyTokens.rhythmGradePerfect
+                        } else {
+                            AriSamTypographyTokens.rhythmGrade
+                        },
                     )
                 }
-                Spacer(Modifier.size(8.dp))
+                Spacer(Modifier.size(AriSamDimensions.dp8))
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .92f),
-                    shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    shape = RoundedCornerShape(AriSamDimensions.dp22),
+                    border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 17.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = AriSamDimensions.dp17, vertical = AriSamDimensions.dp10),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
                     ) {
-                        Icon(Icons.Rounded.Waves, null, tint = PulseColors[1], modifier = Modifier.size(16.dp))
+                        Icon(Icons.Rounded.Waves, null, tint = PulseColors[1], modifier = Modifier.size(AriSamDimensions.dp16))
                         Text(
                             when {
                                 !state.isPlaying -> stringResource(R.string.rhythm_game_paused)
@@ -381,11 +382,14 @@ fun RhythmGameRoute(
                                 else -> stringResource(R.string.rhythm_game_ready)
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            style = AriSamTypographyTokens.rhythmStatus,
                         )
                         if (bestCombo >= 10) {
-                            Text("• ${stringResource(R.string.rhythm_game_best, bestCombo)}", color = PulseColors[1], fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                stringResource(R.string.rhythm_game_best_bulleted, bestCombo),
+                                color = PulseColors[1],
+                                style = AriSamTypographyTokens.rhythmLive,
+                            )
                         }
                     }
                 }
@@ -401,15 +405,15 @@ fun RhythmGameRoute(
             Surface(
                 onClick = viewModel::togglePlayPause,
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(28.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors[0].copy(alpha = .34f)),
+                shape = RoundedCornerShape(AriSamDimensions.dp28),
+                border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, PulseColors[0].copy(alpha = .34f)),
             ) {
                 Column(
-                    Modifier.padding(horizontal = 34.dp, vertical = 24.dp),
+                    Modifier.padding(horizontal = AriSamDimensions.dp34, vertical = AriSamDimensions.dp24),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
                 ) {
-                    Icon(Icons.Rounded.PlayArrow, null, tint = PulseColors[0], modifier = Modifier.size(36.dp))
+                    Icon(Icons.Rounded.PlayArrow, null, tint = PulseColors[0], modifier = Modifier.size(AriSamDimensions.dp36))
                     Text(stringResource(R.string.rhythm_game_resume), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                 }
             }
@@ -439,12 +443,12 @@ private fun PulsePlayField(
             ),
         )
 
-        val gridStep = 42.dp.toPx()
+        val gridStep = AriSamDimensions.dp42.toPx()
         var y = gridStep * .5f
         while (y < size.height) {
             var x = gridStep * .5f
             while (x < size.width) {
-                drawCircle(gridColor.copy(alpha = .45f), 1.1.dp.toPx(), Offset(x, y))
+                drawCircle(gridColor.copy(alpha = .45f), AriSamDimensions.dp1_1.toPx(), Offset(x, y))
                 x += gridStep
             }
             y += gridStep
@@ -466,7 +470,7 @@ private fun PulsePlayField(
             drawCircle(padSurface, radius, center)
             drawCircle(
                 Brush.radialGradient(
-                    listOf(color.copy(alpha = .18f + level * .38f), Color.Transparent),
+                    listOf(color.copy(alpha = .18f + level * .38f), AriSamPalette.transparent),
                     center = center,
                     radius = radius,
                 ),
@@ -476,9 +480,9 @@ private fun PulsePlayField(
             drawCircle(color.copy(alpha = .42f + level * .45f), radius, center, style = Stroke((1.5f + level * 2f).dp.toPx()))
             drawCircle(
                 color = gridColor,
-                radius = radius + 7.dp.toPx(),
+                radius = radius + AriSamDimensions.dp7.toPx(),
                 center = center,
-                style = Stroke(3.dp.toPx()),
+                style = Stroke(AriSamDimensions.dp3.toPx()),
             )
             if (ringProgress > 0f) {
                 drawArc(
@@ -486,8 +490,8 @@ private fun PulsePlayField(
                     startAngle = -90f,
                     sweepAngle = ringProgress * 360f,
                     useCenter = false,
-                    topLeft = center - Offset(radius + 7.dp.toPx(), radius + 7.dp.toPx()),
-                    size = androidx.compose.ui.geometry.Size((radius + 7.dp.toPx()) * 2f, (radius + 7.dp.toPx()) * 2f),
+                    topLeft = center - Offset(radius + AriSamDimensions.dp7.toPx(), radius + AriSamDimensions.dp7.toPx()),
+                    size = androidx.compose.ui.geometry.Size((radius + AriSamDimensions.dp7.toPx()) * 2f, (radius + AriSamDimensions.dp7.toPx()) * 2f),
                     style = Stroke((3f + ringProgress * 1.5f).dp.toPx(), cap = StrokeCap.Round),
                 )
             }
@@ -495,7 +499,7 @@ private fun PulsePlayField(
                 color.copy(alpha = .07f),
                 start = Offset(center.x, size.height * .22f),
                 end = Offset(center.x, center.y - radius * 1.25f),
-                strokeWidth = 1.dp.toPx(),
+                strokeWidth = AriSamDimensions.dp1.toPx(),
             )
         }
 
@@ -513,7 +517,7 @@ private fun PulsePlayField(
                     color.copy(alpha = .12f + travel * .20f),
                     start = Offset(noteCenter.x, startY),
                     end = noteCenter,
-                    strokeWidth = 2.dp.toPx(),
+                    strokeWidth = AriSamDimensions.dp2.toPx(),
                     cap = StrokeCap.Round,
                 )
                 drawCircle(color.copy(alpha = .10f), noteRadius * 2.4f, noteCenter)
@@ -527,13 +531,13 @@ private fun PulsePlayField(
                     noteRadius,
                     noteCenter,
                 )
-                drawCircle(highlightColor.copy(alpha = .82f), noteRadius, noteCenter, style = Stroke(1.5.dp.toPx()))
+                drawCircle(highlightColor.copy(alpha = .82f), noteRadius, noteCenter, style = Stroke(AriSamDimensions.dp1_5.toPx()))
 
                 if (remaining <= 0L) {
                     val age = (-remaining).toFloat()
                     val hitProgress = (age / EventLateWindowMillis).coerceIn(0f, 1f)
                     val flash = (1f - hitProgress) * event.strength
-                    drawCircle(color.copy(alpha = flash * .34f), 51.dp.toPx(), target)
+                    drawCircle(color.copy(alpha = flash * .34f), AriSamDimensions.dp51.toPx(), target)
                     repeat(2) { ring ->
                         drawCircle(
                             color.copy(alpha = flash * (.62f - ring * .18f)),
@@ -551,7 +555,7 @@ private fun PulsePlayField(
             val origin = Offset(size.width * PadXFractions[burst.lane], size.height * PadYFraction)
             repeat(12) { particle ->
                 val angle = particle * (Math.PI.toFloat() * 2f / 12f) + burst.id * .23f
-                val distance = age * 94.dp.toPx()
+                val distance = age * AriSamDimensions.dp94.toPx()
                 drawCircle(
                     burst.color.copy(alpha = 1f - age),
                     (4f * (1f - age)).dp.toPx().coerceAtLeast(.4f),
@@ -560,7 +564,7 @@ private fun PulsePlayField(
             }
         }
 
-        val bottomY = size.height - 5.dp.toPx()
+        val bottomY = size.height - AriSamDimensions.dp5.toPx()
         repeat(36) { index ->
             val fraction = index / 35f
             val lanePosition = fraction * 2f
@@ -574,7 +578,7 @@ private fun PulsePlayField(
                 color = PulseColors[left].copy(alpha = .12f + level * .24f),
                 start = Offset(x, bottomY),
                 end = Offset(x, bottomY - barHeight),
-                strokeWidth = 3.dp.toPx(),
+                strokeWidth = AriSamDimensions.dp3.toPx(),
                 cap = StrokeCap.Round,
             )
         }
@@ -590,16 +594,14 @@ private fun PadLabels(modifier: Modifier = Modifier) {
         stringResource(R.string.rhythm_game_body),
         stringResource(R.string.rhythm_game_air),
     )
-    Row(modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+    Row(modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp4)) {
         labels.forEachIndexed { index, label ->
             Text(
                 label,
                 modifier = Modifier.weight(1f),
                 color = PulseColors[index].copy(alpha = .8f),
                 textAlign = TextAlign.Center,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = .8.sp,
+                style = AriSamTypographyTokens.rhythmMicro,
             )
         }
     }
@@ -609,10 +611,10 @@ private fun PadLabels(modifier: Modifier = Modifier) {
 private fun RoundGameButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(42.dp),
+        modifier = Modifier.size(AriSamDimensions.dp42),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
     }
@@ -623,12 +625,12 @@ private fun GameStat(label: String, value: String, color: Color, modifier: Modif
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(15.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = .16f)),
+        shape = RoundedCornerShape(AriSamDimensions.dp15),
+        border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, color.copy(alpha = .16f)),
     ) {
-        Column(Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, color = color.copy(alpha = .72f), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
-            Text(value, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1)
+        Column(Modifier.padding(horizontal = AriSamDimensions.dp11, vertical = AriSamDimensions.dp9), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2)) {
+            Text(label, color = color.copy(alpha = .72f), style = AriSamTypographyTokens.rhythmStatLabel)
+            Text(value, color = MaterialTheme.colorScheme.onSurface, style = AriSamTypographyTokens.rhythmStatValue, maxLines = 1)
         }
     }
 }
@@ -650,7 +652,7 @@ private fun RhythmGrade.labelResource(): Int = when (this) {
 
 private fun RhythmGrade.color(): Color = when (this) {
     RhythmGrade.Perfect -> PulseColors[0]
-    RhythmGrade.Great -> Color(0xFF9A7BFF)
+    RhythmGrade.Great -> AriSamPalette.violetGame
     RhythmGrade.Good -> PulseColors[2]
-    RhythmGrade.Miss -> Color(0xFFFF657A)
+    RhythmGrade.Miss -> AriSamPalette.roseBright
 }

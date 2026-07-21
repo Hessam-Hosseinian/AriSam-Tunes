@@ -123,9 +123,11 @@ import androidx.palette.graphics.Palette
 import coil3.toBitmap
 import coil3.compose.AsyncImage
 import com.arisamtunes.R
+import com.arisamtunes.core.design.colors.AriSamPalette
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
 import com.arisamtunes.core.design.preview.PreviewCatalogData
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.SongDto
@@ -139,7 +141,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-
 @Composable
 fun MiniPlayer(
     onOpen: () -> Unit,
@@ -148,7 +149,7 @@ fun MiniPlayer(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val song = state.currentSong ?: return
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(AriSamDimensions.dp24)
     val motion = rememberInfiniteTransition(label = "mini-player-motion")
     val artworkGlow by motion.animateFloat(
         initialValue = .28f,
@@ -166,14 +167,14 @@ fun MiniPlayer(
     )
     PressScaleBox(
         onClick = onOpen,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 7.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp7),
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(14.dp, shape, ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = .2f))
+                .shadow(AriSamDimensions.dp14, shape, ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = .2f))
                 .border(
-                    width = 1.dp,
+                    width = AriSamDimensions.dp1,
                     brush = Brush.horizontalGradient(
                         listOf(
                             MaterialTheme.colorScheme.primary.copy(alpha = .62f),
@@ -184,7 +185,7 @@ fun MiniPlayer(
                     shape = shape,
                 ),
             shape = shape,
-            color = Color.Transparent,
+            color = AriSamPalette.transparent,
         ) {
             Column(
                 modifier = Modifier
@@ -200,40 +201,40 @@ fun MiniPlayer(
                     .animateContentSize(),
             ) {
                 Row(
-                    modifier = Modifier.padding(start = 10.dp, top = 9.dp, end = 8.dp, bottom = 8.dp),
+                    modifier = Modifier.padding(start = AriSamDimensions.dp10, top = AriSamDimensions.dp9, end = AriSamDimensions.dp8, bottom = AriSamDimensions.dp8),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(58.dp)
+                            .size(AriSamDimensions.dp58)
                             .background(
                                 MaterialTheme.colorScheme.primary.copy(alpha = artworkGlow * .28f),
-                                RoundedCornerShape(19.dp),
+                                RoundedCornerShape(AriSamDimensions.dp19),
                             )
-                            .padding(3.dp),
+                            .padding(AriSamDimensions.dp3),
                     ) {
                         AsyncImage(
                             model = song.coverImageUrl,
                             contentDescription = song.title,
                             error = painterResource(R.drawable.arisam_app_icon_dark),
                             contentScale = ContentScale.Crop,
-                            modifier = coverModifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
+                            modifier = coverModifier.fillMaxSize().clip(RoundedCornerShape(AriSamDimensions.dp16)),
                         )
                         Surface(
-                            modifier = Modifier.align(Alignment.BottomEnd).size(20.dp),
+                            modifier = Modifier.align(Alignment.BottomEnd).size(AriSamDimensions.dp20),
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
-                            shadowElevation = 3.dp,
+                            shadowElevation = AriSamDimensions.dp3,
                         ) {
                             MiniPlayerEqualizer(
                                 isPlaying = state.isPlaying,
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(4.dp),
+                                modifier = Modifier.padding(AriSamDimensions.dp4),
                             )
                         }
                     }
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(AriSamDimensions.dp12))
                     AnimatedContent(
                         targetState = song,
                         transitionSpec = {
@@ -244,10 +245,10 @@ fun MiniPlayer(
                         modifier = Modifier.weight(1f),
                         label = "mini-player-song",
                     ) { animatedSong ->
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                MiniPlayerEqualizer(isPlaying = state.isPlaying, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(5.dp))
+                                MiniPlayerEqualizer(isPlaying = state.isPlaying, modifier = Modifier.size(AriSamDimensions.dp14))
+                                Spacer(Modifier.width(AriSamDimensions.dp5))
                                 Text(
                                     text = stringResource(if (state.isPlaying) R.string.now_playing else R.string.pause),
                                     style = MaterialTheme.typography.labelSmall,
@@ -271,8 +272,8 @@ fun MiniPlayer(
                             )
                         }
                     }
-                    Spacer(Modifier.width(4.dp))
-                    IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(38.dp)) {
+                    Spacer(Modifier.width(AriSamDimensions.dp4))
+                    IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(AriSamDimensions.dp38)) {
                         Icon(
                             playerSkipIcon(isNext = true),
                             stringResource(R.string.next_track),
@@ -283,9 +284,9 @@ fun MiniPlayer(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
-                        shadowElevation = 5.dp,
+                        shadowElevation = AriSamDimensions.dp5,
                     ) {
-                        IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(46.dp)) {
+                        IconButton(onClick = viewModel::togglePlayPause, modifier = Modifier.size(AriSamDimensions.dp46)) {
                             AnimatedContent(
                                 targetState = state.isPlaying,
                                 transitionSpec = { fadeIn(spring()) togetherWith fadeOut(tween(100)) },
@@ -299,11 +300,11 @@ fun MiniPlayer(
                         }
                     }
                 }
-                Box(Modifier.fillMaxWidth().height(4.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = .08f))) {
+                Box(Modifier.fillMaxWidth().height(AriSamDimensions.dp4).background(MaterialTheme.colorScheme.onSurface.copy(alpha = .08f))) {
                     Box(
                         Modifier
                             .fillMaxWidth(progress.coerceIn(0f, 1f))
-                            .height(4.dp)
+                            .height(AriSamDimensions.dp4)
                             .background(
                                 Brush.horizontalGradient(
                                     listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
@@ -408,7 +409,7 @@ fun NowPlayingRoute(
             download?.downloadState == LocalLibraryRepository.DownloadStateRunning
         val playerContentColor = MaterialTheme.colorScheme.onBackground
         var coverColors by remember {
-            mutableStateOf(listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95), Color(0xFF06060F)))
+            mutableStateOf(listOf(AriSamPalette.violet500, AriSamPalette.violet900, AriSamPalette.playerBlack))
         }
         AnimatedPlayerBackground(colors = coverColors, coverUrl = song.coverImageUrl)
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -437,7 +438,7 @@ fun NowPlayingRoute(
                 return@CompositionLocalProvider
             }
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = AriSamDimensions.dp20, vertical = AriSamDimensions.dp6),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -447,13 +448,13 @@ fun NowPlayingRoute(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Surface(
-                        modifier = Modifier.size(38.dp),
+                        modifier = Modifier.size(AriSamDimensions.dp38),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .82f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(20.dp))
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(AriSamDimensions.dp20))
                         }
                     }
                     Text(
@@ -462,16 +463,16 @@ fun NowPlayingRoute(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Surface(
-                        modifier = Modifier.size(38.dp),
+                        modifier = Modifier.size(AriSamDimensions.dp38),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .82f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         IconButton(onClick = { showQueue = true }) {
                             Icon(
                                 Icons.AutoMirrored.Rounded.PlaylistPlay,
                                 stringResource(R.string.queue),
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(AriSamDimensions.dp20),
                             )
                         }
                     }
@@ -512,7 +513,7 @@ fun NowPlayingRoute(
                 }
                 Column(
                     Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6),
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
                         Column(Modifier.weight(1f)) {
@@ -538,17 +539,17 @@ fun NowPlayingRoute(
                                 Icon(
                                     if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                     null,
-                                    tint = if (liked) Color(0xFFF43F5E) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = if (liked) AriSamPalette.rose500 else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
                     }
-                    // Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    //     QualityBadge("HI-RES", Color(0xFFA78BFA))
-                    //     QualityBadge("LOSSLESS", Color(0xFF34D399))
-                    //     QualityBadge("DOLBY ATMOS", Color(0xFF60A5FA))
+                    // Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6)) {
+                    //     QualityBadge("HI-RES", AriSamPalette.violet400)
+                    //     QualityBadge("LOSSLESS", AriSamPalette.emerald400)
+                    //     QualityBadge("DOLBY ATMOS", AriSamPalette.blue400)
                     // }
-                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp20)) {
                         PlayerTextAction(Icons.Rounded.SportsEsports, stringResource(R.string.rhythm_game)) { onOpenRhythmGame() }
                         PlayerTextAction(Icons.Rounded.Share, stringResource(R.string.chat_share_song)) { onShareSong(song.id) }
                         PlayerTextAction(Icons.Rounded.Info, stringResource(R.string.song_information)) {
@@ -557,18 +558,18 @@ fun NowPlayingRoute(
                     }
                 }
                 state.playbackError?.let { error ->
-                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(error.messageRes), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
                 }
                 // visualizer در یک ردیف جداگانه و crossfade زیر آن
                 Column(
                     Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4),
                 ) {
                     // Visualizer در بالای ردیف
                     Row(
                         Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
                     ) {
                         Box(Modifier.fillMaxWidth()) {
                             AudioVisualizer(
@@ -601,7 +602,7 @@ fun NowPlayingRoute(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(formatDuration(displayedProgress), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6)) {
                             PlayerUtilityChip(
                                 icon = Icons.Rounded.Speed,
                                 label = stringResource(R.string.playback_speed_value, formatSpeed(state.playbackSpeed)),
@@ -615,7 +616,14 @@ fun NowPlayingRoute(
                                 onClick = { showSleepPicker = true },
                             )
                         }
-                        Text("-${formatDuration((song.durationSeconds - displayedProgress).coerceAtLeast(0))}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            stringResource(
+                                R.string.remaining_duration_format,
+                                formatDuration((song.durationSeconds - displayedProgress).coerceAtLeast(0)),
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
                 Row(
@@ -626,15 +634,15 @@ fun NowPlayingRoute(
                     PlaybackModeButton(
                         icon = Icons.Rounded.Shuffle,
                         selected = state.isShuffleEnabled,
-                        contentDescription = "Shuffle",
+                        contentDescription = stringResource(R.string.shuffle),
                         onClick = viewModel::toggleShuffle,
                     )
-                    IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(60.dp)) {
-                        Icon(playerSkipIcon(isNext = false), stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
+                    IconButton(onClick = viewModel::skipToPrevious, modifier = Modifier.size(AriSamDimensions.dp60)) {
+                        Icon(playerSkipIcon(isNext = false), stringResource(R.string.previous_track), modifier = Modifier.size(AriSamDimensions.dp38))
                     }
                     Box(
-                        Modifier.size(68.dp).clip(CircleShape).background(
-                            Brush.linearGradient(listOf(Color(0xFFA855F7), Color(0xFFEC4899))),
+                        Modifier.size(AriSamDimensions.dp68).clip(CircleShape).background(
+                            Brush.linearGradient(listOf(AriSamPalette.fuchsia500, AriSamPalette.pink600)),
                         ),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -642,17 +650,23 @@ fun NowPlayingRoute(
                             Icon(
                                 if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 stringResource(if (state.isPlaying) R.string.pause else R.string.play),
-                                modifier = Modifier.size(40.dp),
+                                modifier = Modifier.size(AriSamDimensions.dp40),
                             )
                         }
                     }
-                    IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(60.dp)) {
-                        Icon(playerSkipIcon(isNext = true), stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
+                    IconButton(onClick = viewModel::skipToNext, modifier = Modifier.size(AriSamDimensions.dp60)) {
+                        Icon(playerSkipIcon(isNext = true), stringResource(R.string.next_track), modifier = Modifier.size(AriSamDimensions.dp38))
                     }
                     PlaybackModeButton(
                         icon = if (state.repeatMode == 2) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                         selected = state.repeatMode > 0,
-                        contentDescription = "Repeat",
+                        contentDescription = stringResource(
+                            when (state.repeatMode) {
+                                1 -> R.string.repeat_all
+                                2 -> R.string.repeat_one
+                                else -> R.string.repeat_off
+                            },
+                        ),
                         onClick = viewModel::cycleRepeatMode,
                     )
                 }
@@ -693,7 +707,7 @@ private fun PlayerSeekBar(
     val duration = durationSeconds.coerceAtLeast(1)
     val fraction = (progressSeconds.toFloat() / duration).coerceIn(0f, 1f)
     Canvas(
-        modifier = Modifier.fillMaxWidth().height(28.dp).pointerInput(duration) {
+        modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp28).pointerInput(duration) {
             awaitEachGesture {
                 val down = awaitFirstDown()
                 fun seekTo(x: Float) {
@@ -710,23 +724,23 @@ private fun PlayerSeekBar(
         },
     ) {
         val centerY = size.height / 2f
-        val padding = 9.dp.toPx()
+        val padding = AriSamDimensions.dp9.toPx()
         val startX = padding
         val endX = size.width - padding
         val thumbX = startX + (endX - startX) * fraction
-        drawLine(trackColor, Offset(startX, centerY), Offset(endX, centerY), 4.dp.toPx(), StrokeCap.Round)
+        drawLine(trackColor, Offset(startX, centerY), Offset(endX, centerY), AriSamDimensions.dp4.toPx(), StrokeCap.Round)
         if (fraction > 0f) {
             drawLine(
-                brush = Brush.horizontalGradient(listOf(Color(0xFFA855F7), Color(0xFFEC4899)), startX, endX),
+                brush = Brush.horizontalGradient(listOf(AriSamPalette.fuchsia500, AriSamPalette.pink600), startX, endX),
                 start = Offset(startX, centerY),
                 end = Offset(thumbX, centerY),
-                strokeWidth = 5.dp.toPx(),
+                strokeWidth = AriSamDimensions.dp5.toPx(),
                 cap = StrokeCap.Round,
             )
         }
-        drawCircle(Color(0xFFEC4899).copy(alpha = .20f), 9.dp.toPx(), Offset(thumbX, centerY))
-        drawCircle(thumbColor, 5.dp.toPx(), Offset(thumbX, centerY))
-        drawCircle(Color(0xFFEC4899), 2.dp.toPx(), Offset(thumbX, centerY))
+        drawCircle(AriSamPalette.pink600.copy(alpha = .20f), AriSamDimensions.dp9.toPx(), Offset(thumbX, centerY))
+        drawCircle(thumbColor, AriSamDimensions.dp5.toPx(), Offset(thumbX, centerY))
+        drawCircle(AriSamPalette.pink600, AriSamDimensions.dp2.toPx(), Offset(thumbX, centerY))
     }
 }
 
@@ -749,10 +763,10 @@ private fun AudioVisualizer(
     }
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = if (compact) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+        color = if (compact) AriSamPalette.transparent else MaterialTheme.colorScheme.surface.copy(alpha = .74f),
         shape = MaterialTheme.shapes.extraLarge,
     ) {
-        Column(Modifier.padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.padding(vertical = AriSamDimensions.dp6), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2)) {
             if (!compact) {
                 Text(
                     stringResource(R.string.visualizer),
@@ -762,20 +776,20 @@ private fun AudioVisualizer(
                 )
             }
             Canvas(
-                modifier = Modifier.fillMaxWidth().height(if (compact) 38.dp else 58.dp)
+                modifier = Modifier.fillMaxWidth().height(if (compact) AriSamDimensions.dp38 else AriSamDimensions.dp58)
                     .padding(horizontal = AriSamThemeTokens.spacing.md),
             ) {
                 val bars = animatedBands.size.coerceAtLeast(1)
-                val gap = 2.dp.toPx()
-                val barWidth = ((size.width - gap * (bars - 1)) / bars).coerceAtLeast(2.dp.toPx())
-                val usableHeight = size.height - 2.dp.toPx()
+                val gap = AriSamDimensions.dp2.toPx()
+                val barWidth = ((size.width - gap * (bars - 1)) / bars).coerceAtLeast(AriSamDimensions.dp2.toPx())
+                val usableHeight = size.height - AriSamDimensions.dp2.toPx()
                 animatedBands.forEachIndexed { index, normalized ->
                     val level = normalized.coerceIn(0f, 1f)
-                    val barHeight = (usableHeight * level).coerceIn(5.dp.toPx(), usableHeight)
+                    val barHeight = (usableHeight * level).coerceIn(AriSamDimensions.dp5.toPx(), usableHeight)
                     val x = index * (barWidth + gap)
                     val fraction = if (bars == 1) 0f else index.toFloat() / (bars - 1)
-                    val baseColor = lerp(Color(0xFF8B5CF6), Color(0xFFEC4899), fraction)
-                    val topColor = lerp(baseColor, Color.White, .22f)
+                    val baseColor = lerp(AriSamPalette.violet500, AriSamPalette.pink600, fraction)
+                    val topColor = lerp(baseColor, AriSamPalette.white, .22f)
                     val top = size.height - barHeight
                     if (level > .56f && isPlaying) {
                         drawLine(
@@ -819,22 +833,22 @@ private fun PremiumAlbumCover(
         label = "coverGlowPulse",
     )
     Box(
-        modifier = Modifier.size(248.dp),
+        modifier = Modifier.size(AriSamDimensions.dp248),
         contentAlignment = Alignment.Center,
     ) {
         // Box(
-        //     Modifier.size(230.dp)
+        //     Modifier.size(AriSamDimensions.dp230)
         //         .graphicsLayer {
         //             val scale = if (isPlaying) pulse else 1f
         //             scaleX = scale
         //             scaleY = scale
         //             alpha = if (isPlaying) .7f else .42f
         //         }
-        //         .blur(22.dp)
+        //         .blur(AriSamDimensions.dp22)
         //         .clip(MaterialTheme.shapes.extraLarge)
         //         .background(
         //             Brush.linearGradient(
-        //                 listOf(Color(0xFF8B5CF6), Color(0xFFEC4899)),
+        //                 listOf(AriSamPalette.violet500, AriSamPalette.pink600),
         //             ),
         //         ),
         // )
@@ -843,16 +857,16 @@ private fun PremiumAlbumCover(
             contentDescription = title,
             error = painterResource(R.drawable.arisam_app_icon_dark),
             contentScale = ContentScale.Crop,
-            modifier = coverModifier.size(220.dp)
+            modifier = coverModifier.size(AriSamDimensions.dp220)
                 .clip(MaterialTheme.shapes.extraLarge)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.extraLarge),
+                .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.extraLarge),
             onSuccess = { success ->
                 Palette.from(success.result.image.toPaletteBitmap())
                     .maximumColorCount(12)
                     .resizeBitmapArea(12_000)
                     .generate { palette ->
                         palette ?: return@generate
-                        val dominant = palette.getDominantColor(Color.Black.toArgb())
+                        val dominant = palette.getDominantColor(AriSamPalette.black.toArgb())
                         val vibrant = palette.darkVibrantSwatch?.rgb
                             ?: palette.vibrantSwatch?.rgb
                             ?: dominant
@@ -861,19 +875,19 @@ private fun PremiumAlbumCover(
                             ?: dominant
                         onPalette(
                             listOf(
-                                lerp(Color(vibrant), Color.Black, .58f),
-                                lerp(Color(dominant), Color.Black, .70f),
-                                lerp(Color(muted), Color.Black, .78f),
-                                Color.Black,
+                                lerp(Color(vibrant), AriSamPalette.black, .58f),
+                                lerp(Color(dominant), AriSamPalette.black, .70f),
+                                lerp(Color(muted), AriSamPalette.black, .78f),
+                                AriSamPalette.black,
                             ),
                         )
                     }
             },
         )
         Box(
-            Modifier.size(220.dp).clip(MaterialTheme.shapes.extraLarge).background(
+            Modifier.size(AriSamDimensions.dp220).clip(MaterialTheme.shapes.extraLarge).background(
                 Brush.verticalGradient(
-                    listOf(Color.Transparent, Color.Black.copy(alpha = .2f)),
+                    listOf(AriSamPalette.transparent, AriSamPalette.black.copy(alpha = .2f)),
                     startY = 110f,
                 ),
             ),
@@ -886,11 +900,11 @@ private fun QualityBadge(label: String, color: Color) {
     Surface(
         shape = MaterialTheme.shapes.extraSmall,
         color = color.copy(alpha = .1f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = .3f)),
+        border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, color.copy(alpha = .3f)),
     ) {
         Text(
             label,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = AriSamDimensions.dp6, vertical = AriSamDimensions.dp3),
             color = color,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
@@ -905,11 +919,11 @@ private fun PlayerTextAction(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.clickable(onClick = onClick).padding(vertical = 4.dp),
+        modifier = Modifier.clickable(onClick = onClick).padding(vertical = AriSamDimensions.dp4),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
     ) {
-        Icon(icon, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, null, modifier = Modifier.size(AriSamDimensions.dp14), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -922,17 +936,17 @@ private fun PlayerOrbitAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    PressScaleBox(onClick = onClick, modifier = modifier.width(58.dp)) {
+    PressScaleBox(onClick = onClick, modifier = modifier.width(AriSamDimensions.dp58)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
         ) {
             Surface(
-                modifier = Modifier.size(42.dp),
+                modifier = Modifier.size(AriSamDimensions.dp42),
                 shape = CircleShape,
                 color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .9f),
                 border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
+                    AriSamDimensions.dp1,
                     if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 ),
             ) {
@@ -940,7 +954,7 @@ private fun PlayerOrbitAction(
                     Icon(
                         icon,
                         contentDescription = label,
-                        modifier = Modifier.size(19.dp),
+                        modifier = Modifier.size(AriSamDimensions.dp19),
                         tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -965,22 +979,22 @@ private fun PlayerUtilityChip(
 ) {
     PressScaleBox(onClick = onClick) {
         Surface(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(AriSamDimensions.dp14),
             color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
             border = androidx.compose.foundation.BorderStroke(
-                1.dp,
+                AriSamDimensions.dp1,
                 if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
             ),
         ) {
             Row(
-                Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                Modifier.padding(horizontal = AriSamDimensions.dp8, vertical = AriSamDimensions.dp6),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4),
             ) {
                 Icon(
                     icon,
                     contentDescription = label,
-                    modifier = Modifier.size(15.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp15),
                     tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
@@ -1004,10 +1018,10 @@ private fun PlaybackSpeedSheet(
     val speeds = listOf(.75f, 1f, 1.25f, 1.5f, 2f)
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(
-            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = AriSamDimensions.dp22).padding(bottom = AriSamDimensions.dp24),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp16),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                 Text(stringResource(R.string.playback_speed), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                 Text(stringResource(R.string.playback_speed_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -1016,19 +1030,19 @@ private fun PlaybackSpeedSheet(
                 PressScaleBox(onClick = { onSelect(speed) }, modifier = Modifier.fillMaxWidth()) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(AriSamDimensions.dp18),
                         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                         border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
+                            AriSamDimensions.dp1,
                             if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                         ),
                     ) {
-                        Row(Modifier.padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.padding(horizontal = AriSamDimensions.dp18, vertical = AriSamDimensions.dp14), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Speed, null)
                             Text(
                                 stringResource(R.string.playback_speed_value, formatSpeed(speed)),
-                                Modifier.weight(1f).padding(horizontal = 14.dp),
+                                Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp14),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -1051,10 +1065,10 @@ private fun SleepTimerSheet(
     val options = listOf(15, 30, 45, 60)
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(
-            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = AriSamDimensions.dp22).padding(bottom = AriSamDimensions.dp24),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp16),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                 Text(stringResource(R.string.sleep_timer_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                 Text(stringResource(R.string.sleep_timer_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -1090,14 +1104,14 @@ private fun TimerChoice(label: String, selected: Boolean, onClick: () -> Unit, t
     PressScaleBox(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(AriSamDimensions.dp18),
             color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
             contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
         ) {
             Row(
-                Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                Modifier.padding(horizontal = AriSamDimensions.dp18, vertical = AriSamDimensions.dp14),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
             ) {
                 Icon(Icons.Rounded.Timer, null)
                 Text(label, Modifier.weight(1f), fontWeight = FontWeight.Bold)
@@ -1119,13 +1133,13 @@ private fun PlaybackModeButton(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.size(42.dp),
+        modifier = Modifier.size(AriSamDimensions.dp42),
         shape = CircleShape,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+        border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
     ) {
         IconButton(onClick = onClick) {
-            Icon(icon, contentDescription, modifier = Modifier.size(20.dp), tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(icon, contentDescription, modifier = Modifier.size(AriSamDimensions.dp20), tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1137,7 +1151,7 @@ private fun PlayerQueueScreen(
     onBack: () -> Unit,
     onSongClick: (SongDto) -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = AriSamDimensions.dp20, vertical = AriSamDimensions.dp6)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
@@ -1146,22 +1160,22 @@ private fun PlayerQueueScreen(
                 Text(stringResource(R.string.playing_queue).uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(stringResource(R.string.track_count, queue.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.size(48.dp))
+            Spacer(Modifier.size(AriSamDimensions.dp48))
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = AriSamDimensions.dp16),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
         ) {
             item(key = "queue_hint") {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = AriSamDimensions.dp6),
+                    shape = RoundedCornerShape(AriSamDimensions.dp20),
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
                 ) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, tint = Color(0xFFD8B4FE))
+                    Row(Modifier.padding(AriSamDimensions.dp16), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12)) {
+                        Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, tint = AriSamPalette.purple200)
                         Text(stringResource(R.string.player_queue_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -1170,25 +1184,25 @@ private fun PlayerQueueScreen(
                 val active = item.id == currentSong.id
                 Row(
                     Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium)
-                        .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                        .background(if (active) MaterialTheme.colorScheme.primaryContainer else AriSamPalette.transparent)
                         .clickable { onSongClick(item) }
-                        .padding(10.dp),
+                        .padding(AriSamDimensions.dp10),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
                 ) {
                     AsyncImage(
                         model = item.coverImageUrl,
                         contentDescription = item.title,
                         error = painterResource(R.drawable.arisam_app_icon_dark),
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(52.dp).clip(MaterialTheme.shapes.small),
+                        modifier = Modifier.size(AriSamDimensions.dp52).clip(MaterialTheme.shapes.small),
                     )
                     Column(Modifier.weight(1f)) {
                         Text(item.title, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(item.artistName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
-                    if (active) Icon(Icons.Rounded.GraphicEq, null, tint = Color(0xFFB57BFF))
-                    else Text("${index + 1}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    if (active) Icon(Icons.Rounded.GraphicEq, null, tint = AriSamPalette.violetAccent)
+                    else Text(stringResource(R.string.queue_position_format, index + 1), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -1212,20 +1226,20 @@ private fun LiveLyricsScreen(
     LaunchedEffect(activeIndex) {
         if (activeIndex >= 0) listState.animateScrollToItem((activeIndex - 2).coerceAtLeast(0))
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = AriSamDimensions.dp20, vertical = AriSamDimensions.dp6)) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Surface(
-                modifier = Modifier.size(38.dp),
+                modifier = Modifier.size(AriSamDimensions.dp38),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(20.dp))
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(AriSamDimensions.dp20))
                 }
             }
             Text(
@@ -1233,29 +1247,29 @@ private fun LiveLyricsScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.size(48.dp))
+            Spacer(Modifier.size(AriSamDimensions.dp48))
         }
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 14.dp),
+            Modifier.fillMaxWidth().padding(vertical = AriSamDimensions.dp14),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
         ) {
             AsyncImage(
                 model = song.coverImageUrl,
                 contentDescription = song.title,
                 error = painterResource(R.drawable.arisam_app_icon_dark),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(52.dp).clip(CircleShape)
-                    .border(1.dp, Color(0xFFB57BFF), CircleShape),
+                modifier = Modifier.size(AriSamDimensions.dp52).clip(CircleShape)
+                    .border(AriSamDimensions.dp1, AriSamPalette.violetAccent, CircleShape),
                 onSuccess = { success ->
                     Palette.from(success.result.image.toPaletteBitmap()).maximumColorCount(10).generate { palette ->
                         palette ?: return@generate
-                        val dominant = palette.getDominantColor(Color.Black.toArgb())
+                        val dominant = palette.getDominantColor(AriSamPalette.black.toArgb())
                         onPalette(
                             listOf(
-                                lerp(Color(palette.vibrantSwatch?.rgb ?: dominant), Color.Black, .52f),
-                                lerp(Color(dominant), Color.Black, .68f),
-                                Color(0xFF06060F),
+                                lerp(Color(palette.vibrantSwatch?.rgb ?: dominant), AriSamPalette.black, .52f),
+                                lerp(Color(dominant), AriSamPalette.black, .68f),
+                                AriSamPalette.playerBlack,
                             ),
                         )
                     }
@@ -1265,12 +1279,12 @@ private fun LiveLyricsScreen(
                 Text(song.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(song.artistName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-            if (isPlaying) Icon(Icons.Rounded.GraphicEq, null, tint = Color(0xFFB57BFF))
+            if (isPlaying) Icon(Icons.Rounded.GraphicEq, null, tint = AriSamPalette.violetAccent)
         }
         if (lines.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(Icons.Rounded.Mic, null, modifier = Modifier.size(42.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12)) {
+                    Icon(Icons.Rounded.Mic, null, modifier = Modifier.size(AriSamDimensions.dp42), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(stringResource(R.string.lyrics_unavailable), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -1278,8 +1292,8 @@ private fun LiveLyricsScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 140.dp),
-                verticalArrangement = Arrangement.spacedBy(22.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = AriSamDimensions.dp140),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp22),
             ) {
                 itemsIndexed(lines, key = { index, line -> "${line.startMillis}-$index-${line.text}" }) { index, line ->
                     val distance = kotlin.math.abs(index - activeIndex)
@@ -1288,7 +1302,7 @@ private fun LiveLyricsScreen(
                         modifier = Modifier.fillMaxWidth()
                             .clip(MaterialTheme.shapes.small)
                             .clickable { onSeek(line.startMillis) }
-                            .padding(vertical = 6.dp)
+                            .padding(vertical = AriSamDimensions.dp6)
                             .graphicsLayer {
                             alpha = when {
                                 index == activeIndex -> 1f
@@ -1383,12 +1397,12 @@ private fun AnimatedPlayerBackground(colors: List<Color>, coverUrl: String) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < .5f
     val motion = rememberInfiniteTransition(label = "coverGradient")
     val firstColor by animateColorAsState(
-        targetValue = colors.firstOrNull() ?: Color(0xFF24123A),
+        targetValue = colors.firstOrNull() ?: AriSamPalette.purpleBackdrop,
         animationSpec = tween(1_100, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "playerPalettePrimary",
     )
     val secondColor by animateColorAsState(
-        targetValue = colors.getOrElse(1) { Color(0xFF101F32) },
+        targetValue = colors.getOrElse(1) { AriSamPalette.navy900 },
         animationSpec = tween(1_300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "playerPaletteSecondary",
     )
@@ -1411,14 +1425,14 @@ private fun AnimatedPlayerBackground(colors: List<Color>, coverUrl: String) {
                 scaleX = 1.28f
                 scaleY = 1.28f
                 alpha = if (isDark) .24f else .1f
-            }.blur(72.dp),
+            }.blur(AriSamDimensions.dp72),
         )
         Box(
             Modifier.fillMaxSize().background(
                 Brush.radialGradient(
                     colors = listOf(
                         firstColor.copy(alpha = if (isDark) .78f else .12f),
-                        Color.Transparent,
+                        AriSamPalette.transparent,
                     ),
                     center = Offset(phase * 820f, -80f),
                     radius = 980f,
@@ -1430,7 +1444,7 @@ private fun AnimatedPlayerBackground(colors: List<Color>, coverUrl: String) {
                 Brush.radialGradient(
                     colors = listOf(
                         secondColor.copy(alpha = if (isDark) .7f else .1f),
-                        Color.Transparent,
+                        AriSamPalette.transparent,
                     ),
                     center = Offset((1f - phase) * 760f, 720f),
                     radius = 880f,
@@ -1441,7 +1455,7 @@ private fun AnimatedPlayerBackground(colors: List<Color>, coverUrl: String) {
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
                     if (isDark) {
-                        listOf(Color.Transparent, Color(0xE804040C))
+                        listOf(AriSamPalette.transparent, AriSamPalette.scrimStrong)
                     } else {
                         listOf(MaterialTheme.colorScheme.surface.copy(alpha = .45f), MaterialTheme.colorScheme.background.copy(alpha = .96f))
                     },
@@ -1454,9 +1468,9 @@ private fun AnimatedPlayerBackground(colors: List<Color>, coverUrl: String) {
 
 @Composable
 private fun EmptyPlayer() {
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(52.dp), tint = MaterialTheme.colorScheme.primary)
+    Box(Modifier.fillMaxSize().padding(AriSamDimensions.dp32), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
+            Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(AriSamDimensions.dp52), tint = MaterialTheme.colorScheme.primary)
             Text(stringResource(R.string.no_song_playing), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -1480,11 +1494,11 @@ private fun formatDuration(seconds: Int): String {
 
 private fun playerGradient(title: String, artist: String): Brush {
     val palettes = listOf(
-        listOf(Color(0xFF321450), Color(0xFF7B2CBF), Color(0xFF10051F)),
-        listOf(Color(0xFF09203F), Color(0xFF537895), Color(0xFF050B18)),
-        listOf(Color(0xFF3D0C11), Color(0xFFD00000), Color(0xFF160305)),
-        listOf(Color(0xFF082032), Color(0xFF2C394B), Color(0xFF000814)),
-        listOf(Color(0xFF1B4332), Color(0xFF40916C), Color(0xFF081C15)),
+        listOf(AriSamPalette.purple900, AriSamPalette.purple700, AriSamPalette.purpleBlack),
+        listOf(AriSamPalette.midnightBlue, AriSamPalette.slateBlue, AriSamPalette.midnight),
+        listOf(AriSamPalette.wine900, AriSamPalette.red700, AriSamPalette.darkRed),
+        listOf(AriSamPalette.deepBlue, AriSamPalette.slateBlue700, AriSamPalette.almostBlack),
+        listOf(AriSamPalette.green900, AriSamPalette.green600, AriSamPalette.green950),
     )
     val colors = palettes[Math.floorMod((title + artist).hashCode(), palettes.size)]
     return Brush.verticalGradient(colors)
@@ -1527,12 +1541,12 @@ private fun PlayerQueuePreview() {
 private fun PlayerPreviewScreen(state: PlayerState) {
     val song = state.currentSong ?: return EmptyPlayer()
     AnimatedPlayerBackground(
-        colors = listOf(Color(0xFF2A1246), Color(0xFF123047), Color(0xFF05060D)),
+        colors = listOf(AriSamPalette.plum900, AriSamPalette.navy700, AriSamPalette.blackBlue),
         coverUrl = song.coverImageUrl,
     )
-    CompositionLocalProvider(LocalContentColor provides Color.White) {
+    CompositionLocalProvider(LocalContentColor provides AriSamPalette.white) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = AriSamDimensions.dp20, vertical = AriSamDimensions.dp6),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -1542,28 +1556,28 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Surface(
-                    modifier = Modifier.size(38.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp38),
                     shape = CircleShape,
-                    color = Color.White.copy(alpha = .08f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+                    color = AriSamPalette.white.copy(alpha = .08f),
+                    border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .1f)),
                 ) {
                     IconButton(onClick = {}) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), modifier = Modifier.size(AriSamDimensions.dp20))
                     }
                 }
                 Text(
                     stringResource(R.string.now_playing).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = .42f),
+                    color = AriSamPalette.white.copy(alpha = .42f),
                 )
                 Surface(
-                    modifier = Modifier.size(38.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp38),
                     shape = CircleShape,
-                    color = Color.White.copy(alpha = .08f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+                    color = AriSamPalette.white.copy(alpha = .08f),
+                    border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .1f)),
                 ) {
                     IconButton(onClick = {}) {
-                        Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, modifier = Modifier.size(AriSamDimensions.dp20))
                     }
                 }
             }
@@ -1590,7 +1604,7 @@ private fun PlayerPreviewScreen(state: PlayerState) {
             }
             Column(
                 Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6),
             ) {
                 Row(verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f)) {
@@ -1598,16 +1612,16 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                         Text(
                             listOfNotNull(song.artistName, song.album?.takeIf(String::isNotBlank)).joinToString("  ·  "),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = .55f),
+                            color = AriSamPalette.white.copy(alpha = .55f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                     IconButton(onClick = {}) {
-                        Icon(Icons.Rounded.Favorite, null, tint = Color(0xFFF43F5E))
+                        Icon(Icons.Rounded.Favorite, null, tint = AriSamPalette.rose500)
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp20)) {
                     PlayerTextAction(Icons.Rounded.Share, "Share") {}
                     PlayerTextAction(Icons.Rounded.Info, stringResource(R.string.song_information)) {}
                 }
@@ -1615,7 +1629,7 @@ private fun PlayerPreviewScreen(state: PlayerState) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
             ) {
                 Box(Modifier.weight(1f)) {
                     AudioVisualizer(
@@ -1638,8 +1652,8 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(formatDuration(state.progressSeconds), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(formatDuration(state.progressSeconds), style = MaterialTheme.typography.labelMedium, color = AriSamPalette.white.copy(alpha = .38f))
+                    Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6)) {
                         PlayerUtilityChip(
                             icon = Icons.Rounded.Speed,
                             label = stringResource(R.string.playback_speed_value, formatSpeed(state.playbackSpeed)),
@@ -1653,7 +1667,14 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                             onClick = {},
                         )
                     }
-                    Text("-${formatDuration((song.durationSeconds - state.progressSeconds).coerceAtLeast(0))}", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = .38f))
+                    Text(
+                        stringResource(
+                            R.string.remaining_duration_format,
+                            formatDuration((song.durationSeconds - state.progressSeconds).coerceAtLeast(0)),
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AriSamPalette.white.copy(alpha = .38f),
+                    )
                 }
             }
             Row(
@@ -1662,26 +1683,26 @@ private fun PlayerPreviewScreen(state: PlayerState) {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 IconButton(onClick = {}) {
-                    Icon(Icons.Rounded.Shuffle, null, tint = if (state.isShuffleEnabled) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
+                    Icon(Icons.Rounded.Shuffle, null, tint = if (state.isShuffleEnabled) AriSamPalette.violetAccent else AriSamPalette.white.copy(alpha = .42f))
                 }
-                IconButton(onClick = {}, modifier = Modifier.size(60.dp)) {
-                    Icon(playerSkipIcon(isNext = false), stringResource(R.string.previous_track), modifier = Modifier.size(38.dp))
+                IconButton(onClick = {}, modifier = Modifier.size(AriSamDimensions.dp60)) {
+                    Icon(playerSkipIcon(isNext = false), stringResource(R.string.previous_track), modifier = Modifier.size(AriSamDimensions.dp38))
                 }
                 Box(
-                    Modifier.size(68.dp).clip(CircleShape).background(
-                        Brush.linearGradient(listOf(Color(0xFFA855F7), Color(0xFFEC4899))),
+                    Modifier.size(AriSamDimensions.dp68).clip(CircleShape).background(
+                        Brush.linearGradient(listOf(AriSamPalette.fuchsia500, AriSamPalette.pink600)),
                     ),
                     contentAlignment = Alignment.Center,
                 ) {
                     IconButton(onClick = {}, modifier = Modifier.fillMaxSize()) {
-                        Icon(Icons.Rounded.Pause, stringResource(R.string.pause), modifier = Modifier.size(40.dp))
+                        Icon(Icons.Rounded.Pause, stringResource(R.string.pause), modifier = Modifier.size(AriSamDimensions.dp40))
                     }
                 }
-                IconButton(onClick = {}, modifier = Modifier.size(60.dp)) {
-                    Icon(playerSkipIcon(isNext = true), stringResource(R.string.next_track), modifier = Modifier.size(38.dp))
+                IconButton(onClick = {}, modifier = Modifier.size(AriSamDimensions.dp60)) {
+                    Icon(playerSkipIcon(isNext = true), stringResource(R.string.next_track), modifier = Modifier.size(AriSamDimensions.dp38))
                 }
                 IconButton(onClick = {}) {
-                    Icon(Icons.Rounded.Repeat, null, tint = if (state.repeatMode > 0) Color(0xFFB57BFF) else Color.White.copy(alpha = .42f))
+                    Icon(Icons.Rounded.Repeat, null, tint = if (state.repeatMode > 0) AriSamPalette.violetAccent else AriSamPalette.white.copy(alpha = .42f))
                 }
             }
         }

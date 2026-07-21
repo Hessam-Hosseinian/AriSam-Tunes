@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.songdetail
 
+import com.arisamtunes.core.design.colors.AriSamPalette
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -255,7 +257,7 @@ private fun SongAmbientBackdrop(phase: Float) {
         Box(
             Modifier
                 .align(Alignment.TopEnd)
-                .size(320.dp)
+                .size(AriSamDimensions.dp320)
                 .graphicsLayer {
                     translationX = 170f + phase * 42f
                     translationY = -95f + phase * 34f
@@ -264,21 +266,21 @@ private fun SongAmbientBackdrop(phase: Float) {
                     scaleY = 1f + phase * .06f
                 }
                 .background(
-                    Brush.radialGradient(listOf(primary, Color.Transparent)),
+                    Brush.radialGradient(listOf(primary, AriSamPalette.transparent)),
                     CircleShape,
                 ),
         )
         Box(
             Modifier
                 .align(Alignment.CenterStart)
-                .size(250.dp)
+                .size(AriSamDimensions.dp250)
                 .graphicsLayer {
                     translationX = -145f - phase * 30f
                     translationY = phase * 75f
                     alpha = .14f
                 }
                 .background(
-                    Brush.radialGradient(listOf(secondary, Color.Transparent)),
+                    Brush.radialGradient(listOf(secondary, AriSamPalette.transparent)),
                     CircleShape,
                 ),
         )
@@ -290,17 +292,17 @@ private fun SongDetailTopBar(onBack: () -> Unit, phase: Float) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = AriSamDimensions.dp16, vertical = AriSamDimensions.dp10),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
     ) {
         PressScaleBox(onClick = onBack) {
             Surface(
-                modifier = Modifier.size(46.dp),
+                modifier = Modifier.size(AriSamDimensions.dp46),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .88f),
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f)),
+                border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f)),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
@@ -320,7 +322,7 @@ private fun SongDetailTopBar(onBack: () -> Unit, phase: Float) {
                 style = MaterialTheme.typography.labelSmall,
             )
         }
-        MiniEqualizer(phase = phase, modifier = Modifier.width(46.dp).height(30.dp))
+        MiniEqualizer(phase = phase, modifier = Modifier.width(AriSamDimensions.dp46).height(AriSamDimensions.dp30))
     }
 }
 
@@ -335,6 +337,7 @@ private fun SongMetadata(
 ) {
     val spacing = AriSamThemeTokens.spacing
     val facts = song.metadataFacts()
+    val extraRows = song.extraMetadata.metadataRows()
     val listState = rememberLazyListState()
     val heroCollapse by remember {
         derivedStateOf {
@@ -395,7 +398,6 @@ private fun SongMetadata(
                 )
             }
         }
-        val extraRows = song.extraMetadata.metadataRows()
         if (extraRows.isNotEmpty()) {
             item(key = "metadata_extra", contentType = "metadata") {
                 RevealSection(delayMillis = 360) {
@@ -471,23 +473,23 @@ private fun PlaylistPickerDialog(
                     enabled = !isAdding,
                 )
             }
-            Button(onClick = onCreatePlaylist, enabled = !isAdding, modifier = Modifier.fillMaxWidth().height(50.dp), shape = MaterialTheme.shapes.large) {
+            Button(onClick = onCreatePlaylist, enabled = !isAdding, modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp50), shape = MaterialTheme.shapes.large) {
                 Icon(Icons.Rounded.Add, null)
                 Text(stringResource(R.string.playlist_create_new), Modifier.padding(start = AriSamThemeTokens.spacing.sm))
             }
             when {
-                isLoading || isAdding -> Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                isLoading || isAdding -> Box(Modifier.fillMaxWidth().height(AriSamDimensions.dp180), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 hasError -> Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer) {
                     Text(stringResource(R.string.playlist_action_error), Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.lg))
                 }
                 playlists.isEmpty() -> Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
                     Column(Modifier.fillMaxWidth().padding(AriSamThemeTokens.spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.MusicNote, null, Modifier.size(42.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp42), tint = MaterialTheme.colorScheme.primary)
                         Text(stringResource(R.string.playlist_create_first), Modifier.padding(top = AriSamThemeTokens.spacing.md), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 filtered.isEmpty() -> Text(stringResource(R.string.playlist_search_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else -> LazyColumn(modifier = Modifier.fillMaxWidth().height(320.dp), verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
+                else -> LazyColumn(modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp320), verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
                     items(filtered.size, key = { filtered[it].id }) { index ->
                         val playlist = filtered[index]
                         PressScaleBox({ onPlaylistSelected(playlist) }, Modifier.fillMaxWidth()) {
@@ -496,7 +498,7 @@ private fun PlaylistPickerDialog(
                                     headlineContent = { Text(playlist.name, fontWeight = FontWeight.SemiBold) },
                                     supportingContent = { Text(stringResource(R.string.home_song_count, playlist.songCount)) },
                                     leadingContent = {
-                                        Surface(modifier = Modifier.size(46.dp), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                                        Surface(modifier = Modifier.size(AriSamDimensions.dp46), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
                                             Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MusicNote, null) }
                                         }
                                     },
@@ -548,12 +550,12 @@ private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit, collapseProgress:
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(286.dp),
+                    .height(AriSamDimensions.dp286),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
                     Modifier
-                        .size(274.dp)
+                        .size(AriSamDimensions.dp274)
                         .rotate(glowRotation)
                         .background(
                             Brush.sweepGradient(
@@ -564,18 +566,18 @@ private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit, collapseProgress:
                                     MaterialTheme.colorScheme.primary.copy(alpha = .08f),
                                 ),
                             ),
-                            RoundedCornerShape(48.dp),
+                            RoundedCornerShape(AriSamDimensions.dp48),
                         ),
                 )
                 Box(
                     Modifier
-                        .size(248.dp)
+                        .size(AriSamDimensions.dp248)
                         .graphicsLayer {
                             translationY = floatOffset - collapseProgress * 12f
                             scaleX = 1f - collapseProgress * .045f
                             scaleY = 1f - collapseProgress * .045f
                             shadowElevation = 30f
-                            shape = RoundedCornerShape(38.dp)
+                            shape = RoundedCornerShape(AriSamDimensions.dp38)
                             clip = true
                         },
                 ) {
@@ -592,8 +594,8 @@ private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit, collapseProgress:
                             .background(
                                 Brush.verticalGradient(
                                     listOf(
-                                        Color.Transparent,
-                                        Color.Transparent,
+                                        AriSamPalette.transparent,
+                                        AriSamPalette.transparent,
                                         MaterialTheme.colorScheme.scrim.copy(alpha = .84f),
                                     ),
                                 ),
@@ -603,16 +605,16 @@ private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit, collapseProgress:
                         phase = floatOffset / 6f,
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(18.dp)
-                            .width(62.dp)
-                            .height(34.dp),
+                            .padding(AriSamDimensions.dp18)
+                            .width(AriSamDimensions.dp62)
+                            .height(AriSamDimensions.dp34),
                     )
                 }
                 PulsingPlayButton(
                     onClick = { onPlay(song) },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 28.dp, bottom = 6.dp),
+                        .padding(end = AriSamDimensions.dp28, bottom = AriSamDimensions.dp6),
                 )
             }
         }
@@ -622,7 +624,7 @@ private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit, collapseProgress:
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(5.dp),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
             ) {
                 Text(
                     song.title,
@@ -664,18 +666,18 @@ private fun PulsingPlayButton(onClick: () -> Unit, modifier: Modifier = Modifier
         ),
         label = "songPlayPulseScale",
     )
-    Box(modifier.size(78.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(AriSamDimensions.dp78), contentAlignment = Alignment.Center) {
         Box(
             Modifier
-                .size(70.dp)
+                .size(AriSamDimensions.dp70)
                 .scale(pulse)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = .18f), CircleShape),
         )
-        PressScaleBox(onClick = onClick, modifier = Modifier.size(62.dp)) {
+        PressScaleBox(onClick = onClick, modifier = Modifier.size(AriSamDimensions.dp62)) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 shape = CircleShape,
-                color = Color.Transparent,
+                color = AriSamPalette.transparent,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
                 Box(
@@ -686,7 +688,7 @@ private fun PulsingPlayButton(onClick: () -> Unit, modifier: Modifier = Modifier
                     ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), modifier = Modifier.size(34.dp))
+                    Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), modifier = Modifier.size(AriSamDimensions.dp34))
                 }
             }
         }
@@ -704,7 +706,7 @@ private fun MiniEqualizer(phase: Float, modifier: Modifier = Modifier) {
             val wave = kotlin.math.abs(kotlin.math.sin((phase * 2.1f + index * .72f).toDouble())).toFloat()
             Box(
                 Modifier
-                    .width(4.dp)
+                    .width(AriSamDimensions.dp4)
                     .height((8 + wave * 22).dp)
                     .clip(CircleShape)
                     .background(
@@ -729,13 +731,13 @@ private fun SongActionDock(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = AriSamThemeTokens.spacing.lg),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(AriSamDimensions.dp28),
         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .86f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f)),
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f)),
     ) {
         Row(
-            Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+            Modifier.padding(horizontal = AriSamDimensions.dp10, vertical = AriSamDimensions.dp12),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -775,12 +777,12 @@ private fun RowScope.SongAction(
     )
     PressScaleBox(onClick = onClick, modifier = Modifier.weight(1f)) {
         Column(
-            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            Modifier.fillMaxWidth().padding(vertical = AriSamDimensions.dp4),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6),
         ) {
             Surface(
-                modifier = Modifier.size(42.dp),
+                modifier = Modifier.size(AriSamDimensions.dp42),
                 shape = CircleShape,
                 color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = .2f)
                 else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = .7f),
@@ -788,7 +790,7 @@ private fun RowScope.SongAction(
                 else MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, Modifier.size(22.dp).scale(iconScale))
+                    Icon(icon, null, Modifier.size(AriSamDimensions.dp22).scale(iconScale))
                 }
             }
             Text(
@@ -807,8 +809,8 @@ private fun RowScope.SongAction(
 private fun ActionDivider() {
     Box(
         Modifier
-            .width(1.dp)
-            .height(48.dp)
+            .width(AriSamDimensions.dp1)
+            .height(AriSamDimensions.dp48)
             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = .55f)),
     )
 }
@@ -823,17 +825,17 @@ private fun SongQuickFacts(song: SongDto) {
     if (facts.isEmpty()) return
     Row(
         Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
     ) {
         facts.forEach { (icon, label, value) ->
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
             ) {
-                Column(Modifier.padding(horizontal = 10.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Column(Modifier.padding(horizontal = AriSamDimensions.dp10, vertical = AriSamDimensions.dp12), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4)) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(AriSamDimensions.dp20))
                     Text(value, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 }
@@ -862,21 +864,21 @@ private fun MetadataSection(@StringRes title: Int, rows: List<MetadataRow>, acce
     if (visibleRows.isEmpty()) return
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(AriSamDimensions.dp28),
         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .88f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, accent.copy(alpha = .23f)),
+        border = BorderStroke(AriSamDimensions.dp1, accent.copy(alpha = .23f)),
     ) {
         Column(Modifier.padding(AriSamThemeTokens.spacing.lg), verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
                 Surface(
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp36),
                     shape = CircleShape,
                     color = accent.copy(alpha = .14f),
                     contentColor = accent,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Info, null, modifier = Modifier.size(19.dp))
+                        Icon(Icons.Rounded.Info, null, modifier = Modifier.size(AriSamDimensions.dp19))
                     }
                 }
                 Column {
@@ -898,8 +900,8 @@ private fun MetadataSection(@StringRes title: Int, rows: List<MetadataRow>, acce
 
 @Composable
 private fun MetadataLine(row: MetadataRow) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
-        Text(stringResource(row.label), modifier = Modifier.width(105.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp16), verticalAlignment = Alignment.Top) {
+        Text(stringResource(row.label), modifier = Modifier.width(AriSamDimensions.dp105), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(row.value, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
@@ -920,48 +922,48 @@ private fun Loading() {
         Modifier
             .fillMaxSize()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 18.dp),
+            .padding(horizontal = AriSamDimensions.dp24, vertical = AriSamDimensions.dp18),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp18),
     ) {
         Box(contentAlignment = Alignment.Center) {
             ShimmerBox(
                 Modifier
-                    .size(248.dp)
+                    .size(AriSamDimensions.dp248)
                     .graphicsLayer {
                         translationY = phase * 5f
                         shadowElevation = 18f
-                        shape = RoundedCornerShape(38.dp)
+                        shape = RoundedCornerShape(AriSamDimensions.dp38)
                         clip = true
                     },
             )
-            MiniEqualizer(phase, Modifier.width(66.dp).height(38.dp))
+            MiniEqualizer(phase, Modifier.width(AriSamDimensions.dp66).height(AriSamDimensions.dp38))
         }
-        ShimmerBox(Modifier.fillMaxWidth(.68f).height(30.dp))
-        ShimmerBox(Modifier.fillMaxWidth(.42f).height(18.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            repeat(3) { ShimmerBox(Modifier.weight(1f).height(78.dp)) }
+        ShimmerBox(Modifier.fillMaxWidth(.68f).height(AriSamDimensions.dp30))
+        ShimmerBox(Modifier.fillMaxWidth(.42f).height(AriSamDimensions.dp18))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
+            repeat(3) { ShimmerBox(Modifier.weight(1f).height(AriSamDimensions.dp78)) }
         }
-        ShimmerBox(Modifier.fillMaxWidth().height(96.dp))
+        ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp96))
     }
 }
 
 @Composable
 private fun ErrorState(onRetry: () -> Unit) = Box(
-    Modifier.fillMaxSize().navigationBarsPadding().padding(28.dp),
+    Modifier.fillMaxSize().navigationBarsPadding().padding(AriSamDimensions.dp28),
     contentAlignment = Alignment.Center,
 ) {
     Surface(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(AriSamDimensions.dp28),
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
     ) {
         Column(
-            Modifier.padding(28.dp),
+            Modifier.padding(AriSamDimensions.dp28),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp16),
         ) {
-            Icon(Icons.Rounded.Refresh, null, Modifier.size(44.dp))
+            Icon(Icons.Rounded.Refresh, null, Modifier.size(AriSamDimensions.dp44))
             Text(stringResource(R.string.playlist_load_error_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         }
@@ -970,20 +972,20 @@ private fun ErrorState(onRetry: () -> Unit) = Box(
 
 @Composable
 private fun EmptyState() = Box(
-    Modifier.fillMaxSize().navigationBarsPadding().padding(32.dp),
+    Modifier.fillMaxSize().navigationBarsPadding().padding(AriSamDimensions.dp32),
     contentAlignment = Alignment.Center,
 ) {
     Surface(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(AriSamDimensions.dp28),
         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .86f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
-            Modifier.padding(28.dp),
+            Modifier.padding(AriSamDimensions.dp28),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
-            Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(52.dp), tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(AriSamDimensions.dp52), tint = MaterialTheme.colorScheme.primary)
             Text(stringResource(R.string.song_detail_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -991,6 +993,7 @@ private fun EmptyState() = Box(
 
 private data class MetadataRow(@param:StringRes val label: Int, val value: String)
 
+@Composable
 private fun SongDto.metadataFacts() = listOfNotNull(
     text(R.string.metadata_title, title),
     text(R.string.metadata_artist, artistName),
@@ -1001,12 +1004,14 @@ private fun SongDto.metadataFacts() = listOfNotNull(
     text(R.string.metadata_producer, producer),
     text(R.string.metadata_mood, mood),
     durationSeconds.takeIf { it > 0 }?.let { MetadataRow(R.string.metadata_duration, formatDuration(it)) },
-    bitrateKbps?.let { MetadataRow(R.string.metadata_bitrate, "$it kbps") },
-    sampleRateHz?.let { MetadataRow(R.string.metadata_sample_rate, "$it Hz") },
+    bitrateKbps?.let { MetadataRow(R.string.metadata_bitrate, stringResource(R.string.metadata_bitrate_value, it)) },
+    sampleRateHz?.let { MetadataRow(R.string.metadata_sample_rate, stringResource(R.string.metadata_sample_rate_value, it)) },
     text(R.string.metadata_channels, channels),
     text(R.string.metadata_codec, codec),
     text(R.string.metadata_file_format, fileFormat),
-    audioFileSize?.takeIf { it > 0L }?.let { MetadataRow(R.string.metadata_file_size, formatBytes(it)) },
+    audioFileSize?.takeIf { it > 0L }?.let {
+        MetadataRow(R.string.metadata_file_size, stringResource(R.string.metadata_file_size_value, it / (1024.0 * 1024.0)))
+    },
     text(R.string.metadata_source_file, sourceFileName),
     trackNumber?.let { MetadataRow(R.string.metadata_track_number, it.toString()) },
     discNumber?.let { MetadataRow(R.string.metadata_disc_number, it.toString()) },
@@ -1029,11 +1034,7 @@ private fun formatDuration(seconds: Int): String {
     return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
 }
 
-private fun formatBytes(bytes: Long): String {
-    val mb = bytes / (1024.0 * 1024.0)
-    return "%.2f MB".format(mb)
-}
-
+@Composable
 private fun JsonObject.metadataRows(): List<MetadataRow> = entries.mapNotNull { (key, value) ->
     val rendered = when (value) {
         JsonNull -> null
@@ -1041,5 +1042,5 @@ private fun JsonObject.metadataRows(): List<MetadataRow> = entries.mapNotNull { 
         is JsonArray -> value.joinToString(", ") { it.toString().trim('"') }
         is JsonObject -> value.toString()
     }?.takeIf { it.isNotBlank() && it != "{}" && it != "[]" }
-    rendered?.let { MetadataRow(R.string.metadata_extra_item, "$key: $it") }
+    rendered?.let { MetadataRow(R.string.metadata_extra_item, stringResource(R.string.metadata_extra_value, key, it)) }
 }

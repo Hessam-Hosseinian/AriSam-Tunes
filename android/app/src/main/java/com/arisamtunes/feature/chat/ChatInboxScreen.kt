@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.chat
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -101,11 +103,11 @@ import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
 
-private val InboxCardShape = RoundedCornerShape(28.dp)
-private val InboxRowShape = RoundedCornerShape(24.dp)
-private val ChatCyan = Color(0xFF40D7FF)
-private val ChatViolet = Color(0xFF8A79FF)
-private val ChatMint = Color(0xFF55E6B5)
+private val InboxCardShape = RoundedCornerShape(AriSamDimensions.dp28)
+private val InboxRowShape = RoundedCornerShape(AriSamDimensions.dp24)
+private val ChatCyan = AriSamPalette.cyan500
+private val ChatViolet = AriSamPalette.violetSoft
+private val ChatMint = AriSamPalette.emerald300
 
 @Composable
 fun ChatListRoute(
@@ -197,23 +199,23 @@ private fun InboxAuroraBackground(phase: Float) {
     Box(Modifier.fillMaxSize()) {
         Box(
             Modifier
-                .size(230.dp)
+                .size(AriSamDimensions.dp230)
                 .graphicsLayer {
                     translationX = 150f + sin(phase) * 70f
                     translationY = -110f + sin(phase * .7f) * 40f
                 }
-                .blur(72.dp)
+                .blur(AriSamDimensions.dp72)
                 .background(primary.copy(alpha = .15f), CircleShape),
         )
         Box(
             Modifier
                 .align(Alignment.CenterStart)
-                .size(190.dp)
+                .size(AriSamDimensions.dp190)
                 .graphicsLayer {
                     translationX = -110f + sin(phase * .8f) * 45f
                     translationY = sin(phase * 1.1f) * 100f
                 }
-                .blur(80.dp)
+                .blur(AriSamDimensions.dp80)
                 .background(ChatViolet.copy(alpha = .11f), CircleShape),
         )
     }
@@ -230,46 +232,46 @@ private fun ChatInboxHero(phase: Float) {
         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .88f),
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(
-            1.dp,
+            AriSamDimensions.dp1,
             Brush.linearGradient(
-                listOf(ChatCyan.copy(alpha = .7f), ChatViolet.copy(alpha = .45f), Color.Transparent),
+                listOf(ChatCyan.copy(alpha = .7f), ChatViolet.copy(alpha = .45f), AriSamPalette.transparent),
             ),
         ),
-        shadowElevation = 6.dp,
+        shadowElevation = AriSamDimensions.dp6,
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 17.dp),
+                .padding(horizontal = AriSamDimensions.dp20, vertical = AriSamDimensions.dp17),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp16),
         ) {
-            Box(Modifier.size(66.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(AriSamDimensions.dp66), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
                     val pulse = .88f + ((sin(phase * 1.35f) + 1f) / 2f) * .12f
                     drawCircle(
-                        brush = Brush.radialGradient(listOf(ChatCyan.copy(alpha = .3f), Color.Transparent)),
+                        brush = Brush.radialGradient(listOf(ChatCyan.copy(alpha = .3f), AriSamPalette.transparent)),
                         radius = size.minDimension * .5f * pulse,
                     )
                     drawCircle(
                         color = ChatCyan.copy(alpha = .28f),
                         radius = size.minDimension * .39f,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx()),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = AriSamDimensions.dp1_5.toPx()),
                     )
                 }
                 Surface(
-                    modifier = Modifier.size(46.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp46),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = .16f),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Headphones, null, tint = ChatCyan, modifier = Modifier.size(25.dp))
+                        Icon(Icons.Rounded.Headphones, null, tint = ChatCyan, modifier = Modifier.size(AriSamDimensions.dp25))
                     }
                 }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Rounded.AutoAwesome, null, tint = ChatMint, modifier = Modifier.size(14.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6)) {
+                    Icon(Icons.Rounded.AutoAwesome, null, tint = ChatMint, modifier = Modifier.size(AriSamDimensions.dp14))
                     Text(
                         stringResource(R.string.chat_inbox_eyebrow),
                         style = MaterialTheme.typography.labelSmall,
@@ -297,9 +299,9 @@ private fun ChatInboxHero(phase: Float) {
 
 @Composable
 private fun AnimatedEqualizer(phase: Float) {
-    Canvas(Modifier.size(width = 38.dp, height = 42.dp)) {
+    Canvas(Modifier.size(width = AriSamDimensions.dp38, height = AriSamDimensions.dp42)) {
         val bars = 5
-        val barWidth = 3.dp.toPx()
+        val barWidth = AriSamDimensions.dp3.toPx()
         val gap = (size.width - bars * barWidth) / (bars - 1)
         repeat(bars) { index ->
             val wave = ((sin(phase * 2f + index * .9f) + 1f) / 2f)
@@ -367,7 +369,7 @@ private fun ChatPeopleSearch(
             }
         },
         singleLine = true,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(AriSamDimensions.dp22),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = .9f),
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .74f),
@@ -390,8 +392,8 @@ private fun AnimatedConversationInbox(
         conversations.loadState.refresh is LoadState.Error && conversations.itemCount == 0 -> AnimatedInboxError(conversations::retry)
         else -> LazyColumn(
             Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
+            contentPadding = PaddingValues(top = AriSamDimensions.dp8, bottom = AriSamDimensions.dp30),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp9),
         ) {
             when {
                 starters.loadState.refresh is LoadState.Loading && starters.itemCount == 0 -> item(
@@ -410,7 +412,7 @@ private fun AnimatedConversationInbox(
                     item(key = "starter_people", contentType = "starter_people") {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = AriSamThemeTokens.spacing.lg),
-                            horizontalArrangement = Arrangement.spacedBy(15.dp),
+                            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp15),
                         ) {
                             items(
                                 count = starters.itemCount,
@@ -462,13 +464,13 @@ private fun AnimatedConversationInbox(
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = AriSamThemeTokens.spacing.lg)
-                            .height(88.dp),
+                            .height(AriSamDimensions.dp88),
                     )
                 }
                 is LoadState.Error -> item(key = "append_error", contentType = "state") {
                     TextButton(onClick = conversations::retry, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Refresh, null)
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(AriSamDimensions.dp6))
                         Text(stringResource(R.string.retry))
                     }
                 }
@@ -487,13 +489,13 @@ private fun InboxSectionHeading(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = 10.dp),
+            .padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = AriSamDimensions.dp10),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(11.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp11),
     ) {
         Surface(shape = CircleShape, color = ChatCyan.copy(alpha = .12f)) {
-            Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = ChatCyan, modifier = Modifier.size(19.dp))
+            Box(Modifier.size(AriSamDimensions.dp36), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = ChatCyan, modifier = Modifier.size(AriSamDimensions.dp19))
             }
         }
         Column(Modifier.weight(1f)) {
@@ -531,8 +533,8 @@ private fun StarterPerson(
         PressScaleBox(onClick) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(7.dp),
-                modifier = Modifier.width(76.dp),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp7),
+                modifier = Modifier.width(AriSamDimensions.dp76),
             ) {
                 OrbitingUserAvatar(user = user, phase = phase + index * .68f)
                 Text(
@@ -550,18 +552,18 @@ private fun StarterPerson(
 
 @Composable
 private fun OrbitingUserAvatar(user: PublicUserDto, phase: Float) {
-    Box(Modifier.size(69.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(AriSamDimensions.dp69), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val pulse = .94f + ((sin(phase) + 1f) / 2f) * .06f
             drawCircle(
                 brush = Brush.sweepGradient(listOf(ChatCyan, ChatViolet, ChatMint, ChatCyan)),
                 radius = size.minDimension * .48f * pulse,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = AriSamDimensions.dp2.toPx()),
             )
             val orbitRadius = size.minDimension * .44f
             drawCircle(
                 color = ChatMint,
-                radius = 2.6.dp.toPx(),
+                radius = AriSamDimensions.dp2_6.toPx(),
                 center = Offset(
                     center.x + kotlin.math.cos(phase) * orbitRadius,
                     center.y + sin(phase) * orbitRadius,
@@ -571,8 +573,8 @@ private fun OrbitingUserAvatar(user: PublicUserDto, phase: Float) {
         UserAvatar(
             user,
             Modifier
-                .size(57.dp)
-                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                .size(AriSamDimensions.dp57)
+                .border(AriSamDimensions.dp2, MaterialTheme.colorScheme.surface, CircleShape),
         )
     }
 }
@@ -605,7 +607,7 @@ private fun ConversationCard(
 ) {
     val hasUnread = conversation.unreadCount > 0
     val elevation by animateDpAsState(
-        targetValue = if (hasUnread) 5.dp else 1.dp,
+        targetValue = if (hasUnread) AriSamDimensions.dp5 else AriSamDimensions.dp1,
         animationSpec = spring(stiffness = 420f),
         label = "conversationElevation",
     )
@@ -624,7 +626,7 @@ private fun ConversationCard(
             },
             contentColor = MaterialTheme.colorScheme.onSurface,
             border = BorderStroke(
-                1.dp,
+                AriSamDimensions.dp1,
                 if (hasUnread) ChatCyan.copy(alpha = .48f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = .42f),
             ),
             shadowElevation = elevation,
@@ -632,15 +634,15 @@ private fun ConversationCard(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                    .padding(horizontal = AriSamDimensions.dp14, vertical = AriSamDimensions.dp13),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ConversationAvatar(conversation.user, hasUnread)
                 Column(
                     Modifier
                         .weight(1f)
-                        .padding(horizontal = 13.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                        .padding(horizontal = AriSamDimensions.dp13),
+                    verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
                 ) {
                     Text(
                         conversation.user.displayName,
@@ -649,9 +651,9 @@ private fun ConversationCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6)) {
                         if (conversation.latestMessage.messageType == ChatMessageTypeDto.SONG) {
-                            Icon(Icons.Rounded.MusicNote, null, tint = ChatViolet, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.MusicNote, null, tint = ChatViolet, modifier = Modifier.size(AriSamDimensions.dp16))
                         }
                         Text(
                             if (conversation.latestMessage.messageType == ChatMessageTypeDto.SONG) {
@@ -672,7 +674,7 @@ private fun ConversationCard(
                         )
                     }
                 }
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp9)) {
                     Text(
                         messageTime(conversation.latestMessage.createdAt),
                         style = MaterialTheme.typography.labelSmall,
@@ -687,12 +689,12 @@ private fun ConversationCard(
                         Surface(
                             shape = CircleShape,
                             color = ChatCyan,
-                            shadowElevation = 3.dp,
+                            shadowElevation = AriSamDimensions.dp3,
                         ) {
                             Text(
                                 conversation.unreadCount.coerceAtMost(99).toString(),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                color = Color(0xFF04151D),
+                                modifier = Modifier.padding(horizontal = AriSamDimensions.dp8, vertical = AriSamDimensions.dp3),
+                                color = AriSamPalette.chatInk,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Black,
                             )
@@ -706,24 +708,24 @@ private fun ConversationCard(
 
 @Composable
 private fun ConversationAvatar(user: PublicUserDto, hasUnread: Boolean) {
-    Box(Modifier.size(61.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(AriSamDimensions.dp61), contentAlignment = Alignment.Center) {
         if (hasUnread) {
             Canvas(Modifier.fillMaxSize()) {
                 drawCircle(
                     brush = Brush.sweepGradient(listOf(ChatCyan, ChatViolet, ChatCyan)),
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = AriSamDimensions.dp2.toPx()),
                 )
             }
         }
-        UserAvatar(user, Modifier.size(if (hasUnread) 52.dp else 56.dp))
+        UserAvatar(user, Modifier.size(if (hasUnread) AriSamDimensions.dp52 else AriSamDimensions.dp56))
         if (hasUnread) {
             Box(
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .size(13.dp)
+                    .size(AriSamDimensions.dp13)
                     .clip(CircleShape)
                     .background(ChatMint)
-                    .border(2.dp, MaterialTheme.colorScheme.surfaceContainer, CircleShape),
+                    .border(AriSamDimensions.dp2, MaterialTheme.colorScheme.surfaceContainer, CircleShape),
             )
         }
     }
@@ -743,8 +745,8 @@ private fun AnimatedUserSearchResults(
         results.itemCount == 0 -> AnimatedSearchEmpty()
         else -> LazyColumn(
             Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
+            contentPadding = PaddingValues(top = AriSamDimensions.dp12, bottom = AriSamDimensions.dp30),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp9),
         ) {
             item(key = "search_heading", contentType = "heading") {
                 InboxSectionHeading(
@@ -773,7 +775,7 @@ private fun AnimatedUserSearchResults(
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = AriSamThemeTokens.spacing.lg)
-                            .height(82.dp),
+                            .height(AriSamDimensions.dp82),
                     )
                 }
             }
@@ -807,16 +809,16 @@ private fun AnimatedSearchUserRow(
                 shape = InboxRowShape,
                 color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .88f),
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .42f)),
+                border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .42f)),
             ) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(13.dp),
+                        .padding(AriSamDimensions.dp13),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     SearchResultAvatar(user)
-                    Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
+                    Column(Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp13)) {
                         Text(user.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
                         Text(
                             stringResource(R.string.social_followers_count, user.followersCount),
@@ -828,15 +830,15 @@ private fun AnimatedSearchUserRow(
                         Surface(
                             shape = CircleShape,
                             color = ChatCyan.copy(alpha = .14f),
-                            border = BorderStroke(1.dp, ChatCyan.copy(alpha = .32f)),
+                            border = BorderStroke(AriSamDimensions.dp1, ChatCyan.copy(alpha = .32f)),
                         ) {
                             Row(
-                                Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                                Modifier.padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp9),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4),
                             ) {
-                                Icon(Icons.Rounded.ChatBubble, stringResource(R.string.chat_tap_to_message), tint = ChatCyan, modifier = Modifier.size(17.dp))
-                                Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = ChatCyan, modifier = Modifier.size(15.dp))
+                                Icon(Icons.Rounded.ChatBubble, stringResource(R.string.chat_tap_to_message), tint = ChatCyan, modifier = Modifier.size(AriSamDimensions.dp17))
+                                Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = ChatCyan, modifier = Modifier.size(AriSamDimensions.dp15))
                             }
                         }
                     }
@@ -850,10 +852,10 @@ private fun AnimatedSearchUserRow(
 private fun SearchResultAvatar(user: PublicUserDto) {
     Box(
         Modifier
-            .size(55.dp)
+            .size(AriSamDimensions.dp55)
             .clip(CircleShape)
             .background(Brush.linearGradient(listOf(ChatCyan.copy(alpha = .8f), ChatViolet.copy(alpha = .8f))))
-            .padding(2.dp),
+            .padding(AriSamDimensions.dp2),
     ) {
         if (user.avatarUrl.isNullOrBlank()) {
             Box(
@@ -888,26 +890,26 @@ private fun AnimatedChatSkeleton(compact: Boolean = false) {
     Column(
         Modifier
             .fillMaxSize()
-            .padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = 14.dp)
+            .padding(horizontal = AriSamThemeTokens.spacing.lg, vertical = AriSamDimensions.dp14)
             .graphicsLayer { alpha = pulse },
-        verticalArrangement = Arrangement.spacedBy(11.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp11),
     ) {
         if (!compact) {
-            ShimmerBox(Modifier.fillMaxWidth(.52f).height(22.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                repeat(4) { ShimmerBox(Modifier.size(64.dp).clip(CircleShape)) }
+            ShimmerBox(Modifier.fillMaxWidth(.52f).height(AriSamDimensions.dp22))
+            Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp14)) {
+                repeat(4) { ShimmerBox(Modifier.size(AriSamDimensions.dp64).clip(CircleShape)) }
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(AriSamDimensions.dp4))
         }
         repeat(if (compact) 6 else 5) {
-            ShimmerBox(Modifier.fillMaxWidth().height(86.dp).clip(InboxRowShape))
+            ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp86).clip(InboxRowShape))
         }
     }
 }
 
 @Composable
 private fun StarterPeopleSkeleton() {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
         InboxSectionHeading(
             icon = Icons.Rounded.GraphicEq,
             title = stringResource(R.string.chat_start_with_following),
@@ -915,9 +917,9 @@ private fun StarterPeopleSkeleton() {
         )
         Row(
             Modifier.padding(horizontal = AriSamThemeTokens.spacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp14),
         ) {
-            repeat(4) { ShimmerBox(Modifier.size(64.dp).clip(CircleShape)) }
+            repeat(4) { ShimmerBox(Modifier.size(AriSamDimensions.dp64).clip(CircleShape)) }
         }
     }
 }
@@ -956,15 +958,15 @@ private fun EmptyInboxArtwork(
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 36.dp, vertical = 28.dp),
+            .padding(horizontal = AriSamDimensions.dp36, vertical = AriSamDimensions.dp28),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
     ) {
-        Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(AriSamDimensions.dp112), contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize()) {
                 drawCircle(
                     color = ChatCyan.copy(alpha = .18f),
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = AriSamDimensions.dp1.toPx()),
                 )
                 val radius = size.minDimension * .45f
                 repeat(3) { index ->
@@ -977,8 +979,8 @@ private fun EmptyInboxArtwork(
                 }
             }
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
-                Box(Modifier.size(68.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = ChatCyan, modifier = Modifier.size(32.dp))
+                Box(Modifier.size(AriSamDimensions.dp68), contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = ChatCyan, modifier = Modifier.size(AriSamDimensions.dp32))
                 }
             }
         }
@@ -1002,16 +1004,16 @@ private fun AnimatedInboxError(onRetry: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(AriSamDimensions.dp32),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.error.copy(alpha = .12f)) {
-            Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Refresh, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(30.dp))
+            Box(Modifier.size(AriSamDimensions.dp72), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Refresh, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(AriSamDimensions.dp30))
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(AriSamDimensions.dp12))
         Text(
             stringResource(R.string.chat_inbox_error_title),
             style = MaterialTheme.typography.titleMedium,
@@ -1020,7 +1022,7 @@ private fun AnimatedInboxError(onRetry: () -> Unit) {
         )
         TextButton(onClick = onRetry) {
             Icon(Icons.Rounded.Refresh, null)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(AriSamDimensions.dp6))
             Text(stringResource(R.string.retry))
         }
     }

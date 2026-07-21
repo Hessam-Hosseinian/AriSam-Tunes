@@ -12,8 +12,10 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -28,6 +30,7 @@ import com.arisamtunes.core.navigation.AppPreferencesViewModel
 import com.arisamtunes.data.preferences.LanguagePreference
 import com.arisamtunes.data.preferences.ThemePreference
 import android.content.res.Configuration
+import android.view.ContextThemeWrapper
 import java.util.Locale
 import javax.inject.Inject
 
@@ -64,10 +67,21 @@ class MainActivity : ComponentActivity() {
 private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltViewModel()) {
     val preferences by preferencesViewModel.preferences.collectAsStateWithLifecycle()
     val baseContext = LocalContext.current
-    val locale = preferences.language.toLocale() ?: Locale.getDefault()
-    val localizedConfiguration = Configuration(LocalConfiguration.current).apply { setLocale(locale) }
-    @Suppress("DEPRECATION")
-    baseContext.resources.updateConfiguration(localizedConfiguration, baseContext.resources.displayMetrics)
+    val systemConfiguration = LocalConfiguration.current
+    val systemLocale = systemConfiguration.locales[0]
+    val locale = preferences.language.toLocale() ?: systemLocale
+    val localizedConfiguration = remember(systemConfiguration, locale) {
+        Configuration(systemConfiguration).apply {
+            setLocale(locale)
+            setLayoutDirection(locale)
+        }
+    }
+    val localizedContext = remember(baseContext, localizedConfiguration) {
+        ContextThemeWrapper(baseContext, baseContext.theme).apply {
+            applyOverrideConfiguration(localizedConfiguration)
+        }
+    }
+    SideEffect { Locale.setDefault(locale) }
     val darkTheme = when (preferences.theme) {
         ThemePreference.System -> isSystemInDarkTheme()
         ThemePreference.Light -> false
@@ -76,6 +90,7 @@ private fun AriSamTunesApp(preferencesViewModel: AppPreferencesViewModel = hiltV
     val layoutDirection = if (locale.language == "fa") LayoutDirection.Rtl else LayoutDirection.Ltr
 
     CompositionLocalProvider(
+        LocalContext provides localizedContext,
         LocalConfiguration provides localizedConfiguration,
         LocalLayoutDirection provides layoutDirection,
     ) {

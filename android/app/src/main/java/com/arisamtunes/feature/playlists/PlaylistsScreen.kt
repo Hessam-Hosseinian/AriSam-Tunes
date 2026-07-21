@@ -1,5 +1,6 @@
 package com.arisamtunes.feature.playlists
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -146,7 +147,7 @@ private fun PlaylistsContent(
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = spacing.lg, end = spacing.lg, top = spacing.md, bottom = 112.dp),
+        contentPadding = PaddingValues(start = spacing.lg, end = spacing.lg, top = spacing.md, bottom = AriSamDimensions.dp112),
         horizontalArrangement = Arrangement.spacedBy(spacing.md),
         verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
@@ -227,7 +228,7 @@ private fun PlaylistHero(count: Int, onRefresh: () -> Unit) {
             Column(Modifier.padding(spacing.xl), verticalArrangement = Arrangement.spacedBy(spacing.lg)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        modifier = Modifier.size(54.dp),
+                        modifier = Modifier.size(AriSamDimensions.dp54),
                         shape = MaterialTheme.shapes.large,
                         color = AriSamThemeTokens.tehranAmber,
                         contentColor = AriSamThemeTokens.onTehranAmber,
@@ -258,7 +259,7 @@ private fun PlaylistGridCard(playlist: PlaylistDto, onClick: () -> Unit, onEdit:
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainer,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Column(Modifier.padding(spacing.sm), verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
                 Box {
@@ -270,8 +271,8 @@ private fun PlaylistGridCard(playlist: PlaylistDto, onClick: () -> Unit, onEdit:
                             color = MaterialTheme.colorScheme.scrim.copy(alpha = .55f),
                             contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                         ) {
-                            IconButton(onClick = onEdit, modifier = Modifier.size(38.dp)) {
-                                Icon(Icons.Rounded.Edit, stringResource(R.string.playlist_edit), modifier = Modifier.size(18.dp))
+                            IconButton(onClick = onEdit, modifier = Modifier.size(AriSamDimensions.dp38)) {
+                                Icon(Icons.Rounded.Edit, stringResource(R.string.playlist_edit), modifier = Modifier.size(AriSamDimensions.dp18))
                             }
                         }
                     }
@@ -281,7 +282,7 @@ private fun PlaylistGridCard(playlist: PlaylistDto, onClick: () -> Unit, onEdit:
                     Icon(
                         if (playlist.isPublic) Icons.Rounded.Public else Icons.Rounded.Lock,
                         null,
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(AriSamDimensions.dp14),
                         tint = if (playlist.canEdit) AriSamThemeTokens.tehranAmber else MaterialTheme.colorScheme.primary,
                     )
                     Text(
@@ -318,7 +319,7 @@ fun PlaylistEditorSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp48),
                     shape = MaterialTheme.shapes.large,
                     color = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -332,7 +333,7 @@ fun PlaylistEditorSheet(
                 value = name,
                 onValueChange = { name = it.take(255) },
                 label = { Text(stringResource(R.string.playlist_name)) },
-                supportingText = { Text("${name.length}/255") },
+                supportingText = { Text(stringResource(R.string.character_count_format, name.length, 255)) },
                 singleLine = true,
                 enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth(),
@@ -369,10 +370,10 @@ fun PlaylistEditorSheet(
             Button(
                 onClick = { onSave(name, description, isPublic) },
                 enabled = name.isNotBlank() && !isSaving,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp52),
                 shape = MaterialTheme.shapes.large,
             ) {
-                if (isSaving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.save), fontWeight = FontWeight.SemiBold)
+                if (isSaving) CircularProgressIndicator(Modifier.size(AriSamDimensions.dp20), strokeWidth = AriSamDimensions.dp2) else Text(stringResource(R.string.save), fontWeight = FontWeight.SemiBold)
             }
             onDelete?.let {
                 OutlinedButton(onClick = { confirmDelete = true }, enabled = !isSaving, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
@@ -437,7 +438,7 @@ fun PlaylistDetailRoute(
                     }
                     if (state.actionFailed) item { PlaylistInlineError() }
                     item { PlaylistSongsHeading(state.playlist?.songCount ?: 0) }
-                    if (songs.loadState.refresh is LoadState.Loading) item { LoadingBlock(Modifier.fillMaxWidth().height(160.dp)) }
+                    if (songs.loadState.refresh is LoadState.Loading) item { LoadingBlock(Modifier.fillMaxWidth().height(AriSamDimensions.dp160)) }
                     if (songs.loadState.refresh is LoadState.Error) item { PlaylistInlineRetry(songs::retry) }
                     if (songs.loadState.refresh !is LoadState.Loading && songs.itemCount == 0) item {
                         PlaylistEmptySongs(onExplore)
@@ -453,7 +454,7 @@ fun PlaylistDetailRoute(
                             )
                         }
                     }
-                    if (songs.loadState.append is LoadState.Loading) item { LoadingBlock(Modifier.fillMaxWidth().height(72.dp)) }
+                    if (songs.loadState.append is LoadState.Loading) item { LoadingBlock(Modifier.fillMaxWidth().height(AriSamDimensions.dp72)) }
                     if (songs.loadState.append is LoadState.Error) item { PlaylistInlineRetry(songs::retry) }
                 }
             }
@@ -479,14 +480,14 @@ private fun PlaylistDetailHero(
 ) {
     val spacing = AriSamThemeTokens.spacing
     Column(Modifier.fillMaxWidth().padding(horizontal = spacing.lg, vertical = spacing.sm), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-        Box(Modifier.size(190.dp)) {
+        Box(Modifier.size(AriSamDimensions.dp190)) {
             PlaylistArtwork(playlist, Modifier.fillMaxSize())
             Surface(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(spacing.sm),
                 shape = CircleShape,
                 color = AriSamThemeTokens.tehranAmber,
                 contentColor = AriSamThemeTokens.onTehranAmber,
-            ) { Icon(if (playlist.isPublic) Icons.Rounded.Public else Icons.Rounded.Lock, null, Modifier.padding(spacing.sm).size(18.dp)) }
+            ) { Icon(if (playlist.isPublic) Icons.Rounded.Public else Icons.Rounded.Lock, null, Modifier.padding(spacing.sm).size(AriSamDimensions.dp18)) }
         }
         Text(playlist.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         playlist.description?.takeIf(String::isNotBlank)?.let {
@@ -524,13 +525,13 @@ private fun PlaylistSongRow(song: SongDto, index: Int, canEdit: Boolean, onClick
     PressScaleBox(onClick, Modifier.fillMaxWidth().padding(horizontal = spacing.lg)) {
         Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
             Row(Modifier.fillMaxWidth().padding(spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                Text(index.toString().padStart(2, '0'), modifier = Modifier.width(30.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(index.toString().padStart(2, '0'), modifier = Modifier.width(AriSamDimensions.dp30), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 AsyncImage(
                     model = song.coverImageUrl,
                     contentDescription = song.title,
                     error = painterResource(R.drawable.arisam_app_icon_dark),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(56.dp).clip(MaterialTheme.shapes.medium),
+                    modifier = Modifier.size(AriSamDimensions.dp56).clip(MaterialTheme.shapes.medium),
                 )
                 Column(Modifier.weight(1f).padding(horizontal = spacing.md)) {
                     Text(song.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -556,7 +557,7 @@ private fun PlaylistArtwork(playlist: PlaylistDto, modifier: Modifier) {
         Box(
             modifier.clip(MaterialTheme.shapes.large).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))),
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, modifier = Modifier.size(54.dp), tint = MaterialTheme.colorScheme.onPrimary) }
+        ) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, modifier = Modifier.size(AriSamDimensions.dp54), tint = MaterialTheme.colorScheme.onPrimary) }
     }
 }
 
@@ -564,12 +565,12 @@ private fun PlaylistArtwork(playlist: PlaylistDto, modifier: Modifier) {
 private fun PlaylistsLoading() {
     val spacing = AriSamThemeTokens.spacing
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(164.dp),
+        columns = GridCells.Adaptive(AriSamDimensions.dp164),
         contentPadding = PaddingValues(spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(spacing.md),
         verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { ShimmerBox(Modifier.fillMaxWidth().height(178.dp)) }
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp178)) }
         items(6) { ShimmerBox(Modifier.fillMaxWidth().aspectRatio(.78f)) }
     }
 }
@@ -587,8 +588,8 @@ private fun PlaylistFullPageMessage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Surface(modifier = Modifier.size(72.dp), shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-            Box(contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(34.dp)) }
+        Surface(modifier = Modifier.size(AriSamDimensions.dp72), shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+            Box(contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(AriSamDimensions.dp34)) }
         }
         Spacer(Modifier.height(AriSamThemeTokens.spacing.lg))
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -624,7 +625,7 @@ private fun PlaylistEmptySongs(onExplore: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.md),
     ) {
-        Icon(Icons.Rounded.MusicNote, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+        Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp48), tint = MaterialTheme.colorScheme.primary)
         Text(stringResource(R.string.playlist_songs_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
         FilledTonalButton(onClick = onExplore) { Text(stringResource(R.string.start_exploring)) }
     }

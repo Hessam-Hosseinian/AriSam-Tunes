@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.home
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -133,23 +135,23 @@ private fun HomeLoadingSkeleton() {
             contentPadding = PaddingValues(horizontal = spacing.lg, vertical = spacing.md),
             verticalArrangement = Arrangement.spacedBy(spacing.xxl),
         ) {
-            item { ShimmerBox(Modifier.fillMaxWidth().height(286.dp)) }
+            item { ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp286)) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-                    ShimmerBox(Modifier.width(154.dp).height(24.dp))
+                    ShimmerBox(Modifier.width(AriSamDimensions.dp154).height(AriSamDimensions.dp24))
                     Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                        repeat(2) { ShimmerBox(Modifier.weight(1f).height(86.dp)) }
+                        repeat(2) { ShimmerBox(Modifier.weight(1f).height(AriSamDimensions.dp86)) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                        repeat(2) { ShimmerBox(Modifier.weight(1f).height(86.dp)) }
+                        repeat(2) { ShimmerBox(Modifier.weight(1f).height(AriSamDimensions.dp86)) }
                     }
                 }
             }
             items(2) {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-                    ShimmerBox(Modifier.width(170.dp).height(24.dp))
+                    ShimmerBox(Modifier.width(AriSamDimensions.dp170).height(AriSamDimensions.dp24))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-                        items(3) { ShimmerBox(Modifier.width(164.dp).height(210.dp)) }
+                        items(3) { ShimmerBox(Modifier.width(AriSamDimensions.dp164).height(AriSamDimensions.dp210)) }
                     }
                 }
             }
@@ -174,7 +176,7 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2)) {
                 Text(
                     text = stringResource(R.string.home_spotlight),
                     color = MaterialTheme.colorScheme.onBackground,
@@ -188,7 +190,7 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                 )
             }
             Text(
-                text = "${pagerState.settledPage + 1}/${pages.size}",
+                text = stringResource(R.string.page_indicator_format, pagerState.settledPage + 1, pages.size),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelMedium,
             )
@@ -201,7 +203,7 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
             val song = pages[page]
             PressScaleBox(
                 onClick = { onSongClick(song) },
-                modifier = Modifier.fillMaxWidth().height(286.dp),
+                modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp286),
             ) {
                 AsyncImage(
                     model = song.coverImageUrl,
@@ -209,23 +211,23 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(R.drawable.arisam_app_icon_dark),
                     error = painterResource(R.drawable.arisam_app_icon_dark),
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)),
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(AriSamDimensions.dp28)),
                 )
                 Box(
-                    Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)).background(
+                    Modifier.fillMaxSize().clip(RoundedCornerShape(AriSamDimensions.dp28)).background(
                         Brush.verticalGradient(
-                            0f to Color(0xFF0369A1).copy(alpha = .14f),
-                            .44f to Color(0xFF0C1821).copy(alpha = .16f),
-                            1f to Color(0xFF07141C).copy(alpha = .96f),
+                            0f to AriSamPalette.sky700.copy(alpha = .14f),
+                            .44f to AriSamPalette.darkBackground.copy(alpha = .16f),
+                            1f to AriSamPalette.ink950.copy(alpha = .96f),
                         ),
                     ),
                 )
                 Surface(
                     modifier = Modifier.align(Alignment.TopStart).padding(spacing.lg),
                     shape = CircleShape,
-                    color = Color(0xFF07141C).copy(alpha = .76f),
-                    contentColor = Color(0xFFB9E8FF),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF8ED8FF).copy(alpha = .44f)),
+                    color = AriSamPalette.ink950.copy(alpha = .76f),
+                    contentColor = AriSamPalette.cyanTint,
+                    border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, AriSamPalette.skyGlow.copy(alpha = .44f)),
                 ) {
                     Text(
                         text = stringResource(R.string.home_trending_now),
@@ -236,11 +238,11 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                 }
                 Column(
                     modifier = Modifier.align(Alignment.BottomStart).padding(spacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3),
                 ) {
                     Text(
                         song.title,
-                        color = Color.White,
+                        color = AriSamPalette.white,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -248,22 +250,22 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                     )
                     Text(
                         song.artistName,
-                        color = Color.White.copy(alpha = .76f),
+                        color = AriSamPalette.white.copy(alpha = .76f),
                         style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Box(
-                    Modifier.align(Alignment.BottomEnd).padding(spacing.lg).size(54.dp)
-                        .clip(CircleShape).background(Color(0xFF0797DB)),
+                    Modifier.align(Alignment.BottomEnd).padding(spacing.lg).size(AriSamDimensions.dp54)
+                        .clip(CircleShape).background(AriSamPalette.brandBlue),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
                         stringResource(R.string.play),
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp),
+                        tint = AriSamPalette.white,
+                        modifier = Modifier.size(AriSamDimensions.dp30),
                     )
                 }
             }
@@ -271,9 +273,9 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             pages.indices.forEach { index ->
                 Box(
-                    Modifier.padding(horizontal = 3.dp)
-                        .width(if (index == pagerState.currentPage) 22.dp else 6.dp)
-                        .height(6.dp)
+                    Modifier.padding(horizontal = AriSamDimensions.dp3)
+                        .width(if (index == pagerState.currentPage) AriSamDimensions.dp22 else AriSamDimensions.dp6)
+                        .height(AriSamDimensions.dp6)
                         .clip(CircleShape)
                         .background(
                             if (index == pagerState.currentPage) MaterialTheme.colorScheme.primary
@@ -318,21 +320,21 @@ private fun QuickAction(
     modifier: Modifier = Modifier,
 ) {
     val spacing = AriSamThemeTokens.spacing
-    PressScaleBox(onClick = { onClick(data.action) }, modifier = modifier.width(122.dp)) {
+    PressScaleBox(onClick = { onClick(data.action) }, modifier = modifier.width(AriSamDimensions.dp122)) {
         Column(
-            modifier = Modifier.fillMaxWidth().height(122.dp)
-                .clip(RoundedCornerShape(22.dp))
+            modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp122)
+                .clip(RoundedCornerShape(AriSamDimensions.dp22))
                 .background(MaterialTheme.colorScheme.surfaceContainer)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
+                .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(AriSamDimensions.dp22))
                 .padding(spacing.md),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(
-                Modifier.size(46.dp).clip(RoundedCornerShape(14.dp))
+                Modifier.size(AriSamDimensions.dp46).clip(RoundedCornerShape(AriSamDimensions.dp14))
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(data.icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(25.dp))
+                Icon(data.icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(AriSamDimensions.dp25))
             }
             Text(
                 stringResource(data.label),
@@ -365,7 +367,7 @@ private fun ArtworkSongSection(title: Int, songs: List<SongDto>, onClick: (SongD
 @Composable
 private fun ArtworkSongCard(song: SongDto, rank: Int, onClick: () -> Unit) {
     val spacing = AriSamThemeTokens.spacing
-    PressScaleBox(onClick, Modifier.width(164.dp)) {
+    PressScaleBox(onClick, Modifier.width(AriSamDimensions.dp164)) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
             Box {
                 AsyncImage(
@@ -374,31 +376,31 @@ private fun ArtworkSongCard(song: SongDto, rank: Int, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(R.drawable.arisam_app_icon_dark),
                     error = painterResource(R.drawable.arisam_app_icon_dark),
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(20.dp)),
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(AriSamDimensions.dp20)),
                 )
                 Box(
-                    Modifier.align(Alignment.BottomEnd).padding(spacing.sm).size(38.dp)
-                        .clip(CircleShape).background(Color(0xFF0797DB)),
+                    Modifier.align(Alignment.BottomEnd).padding(spacing.sm).size(AriSamDimensions.dp38)
+                        .clip(CircleShape).background(AriSamPalette.brandBlue),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
                         stringResource(R.string.play),
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp),
+                        tint = AriSamPalette.white,
+                        modifier = Modifier.size(AriSamDimensions.dp24),
                     )
                 }
                 Text(
                     text = rank.toString().padStart(2, '0'),
-                    color = Color.White.copy(alpha = .8f),
+                    color = AriSamPalette.white.copy(alpha = .8f),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(spacing.sm)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF07141C).copy(alpha = .68f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .clip(RoundedCornerShape(AriSamDimensions.dp10))
+                        .background(AriSamPalette.ink950.copy(alpha = .68f))
+                        .padding(horizontal = AriSamDimensions.dp8, vertical = AriSamDimensions.dp4),
                 )
             }
             Text(song.title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -445,15 +447,15 @@ private fun PlaylistSection(
             horizontalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
             items(playlists, key = { it.id }) { playlist ->
-                PressScaleBox({ onClick(playlist) }, Modifier.width(248.dp)) {
+                PressScaleBox({ onClick(playlist) }, Modifier.width(AriSamDimensions.dp248)) {
                     Box(
-                        Modifier.fillMaxWidth().height(164.dp).clip(RoundedCornerShape(24.dp))
+                        Modifier.fillMaxWidth().height(AriSamDimensions.dp164).clip(RoundedCornerShape(AriSamDimensions.dp24))
                                 .background(
                                     Brush.linearGradient(
                                         listOf(
-                            Color(0xFF0A6FA5),
-                            Color(0xFF0797DB),
-                            Color(0xFF07141C),
+                            AriSamPalette.ocean700,
+                            AriSamPalette.brandBlue,
+                            AriSamPalette.ink950,
                                         ),
                                     ),
                                 ),
@@ -472,24 +474,24 @@ private fun PlaylistSection(
                             Icon(
                                 Icons.AutoMirrored.Rounded.QueueMusic,
                                 null,
-                                tint = Color.White.copy(alpha = .92f),
-                                modifier = Modifier.size(54.dp),
+                                tint = AriSamPalette.white.copy(alpha = .92f),
+                                modifier = Modifier.size(AriSamDimensions.dp54),
                             )
                         }
                         Box(
                             Modifier.fillMaxSize().background(
-                                Brush.verticalGradient(listOf(Color.Transparent, Color(0xFF07141C).copy(alpha = .92f))),
+                                Brush.verticalGradient(listOf(AriSamPalette.transparent, AriSamPalette.ink950.copy(alpha = .92f))),
                             ),
                         )
                         Column(
                             modifier = Modifier.align(Alignment.BottomStart).padding(spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2),
                         ) {
-                            Text(playlist.name, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(playlist.name, color = AriSamPalette.white, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 stringResource(R.string.home_song_count, playlist.songCount),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = .68f),
+                                color = AriSamPalette.white.copy(alpha = .68f),
                             )
                         }
                     }

@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.social
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -96,10 +98,10 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-private val SocialListShape = RoundedCornerShape(24.dp)
-private val SocialListInk = Color(0xFF06131D)
-private val SocialListCyan = Color(0xFF38C6F4)
-private val SocialListViolet = Color(0xFF7C6CF2)
+private val SocialListShape = RoundedCornerShape(AriSamDimensions.dp24)
+private val SocialListInk = AriSamPalette.profileInk
+private val SocialListCyan = AriSamPalette.cyanAccent
+private val SocialListViolet = AriSamPalette.indigoSoft
 
 @Composable
 fun SocialUsersRoute(
@@ -131,8 +133,8 @@ fun SocialUsersRoute(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp + navigationBarPadding),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = AriSamDimensions.dp32 + navigationBarPadding),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             item(key = "social_graph_header", contentType = "header") {
                 SocialGraphHeader(
@@ -175,10 +177,10 @@ fun SocialUsersRoute(
                     when (users.loadState.append) {
                         is LoadState.Loading -> item(key = "social_users_append_loading", contentType = "state") {
                             Box(
-                                Modifier.fillMaxWidth().padding(20.dp),
+                                Modifier.fillMaxWidth().padding(AriSamDimensions.dp20),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(Modifier.size(AriSamDimensions.dp24), strokeWidth = AriSamDimensions.dp2)
                             }
                         }
                         is LoadState.Error -> item(key = "social_users_append_error", contentType = "state") {
@@ -217,28 +219,28 @@ private fun SocialGraphHeader(
     Box(
         Modifier
             .fillMaxWidth()
-            .height(210.dp + statusBarPadding)
-            .clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp))
+            .height(AriSamDimensions.dp210 + statusBarPadding)
+            .clip(RoundedCornerShape(bottomStart = AriSamDimensions.dp38, bottomEnd = AriSamDimensions.dp38))
             .background(
                 Brush.linearGradient(
-                    listOf(SocialListInk, Color(0xFF0A3345), Color(0xFF171E46)),
+                    listOf(SocialListInk, AriSamPalette.cyan900, AriSamPalette.navyViolet),
                 ),
             ),
     ) {
         Box(
             Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = 54.dp, y = (-48).dp)
-                .size(190.dp)
-                .blur(48.dp)
+                .offset(x = AriSamDimensions.dp54, y = AriSamDimensions.negative48)
+                .size(AriSamDimensions.dp190)
+                .blur(AriSamDimensions.dp48)
                 .background(SocialListCyan.copy(alpha = .3f), CircleShape),
         )
         Box(
             Modifier
                 .align(Alignment.BottomStart)
-                .offset(x = (-64).dp, y = 58.dp)
-                .size(170.dp)
-                .blur(50.dp)
+                .offset(x = AriSamDimensions.negative64, y = AriSamDimensions.dp58)
+                .size(AriSamDimensions.dp170)
+                .blur(AriSamDimensions.dp50)
                 .background(SocialListViolet.copy(alpha = .28f), CircleShape),
         )
         SocialConstellation(phase, Modifier.fillMaxSize())
@@ -246,12 +248,12 @@ private fun SocialGraphHeader(
         Surface(
             onClick = onBack,
             modifier = Modifier
-                .padding(start = 14.dp, top = statusBarPadding + 12.dp)
-                .size(46.dp),
+                .padding(start = AriSamDimensions.dp14, top = statusBarPadding + AriSamDimensions.dp12)
+                .size(AriSamDimensions.dp46),
             shape = CircleShape,
-            color = Color.Black.copy(alpha = .25f),
-            contentColor = Color.White,
-            border = BorderStroke(1.dp, Color.White.copy(alpha = .15f)),
+            color = AriSamPalette.black.copy(alpha = .25f),
+            contentColor = AriSamPalette.white,
+            border = BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .15f)),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
@@ -264,19 +266,19 @@ private fun SocialGraphHeader(
                 slideInVertically(tween(560, easing = FastOutSlowInEasing)) { it / 3 },
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 22.dp, end = 22.dp, bottom = 24.dp),
+                .padding(start = AriSamDimensions.dp22, end = AriSamDimensions.dp22, bottom = AriSamDimensions.dp24),
         ) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp14),
             ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4)) {
                     Text(
                         stringResource(
                             if (kind == SocialListKind.Followers) R.string.social_followers else R.string.social_following,
                         ),
-                        color = Color.White,
+                        color = AriSamPalette.white,
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.ExtraBold,
                     )
@@ -288,19 +290,19 @@ private fun SocialGraphHeader(
                                 R.string.social_following_list_subtitle
                             },
                         ),
-                        color = Color.White.copy(alpha = .7f),
+                        color = AriSamPalette.white.copy(alpha = .7f),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
                 Surface(
                     shape = CircleShape,
-                    color = Color.White.copy(alpha = .11f),
+                    color = AriSamPalette.white.copy(alpha = .11f),
                     contentColor = SocialListCyan,
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = .12f)),
+                    border = BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .12f)),
                 ) {
                     Text(
                         visibleCount.toString(),
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = AriSamDimensions.dp14, vertical = AriSamDimensions.dp8),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                     )
@@ -318,23 +320,23 @@ private fun SocialConstellation(phase: State<Float>, modifier: Modifier = Modifi
             val baseX = size.width * (.12f + index * .13f)
             val baseY = size.height * (.27f + (index % 3) * .11f)
             androidx.compose.ui.geometry.Offset(
-                x = baseX + cos(phaseValue + index) * 7.dp.toPx(),
-                y = baseY + sin(phaseValue + index * .8f) * 6.dp.toPx(),
+                x = baseX + cos(phaseValue + index) * AriSamDimensions.dp7.toPx(),
+                y = baseY + sin(phaseValue + index * .8f) * AriSamDimensions.dp6.toPx(),
             )
         }
         points.zipWithNext().forEach { (start, end) ->
             drawLine(
-                color = Color.White.copy(alpha = .09f),
+                color = AriSamPalette.white.copy(alpha = .09f),
                 start = start,
                 end = end,
-                strokeWidth = 1.dp.toPx(),
+                strokeWidth = AriSamDimensions.dp1.toPx(),
                 cap = StrokeCap.Round,
             )
         }
         points.forEachIndexed { index, point ->
             drawCircle(
                 color = if (index % 2 == 0) SocialListCyan else SocialListViolet,
-                radius = if (index % 3 == 0) 3.dp.toPx() else 2.dp.toPx(),
+                radius = if (index % 3 == 0) AriSamDimensions.dp3.toPx() else AriSamDimensions.dp2.toPx(),
                 center = point,
                 alpha = .4f,
             )
@@ -383,13 +385,13 @@ private fun SocialUserCard(
     Surface(
         shape = SocialListShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .74f)),
-        shadowElevation = 2.dp,
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .74f)),
+        shadowElevation = AriSamDimensions.dp2,
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 11.dp),
+            Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp11),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             PressScaleBox(
                 onClick = onUserClick,
@@ -398,10 +400,10 @@ private fun SocialUserCard(
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
                 ) {
                     SocialUserAvatar(user)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                         Text(
                             user.displayName,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -430,21 +432,21 @@ private fun SocialUserCard(
 
 @Composable
 private fun SocialUserAvatar(user: PublicUserDto) {
-    Box(Modifier.size(58.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(AriSamDimensions.dp58), contentAlignment = Alignment.Center) {
         if (user.isFollowing) {
             Box(
                 Modifier
-                    .size(58.dp)
-                    .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = .55f), CircleShape),
+                    .size(AriSamDimensions.dp58)
+                    .border(AriSamDimensions.dp1_5, MaterialTheme.colorScheme.primary.copy(alpha = .55f), CircleShape),
             )
         }
         val avatarModifier = Modifier
-            .size(50.dp)
+            .size(AriSamDimensions.dp50)
             .clip(CircleShape)
             .background(Brush.linearGradient(listOf(SocialListViolet, SocialListCyan)))
         if (user.avatarUrl.isNullOrBlank()) {
             Box(avatarModifier, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Person, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                Icon(Icons.Rounded.Person, null, tint = AriSamPalette.white, modifier = Modifier.size(AriSamDimensions.dp26))
             }
         } else {
             AsyncImage(
@@ -466,7 +468,7 @@ private fun FollowStateButton(
     Surface(
         onClick = onClick,
         enabled = !isUpdating,
-        modifier = Modifier.height(42.dp),
+        modifier = Modifier.height(AriSamDimensions.dp42),
         shape = CircleShape,
         color = if (isFollowing) {
             MaterialTheme.colorScheme.primary.copy(alpha = .12f)
@@ -474,17 +476,17 @@ private fun FollowStateButton(
             MaterialTheme.colorScheme.primary
         },
         contentColor = if (isFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-        border = if (isFollowing) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .34f)) else null,
+        border = if (isFollowing) BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.primary.copy(alpha = .34f)) else null,
     ) {
         Box(
-            Modifier.padding(horizontal = 14.dp),
+            Modifier.padding(horizontal = AriSamDimensions.dp14),
             contentAlignment = Alignment.Center,
         ) {
             if (isUpdating) {
                 CircularProgressIndicator(
-                    Modifier.size(18.dp),
+                    Modifier.size(AriSamDimensions.dp18),
                     color = if (isFollowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
+                    strokeWidth = AriSamDimensions.dp2,
                 )
             } else {
                 AnimatedContent(
@@ -496,10 +498,10 @@ private fun FollowStateButton(
                     label = "socialUserFollowState",
                 ) { following ->
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (following) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp))
+                        if (following) Icon(Icons.Rounded.Check, null, Modifier.size(AriSamDimensions.dp16))
                         Text(
                             stringResource(if (following) R.string.social_following_badge else R.string.social_follow),
                             style = MaterialTheme.typography.labelMedium,
@@ -515,41 +517,41 @@ private fun FollowStateButton(
 @Composable
 private fun SocialUserShimmer() {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp),
+        Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp16, vertical = AriSamDimensions.dp3),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
     ) {
-        ShimmerBox(Modifier.size(54.dp).clip(CircleShape))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ShimmerBox(Modifier.fillMaxWidth(.56f).height(17.dp))
-            ShimmerBox(Modifier.fillMaxWidth(.34f).height(12.dp))
+        ShimmerBox(Modifier.size(AriSamDimensions.dp54).clip(CircleShape))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
+            ShimmerBox(Modifier.fillMaxWidth(.56f).height(AriSamDimensions.dp17))
+            ShimmerBox(Modifier.fillMaxWidth(.34f).height(AriSamDimensions.dp12))
         }
-        ShimmerBox(Modifier.width(88.dp).height(40.dp))
+        ShimmerBox(Modifier.width(AriSamDimensions.dp88).height(AriSamDimensions.dp40))
     }
 }
 
 @Composable
 private fun SocialUsersErrorState(onRetry: () -> Unit, compact: Boolean = false) {
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (compact) 2.dp else 18.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp16, vertical = if (compact) AriSamDimensions.dp2 else AriSamDimensions.dp18),
         shape = SocialListShape,
         color = MaterialTheme.colorScheme.error.copy(alpha = .08f),
         contentColor = MaterialTheme.colorScheme.error,
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(if (compact) 12.dp else 20.dp),
+            Modifier.fillMaxWidth().padding(if (compact) AriSamDimensions.dp12 else AriSamDimensions.dp20),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
         ) {
-            Icon(Icons.Rounded.Groups, null, Modifier.size(if (compact) 24.dp else 34.dp))
+            Icon(Icons.Rounded.Groups, null, Modifier.size(if (compact) AriSamDimensions.dp24 else AriSamDimensions.dp34))
             Text(
                 stringResource(R.string.social_action_failed),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
             )
             FilledTonalButton(onClick = onRetry) {
-                Icon(Icons.Rounded.Refresh, null, Modifier.size(17.dp))
-                Spacer(Modifier.width(6.dp))
+                Icon(Icons.Rounded.Refresh, null, Modifier.size(AriSamDimensions.dp17))
+                Spacer(Modifier.width(AriSamDimensions.dp6))
                 Text(stringResource(R.string.retry))
             }
         }
@@ -563,20 +565,20 @@ private fun SocialUsersEmptyState(kind: SocialListKind) {
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(360)) + scaleIn(spring(dampingRatio = .76f), initialScale = .84f),
-        modifier = Modifier.fillMaxWidth().padding(28.dp),
+        modifier = Modifier.fillMaxWidth().padding(AriSamDimensions.dp28),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             Surface(
-                modifier = Modifier.size(76.dp),
+                modifier = Modifier.size(AriSamDimensions.dp76),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = .11f),
                 contentColor = MaterialTheme.colorScheme.primary,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Groups, null, Modifier.size(38.dp))
+                    Icon(Icons.Rounded.Groups, null, Modifier.size(AriSamDimensions.dp38))
                 }
             }
             Text(

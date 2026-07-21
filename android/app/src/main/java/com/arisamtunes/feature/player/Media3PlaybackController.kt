@@ -181,7 +181,7 @@ class Media3PlaybackController @Inject constructor(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                stateRepository.setPlaybackError(error.localizedMessage ?: "Playback failed")
+                stateRepository.setPlaybackError(PlaybackError.Generic)
             }
         })
         scope.launch {
@@ -239,7 +239,7 @@ class Media3PlaybackController @Inject constructor(
         }.onFailure { error ->
             player.volume = 1f
             crossfadeCoordinator.clear()
-            stateRepository.setPlaybackError(error.localizedMessage ?: "Playback failed")
+            stateRepository.setPlaybackError(PlaybackError.Generic)
         }
     }
 
@@ -293,7 +293,7 @@ class Media3PlaybackController @Inject constructor(
                 player.play()
             }
         }
-            .onFailure { stateRepository.setPlaybackError(it.localizedMessage ?: "Playback failed") }
+            .onFailure { stateRepository.setPlaybackError(PlaybackError.Generic) }
     }
 
     fun togglePlayPause() {
@@ -352,7 +352,7 @@ class Media3PlaybackController @Inject constructor(
             runCatching { crossfadeCoordinator.playbackSpeed(safeSpeed) }
             stateRepository.setPlaybackSpeed(safeSpeed)
         }.onFailure {
-            stateRepository.setPlaybackError(it.localizedMessage ?: "Could not change playback speed")
+            stateRepository.setPlaybackError(PlaybackError.Speed)
         }
     }
 
@@ -444,7 +444,7 @@ class Media3PlaybackController @Inject constructor(
             }
             stateRepository.seekToMillis(safePositionMillis)
         }.onFailure {
-            stateRepository.setPlaybackError(it.localizedMessage ?: "Seek failed")
+            stateRepository.setPlaybackError(PlaybackError.Seek)
         }
     }
 
@@ -682,7 +682,7 @@ class Media3PlaybackController @Inject constructor(
                 player.volume = 1f
                 crossfadeCoordinator.clear()
                 stateRepository.setCrossfadePreview(null)
-                stateRepository.setPlaybackError(it.localizedMessage ?: "Crossfade failed")
+                stateRepository.setPlaybackError(PlaybackError.Crossfade)
             }
         }
     }

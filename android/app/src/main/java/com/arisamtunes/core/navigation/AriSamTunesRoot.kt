@@ -1,5 +1,8 @@
 package com.arisamtunes.core.navigation
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
+import com.arisamtunes.core.design.typography.AriSamTypographyTokens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -57,7 +60,6 @@ import com.arisamtunes.feature.suggestions.MusicSuggestionsRoute
 import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.sp
 
-
 private const val SplashRoute = "splash"
 private const val AuthRoute = "auth"
 private const val MusicSuggestionsRoutePath = "music-suggestions"
@@ -109,10 +111,10 @@ fun AriSamTunesRoot(sessionViewModel: SessionViewModel = hiltViewModel()) {
 @Composable
 private fun SplashScreen(onFinished: () -> Unit) {
     val horizontalDirection = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1f else -1f
-    val finalContentOffsetX = (-22).dp
-    val finalMarkOffsetX = (-88).dp
-    val textStartX = 112.dp
-    val textWidth = 238.dp
+    val finalContentOffsetX = AriSamDimensions.negative22
+    val finalMarkOffsetX = AriSamDimensions.negative88
+    val textStartX = AriSamDimensions.dp112
+    val textWidth = AriSamDimensions.dp238
 
     var phase by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
@@ -129,23 +131,23 @@ private fun SplashScreen(onFinished: () -> Unit) {
 
     val markSize by animateDpAsState(
         targetValue = when {
-            phase < 2 -> 0.dp
-            phase == 2 -> 76.dp
-            else -> 52.dp
+            phase < 2 -> AriSamDimensions.dp0
+            phase == 2 -> AriSamDimensions.dp76
+            else -> AriSamDimensions.dp52
         },
         animationSpec = tween(500, easing = FastOutSlowInEasing),
         label = "splashMarkSize",
     )
     val markOffsetX by animateDpAsState(
-        targetValue = if (phase >= 4) finalMarkOffsetX else 0.dp,
+        targetValue = if (phase >= 4) finalMarkOffsetX else AriSamDimensions.dp0,
         animationSpec = tween(620, easing = FastOutSlowInEasing),
         label = "splashMarkOffsetX",
     )
     val markOffsetY by animateDpAsState(
         targetValue = when {
-            phase < 2 -> 28.dp
-            phase == 2 -> (-78).dp
-            else -> 0.dp
+            phase < 2 -> AriSamDimensions.dp28
+            phase == 2 -> AriSamDimensions.negative78
+            else -> AriSamDimensions.dp0
         },
         animationSpec = tween(560, easing = FastOutSlowInEasing),
         label = "splashMarkOffsetY",
@@ -165,12 +167,12 @@ private fun SplashScreen(onFinished: () -> Unit) {
         label = "splashShadowAlpha",
     )
     val ovalWidth by animateDpAsState(
-        targetValue = if (phase < 2) 230.dp else 0.dp,
+        targetValue = if (phase < 2) AriSamDimensions.dp230 else AriSamDimensions.dp0,
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "ovalWidth",
     )
     val ovalHeight by animateDpAsState(
-        targetValue = if (phase < 2) 62.dp else 0.dp,
+        targetValue = if (phase < 2) AriSamDimensions.dp62 else AriSamDimensions.dp0,
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "ovalHeight",
     )
@@ -189,7 +191,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
         label = "splashMarkBackgroundAlpha",
     )
     val textRevealWidth by animateDpAsState(
-        targetValue = if (phase >= 4) textWidth else 0.dp,
+        targetValue = if (phase >= 4) textWidth else AriSamDimensions.dp0,
         animationSpec = tween(620, easing = FastOutSlowInEasing),
         label = "splashTextRevealWidth",
     )
@@ -199,7 +201,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
         label = "splashTextAlpha",
     )
     val contentOffsetX by animateDpAsState(
-        targetValue = if (phase >= 4) finalContentOffsetX else 0.dp,
+        targetValue = if (phase >= 4) finalContentOffsetX else AriSamDimensions.dp0,
         animationSpec = tween(620, easing = FastOutSlowInEasing),
         label = "splashContentOffsetX",
     )
@@ -218,19 +220,19 @@ private fun SplashScreen(onFinished: () -> Unit) {
         val frameScaleY = maxHeight.value / 844f
         Canvas(
             modifier = Modifier
-                .offset(y = 28.dp * frameScaleY)
+                .offset(y = AriSamDimensions.dp28 * frameScaleY)
                 .size(width = ovalWidth * frameScaleX, height = ovalHeight * frameScaleY)
                 .alpha(shadowAlpha),
         ) {
             drawOval(
-                color = Color(0xFF26364A),
+                color = AriSamPalette.slate800,
                 topLeft = Offset.Zero,
                 size = Size(size.width, size.height),
             )
         }
         Box(
             modifier = Modifier
-                .size(width = 330.dp * frameScaleX, height = 92.dp * frameScaleY)
+                .size(width = AriSamDimensions.dp330 * frameScaleX, height = AriSamDimensions.dp92 * frameScaleY)
                 .offset(x = contentOffsetX * (frameScaleX * horizontalDirection))
                 .alpha(markAlpha),
             contentAlignment = Alignment.Center,
@@ -244,9 +246,9 @@ private fun SplashScreen(onFinished: () -> Unit) {
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0xFF16435A).copy(alpha = markBackgroundAlpha),
-                                Color(0xFF0A2838).copy(alpha = markBackgroundAlpha),
-                                Color(0xFF06131D),
+                                AriSamPalette.splashBlue.copy(alpha = markBackgroundAlpha),
+                                AriSamPalette.splashBlueDark.copy(alpha = markBackgroundAlpha),
+                                AriSamPalette.profileInk,
                             ),
                         ),
                     ),
@@ -256,7 +258,7 @@ private fun SplashScreen(onFinished: () -> Unit) {
                     modifier = Modifier
                         .size(markSize * .88f)
                         .clip(CircleShape)
-                        .background(Color(0xFF07151E).copy(alpha = .64f)),
+                        .background(AriSamPalette.splashInk.copy(alpha = .64f)),
                 )
                 Image(
                     painter = painterResource(R.drawable.arisam_mark_dark),
@@ -275,26 +277,25 @@ private fun SplashScreen(onFinished: () -> Unit) {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(width = textWidth * frameScaleX, height = 46.dp)
+                        .size(width = textWidth * frameScaleX, height = AriSamDimensions.dp46)
                         .clipToBounds()
                         .alpha(textAlpha),
                     contentAlignment = Alignment.CenterEnd,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(width = textRevealWidth * frameScaleX, height = 46.dp)
+                            .size(width = textRevealWidth * frameScaleX, height = AriSamDimensions.dp46)
                             .clipToBounds(),
                         contentAlignment = Alignment.CenterEnd,
                     ) {
                         Text(
-                            text = "AriSam Tunes",
+                            text = stringResource(R.string.app_name),
                             color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 35.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = AriSamTypographyTokens.splashBrand,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Clip,
-                            modifier = Modifier.requiredSize(width = textWidth * frameScaleX, height = 46.dp),
+                            modifier = Modifier.requiredSize(width = textWidth * frameScaleX, height = AriSamDimensions.dp46),
                         )
                     }
                 }

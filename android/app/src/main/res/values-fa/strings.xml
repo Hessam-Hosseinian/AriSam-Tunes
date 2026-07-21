@@ -443,4 +443,19 @@
     <string name="music_suggestions_playlist_error">میکس ساخته نشد؛ انتخاب‌هایت محفوظ‌اند، دوباره تلاش کن.</string>
     <string name="music_suggestions_playlist_name">اولین میکس من</string>
     <string name="music_suggestions_playlist_description">براساس هنرمندها، سبک‌ها، حال‌وهوا، زبان، برچسب‌ها و دورهٔ انتشار آهنگ‌های انتخابی تو ساخته شده است.</string>
+    <string name="character_count_format">%1$d/%2$d</string>
+    <string name="page_indicator_format">%1$d/%2$d</string>
+    <string name="queue_position_format">%1$d</string>
+    <string name="remaining_duration_format">−%1$s</string>
+    <string name="rhythm_game_best_bulleted">• بهترین %1$d×</string>
+    <string name="playback_error_generic">پخش آهنگ انجام نشد</string>
+    <string name="playback_error_speed">سرعت پخش تغییر نکرد</string>
+    <string name="playback_error_seek">رفتن به این بخش آهنگ ممکن نشد</string>
+    <string name="playback_error_crossfade">گذار بین آهنگ‌ها انجام نشد</string>
+    <string name="metadata_bitrate_value">%1$d کیلوبیت‌برثانیه</string>
+    <string name="metadata_sample_rate_value">%1$d هرتز</string>
+    <string name="metadata_file_size_value">%1$.2f مگابایت</string>
+    <string name="metadata_extra_value">%1$s: %2$s</string>
+    <string name="rhythm_combo_value">%1$d×</string>
+    <string name="rhythm_accuracy_value">%1$d٪</string>
 </resources>

@@ -26,7 +26,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
@@ -49,7 +48,7 @@ import kotlin.math.min
 public fun MinaBox(
     modifier: Modifier = Modifier,
     state: MinaBoxState = rememberSaveableMinaBoxState(),
-    contentPadding: PaddingValues = PaddingValues(0.dp),
+    contentPadding: PaddingValues = PaddingValues(),
     scrollDirection: MinaBoxScrollDirection = MinaBoxScrollDirection.BOTH,
     content: MinaBoxScope.() -> Unit
 ) {

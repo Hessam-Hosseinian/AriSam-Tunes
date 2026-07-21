@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.chat
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -122,10 +124,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 private val QuickReactions = listOf("❤️", "🔥", "😂", "👏", "😮", "😢")
-private val NocturneViolet = Color(0xFF765CFF)
-private val NocturneIndigo = Color(0xFF4C36D9)
-private val NocturneCyan = Color(0xFF40D6C9)
-private val NocturneAmber = Color(0xFFFFC857)
+private val NocturneViolet = AriSamPalette.indigoAccent
+private val NocturneIndigo = AriSamPalette.indigo700
+private val NocturneCyan = AriSamPalette.teal400
+private val NocturneAmber = AriSamPalette.amberAccent
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -148,7 +150,7 @@ fun ChatExperienceRoute(
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val loadedMessages = messages.itemSnapshotList.items.associateBy(ChatMessageDto::id)
     var bottomContentHeight by remember { mutableIntStateOf(0) }
-    val bottomContentPadding = with(density) { bottomContentHeight.toDp() } + 12.dp
+    val bottomContentPadding = with(density) { bottomContentHeight.toDp() } + AriSamDimensions.dp12
     val effectMessages = mapOf(
         ChatEffect.SendFailed to stringResource(R.string.chat_send_failed),
         ChatEffect.EditFailed to stringResource(R.string.chat_edit_failed),
@@ -275,14 +277,14 @@ fun ChatExperienceRoute(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 reverseLayout = true,
-                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(start = AriSamDimensions.dp16, top = AriSamDimensions.dp12, end = AriSamDimensions.dp16, bottom = AriSamDimensions.dp12),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
             ) {
                 items(messages.itemCount, key = { messages.peek(it)?.id ?: it }) { index ->
                     messages[index]?.let { message ->
                         LaunchedEffect(message.id, message.replyToId, message.songId) { viewModel.onMessagePresented(message) }
                         val nextOlderMessage = if (index + 1 < messages.itemCount) messages.peek(index + 1) else null
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
                             if (nextOlderMessage == null || !isSameMessageDay(message.createdAt, nextOlderMessage.createdAt)) {
                                 DateSeparator(message.createdAt)
                             }
@@ -307,10 +309,10 @@ fun ChatExperienceRoute(
                         }
                     }
                 }
-                if (messages.loadState.append is LoadState.Loading) item { CircularProgressIndicator(Modifier.size(22.dp)) }
+                if (messages.loadState.append is LoadState.Loading) item { CircularProgressIndicator(Modifier.size(AriSamDimensions.dp22)) }
                 if (messages.loadState.append is LoadState.Error) item { ConversationPagingRetry(messages::retry) }
                 if (messages.loadState.refresh is LoadState.Loading && messages.itemCount == 0) {
-                    items(6) { ShimmerBox(Modifier.fillMaxWidth(.72f).height(68.dp)) }
+                    items(6) { ShimmerBox(Modifier.fillMaxWidth(.72f).height(AriSamDimensions.dp68)) }
                 }
                 if (messages.loadState.refresh is LoadState.Error && messages.itemCount == 0) {
                     item(key = "conversation-refresh-error") { ConversationPagingRetry(messages::retry) }
@@ -325,7 +327,7 @@ fun ChatExperienceRoute(
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut(),
                 ) {
-                    Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    Box(Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp16, vertical = AriSamDimensions.dp4)) {
                         ModernTypingBubble(state.peer?.displayName.orEmpty())
                     }
                 }
@@ -376,7 +378,7 @@ fun ChatExperienceRoute(
 private fun ConversationPagingRetry(onRetry: () -> Unit) {
     TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
         Icon(Icons.Rounded.Refresh, null)
-        Text(stringResource(R.string.retry), modifier = Modifier.padding(start = 6.dp))
+        Text(stringResource(R.string.retry), modifier = Modifier.padding(start = AriSamDimensions.dp6))
     }
 }
 
@@ -391,15 +393,15 @@ private fun ConversationHeader(
         Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 6.dp),
+            .padding(start = AriSamDimensions.dp12, top = AriSamDimensions.dp10, end = AriSamDimensions.dp12, bottom = AriSamDimensions.dp6),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(30.dp))
+                .clip(RoundedCornerShape(AriSamDimensions.dp30))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = .9f))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f), RoundedCornerShape(30.dp))
-                .padding(7.dp),
+                .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f), RoundedCornerShape(AriSamDimensions.dp30))
+                .padding(AriSamDimensions.dp7),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HeaderAction(
@@ -413,32 +415,32 @@ private fun ConversationHeader(
                 enabled = state.peer != null,
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.padding(start = 7.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.padding(start = AriSamDimensions.dp7), contentAlignment = Alignment.Center) {
                         Box(
                             Modifier
-                                .size(52.dp)
+                                .size(AriSamDimensions.dp52)
                                 .background(
                                     Brush.linearGradient(listOf(NocturneViolet, NocturneCyan)),
                                     CircleShape,
                                 ),
                         )
-                        state.peer?.let { UserAvatar(it, Modifier.size(46.dp)) }
-                            ?: Surface(Modifier.size(46.dp), CircleShape, MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        state.peer?.let { UserAvatar(it, Modifier.size(AriSamDimensions.dp46)) }
+                            ?: Surface(Modifier.size(AriSamDimensions.dp46), CircleShape, MaterialTheme.colorScheme.surfaceContainerHigh) {
                                 Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MusicNote, null) }
                             }
                         Box(
                             Modifier
                                 .align(Alignment.BottomEnd)
-                                .size(14.dp)
+                                .size(AriSamDimensions.dp14)
                                 .background(MaterialTheme.colorScheme.surface, CircleShape)
-                                .padding(2.dp)
+                                .padding(AriSamDimensions.dp2)
                                 .background(
                                     if (state.status == ChatConnectionStatus.Connected) NocturneCyan else NocturneAmber,
                                     CircleShape,
                                 ),
                         )
                     }
-                    Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
+                    Column(Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp11)) {
                         Text(
                             state.peer?.displayName ?: stringResource(R.string.chat),
                             style = MaterialTheme.typography.titleMedium,
@@ -447,12 +449,12 @@ private fun ConversationHeader(
                             overflow = TextOverflow.Ellipsis,
                         )
                         AnimatedContent(state.isPeerTyping, label = "typing-status") { typing ->
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5)) {
                                 val peerOnline = state.peerPresence?.isOnline == true
                                 val presenceKnown = state.peerPresence != null
                                 Box(
                                     Modifier
-                                        .size(6.dp)
+                                        .size(AriSamDimensions.dp6)
                                         .background(
                                             when {
                                                 typing || peerOnline -> NocturneCyan
@@ -496,25 +498,25 @@ private fun HeaderAction(
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(44.dp),
+        modifier = Modifier.size(AriSamDimensions.dp44),
         shape = CircleShape,
         color = if (active) NocturneViolet.copy(alpha = .18f) else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .72f),
         contentColor = if (active) NocturneViolet else MaterialTheme.colorScheme.onSurface,
     ) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, description, Modifier.size(21.dp)) }
+        Box(contentAlignment = Alignment.Center) { Icon(icon, description, Modifier.size(AriSamDimensions.dp21)) }
     }
 }
 
 @Composable
 private fun ConversationSearch(state: ChatDetailUiState, onQuery: (String) -> Unit, onResult: (ChatMessageDto) -> Unit) {
     Surface(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(26.dp),
+        modifier = Modifier.padding(horizontal = AriSamDimensions.dp16, vertical = AriSamDimensions.dp6),
+        shape = RoundedCornerShape(AriSamDimensions.dp26),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .92f),
-        border = BorderStroke(1.dp, NocturneViolet.copy(alpha = .24f)),
-        shadowElevation = 10.dp,
+        border = BorderStroke(AriSamDimensions.dp1, NocturneViolet.copy(alpha = .24f)),
+        shadowElevation = AriSamDimensions.dp10,
     ) {
-        Column(Modifier.fillMaxWidth().padding(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(AriSamDimensions.dp10)) {
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = onQuery,
@@ -522,34 +524,34 @@ private fun ConversationSearch(state: ChatDetailUiState, onQuery: (String) -> Un
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Rounded.Search, null, tint = NocturneViolet) },
                 placeholder = { Text(stringResource(R.string.chat_search_hint)) },
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(AriSamDimensions.dp20),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .78f),
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .58f),
                     focusedBorderColor = NocturneViolet,
-                    unfocusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = AriSamPalette.transparent,
                 ),
             )
             AnimatedVisibility(state.isSearching) {
                 CircularProgressIndicator(
-                    Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp).size(20.dp),
+                    Modifier.align(Alignment.CenterHorizontally).padding(top = AriSamDimensions.dp10).size(AriSamDimensions.dp20),
                     color = NocturneViolet,
-                    strokeWidth = 2.dp,
+                    strokeWidth = AriSamDimensions.dp2,
                 )
             }
             state.searchResults.take(5).forEach { result ->
                 Surface(
                     onClick = { onResult(result) },
-                    modifier = Modifier.padding(top = 6.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.padding(top = AriSamDimensions.dp6),
+                    shape = RoundedCornerShape(AriSamDimensions.dp16),
                     color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .52f),
                 ) {
                     Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp10),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(Modifier.size(7.dp).background(NocturneCyan, CircleShape))
-                        Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                        Box(Modifier.size(AriSamDimensions.dp7).background(NocturneCyan, CircleShape))
+                        Column(Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp10)) {
                             Text(result.content.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 messageTime(result.createdAt),
@@ -574,16 +576,16 @@ private fun CompactConnectionBanner(status: ChatConnectionStatus, onRetry: () ->
         ChatConnectionStatus.Connected -> return
     }
     Surface(
-        modifier = Modifier.padding(horizontal = 18.dp, vertical = 5.dp),
+        modifier = Modifier.padding(horizontal = AriSamDimensions.dp18, vertical = AriSamDimensions.dp5),
         shape = CircleShape,
         color = NocturneAmber.copy(alpha = .16f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, NocturneAmber.copy(alpha = .34f)),
+        border = BorderStroke(AriSamDimensions.dp1, NocturneAmber.copy(alpha = .34f)),
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (waiting) CircularProgressIndicator(Modifier.size(16.dp), color = NocturneAmber, strokeWidth = 2.dp)
-            else Icon(Icons.Rounded.WifiOff, null, Modifier.size(16.dp), tint = NocturneAmber)
-            Text(label, Modifier.weight(1f).padding(horizontal = 8.dp), style = MaterialTheme.typography.labelMedium)
+        Row(Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp13, vertical = AriSamDimensions.dp6), verticalAlignment = Alignment.CenterVertically) {
+            if (waiting) CircularProgressIndicator(Modifier.size(AriSamDimensions.dp16), color = NocturneAmber, strokeWidth = AriSamDimensions.dp2)
+            else Icon(Icons.Rounded.WifiOff, null, Modifier.size(AriSamDimensions.dp16), tint = NocturneAmber)
+            Text(label, Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp8), style = MaterialTheme.typography.labelMedium)
             if (status == ChatConnectionStatus.Disconnected) {
                 TextButton(onClick = onRetry) { Text(stringResource(R.string.retry), color = NocturneAmber) }
             }
@@ -606,23 +608,23 @@ private fun ExperienceMessageBubble(
 ) {
     val deleted = message.deletedAt != null
     val highlightBorder by animateColorAsState(
-        if (isHighlighted) NocturneAmber else Color.Transparent,
+        if (isHighlighted) NocturneAmber else AriSamPalette.transparent,
         label = "message-highlight",
     )
     val bubbleShape = if (isMine) {
-        AbsoluteRoundedCornerShape(24.dp, 24.dp, 7.dp, 24.dp)
+        AbsoluteRoundedCornerShape(AriSamDimensions.dp24, AriSamDimensions.dp24, AriSamDimensions.dp7, AriSamDimensions.dp24)
     } else {
-        AbsoluteRoundedCornerShape(24.dp, 24.dp, 24.dp, 7.dp)
+        AbsoluteRoundedCornerShape(AriSamDimensions.dp24, AriSamDimensions.dp24, AriSamDimensions.dp24, AriSamDimensions.dp7)
     }
-    val messageColor = if (isMine) Color.White else MaterialTheme.colorScheme.onSurface
-    val secondaryMessageColor = if (isMine) Color.White.copy(alpha = .7f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val messageColor = if (isMine) AriSamPalette.white else MaterialTheme.colorScheme.onSurface
+    val secondaryMessageColor = if (isMine) AriSamPalette.white.copy(alpha = .7f) else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onLongPress),
         horizontalAlignment = if (isMine) AbsoluteAlignment.Right else AbsoluteAlignment.Left,
     ) {
         Box(
             modifier = Modifier
-                .widthIn(min = 76.dp, max = 336.dp)
+                .widthIn(min = AriSamDimensions.dp76, max = AriSamDimensions.dp336)
                 .clip(bubbleShape)
                 .background(
                     if (isMine) {
@@ -637,16 +639,16 @@ private fun ExperienceMessageBubble(
                     },
                 )
                 .border(
-                    width = if (isHighlighted) 2.dp else 1.dp,
+                    width = if (isHighlighted) AriSamDimensions.dp2 else AriSamDimensions.dp1,
                     color = when {
                         isHighlighted -> highlightBorder
-                        isMine -> Color.White.copy(alpha = .1f)
+                        isMine -> AriSamPalette.white.copy(alpha = .1f)
                         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)
                     },
                     shape = bubbleShape,
                 ),
         ) {
-            Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
+            Column(Modifier.padding(horizontal = AriSamDimensions.dp14, vertical = AriSamDimensions.dp11)) {
                 message.replyToId?.let {
                     val replyText = when {
                         repliedMessage?.deletedAt != null -> stringResource(R.string.chat_deleted_message)
@@ -655,14 +657,14 @@ private fun ExperienceMessageBubble(
                         else -> stringResource(R.string.chat_message)
                     }
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isMine) Color.White.copy(alpha = .11f) else NocturneViolet.copy(alpha = .1f),
+                        shape = RoundedCornerShape(AriSamDimensions.dp12),
+                        color = if (isMine) AriSamPalette.white.copy(alpha = .11f) else NocturneViolet.copy(alpha = .1f),
                     ) {
-                        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.width(3.dp).height(30.dp).background(if (isMine) NocturneCyan else NocturneViolet, CircleShape))
+                        Row(Modifier.fillMaxWidth().padding(AriSamDimensions.dp8), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.width(AriSamDimensions.dp3).height(AriSamDimensions.dp30).background(if (isMine) NocturneCyan else NocturneViolet, CircleShape))
                             Text(
                                 replyText,
-                                Modifier.padding(start = 8.dp),
+                                Modifier.padding(start = AriSamDimensions.dp8),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = messageColor.copy(alpha = .86f),
                                 maxLines = 2,
@@ -670,7 +672,7 @@ private fun ExperienceMessageBubble(
                             )
                         }
                     }
-                    Spacer(Modifier.height(9.dp))
+                    Spacer(Modifier.height(AriSamDimensions.dp9))
                 }
                 when {
                     deleted -> Text(
@@ -681,35 +683,35 @@ private fun ExperienceMessageBubble(
                     message.messageType == ChatMessageTypeDto.SONG -> NocturneSongCard(song, songUnavailable, isMine, onPlaySong)
                     else -> Text(message.content.orEmpty(), style = MaterialTheme.typography.bodyLarge, color = messageColor)
                 }
-                Row(Modifier.align(AbsoluteAlignment.Right).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.align(AbsoluteAlignment.Right).padding(top = AriSamDimensions.dp6), verticalAlignment = Alignment.CenterVertically) {
                     if (message.editedAt != null && !deleted) {
                         Text(stringResource(R.string.chat_edited), style = MaterialTheme.typography.labelSmall, color = secondaryMessageColor)
                     }
                     Text(
                         messageTime(message.createdAt),
-                        Modifier.padding(start = 5.dp),
+                        Modifier.padding(start = AriSamDimensions.dp5),
                         style = MaterialTheme.typography.labelSmall,
                         color = secondaryMessageColor,
                     )
-                    if (isMine) Box(Modifier.padding(start = 3.dp)) { MessageDeliveryIcon(message.status, isMine = true) }
+                    if (isMine) Box(Modifier.padding(start = AriSamDimensions.dp3)) { MessageDeliveryIcon(message.status, isMine = true) }
                 }
             }
         }
         if (message.reactions.isNotEmpty()) {
-            Row(Modifier.padding(top = 4.dp, start = 8.dp, end = 8.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(Modifier.padding(top = AriSamDimensions.dp4, start = AriSamDimensions.dp8, end = AriSamDimensions.dp8), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5)) {
                 message.reactions.forEach { reaction ->
                     Surface(
                         onClick = { onReaction(reaction.reaction) },
                         shape = CircleShape,
                         color = if (reaction.reactedByMe) NocturneViolet.copy(alpha = .18f) else MaterialTheme.colorScheme.surface.copy(alpha = .9f),
                         border = BorderStroke(
-                            1.dp,
+                            AriSamDimensions.dp1,
                             if (reaction.reactedByMe) NocturneViolet.copy(alpha = .42f) else MaterialTheme.colorScheme.outlineVariant,
                         ),
                     ) {
                         Text(
                             "${reaction.reaction} ${reaction.count}",
-                            Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                            Modifier.padding(horizontal = AriSamDimensions.dp9, vertical = AriSamDimensions.dp4),
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
@@ -727,30 +729,30 @@ private fun NocturneSongCard(
     isMine: Boolean,
     onPlay: (SongDto) -> Unit,
 ) {
-    val primaryContent = if (isMine) Color.White else MaterialTheme.colorScheme.onSurface
-    val secondaryContent = if (isMine) Color.White.copy(alpha = .68f) else MaterialTheme.colorScheme.onSurfaceVariant
-    val container = if (isMine) Color.White.copy(alpha = .1f) else NocturneViolet.copy(alpha = .08f)
-    val outline = if (isMine) Color.White.copy(alpha = .14f) else NocturneViolet.copy(alpha = .2f)
+    val primaryContent = if (isMine) AriSamPalette.white else MaterialTheme.colorScheme.onSurface
+    val secondaryContent = if (isMine) AriSamPalette.white.copy(alpha = .68f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val container = if (isMine) AriSamPalette.white.copy(alpha = .1f) else NocturneViolet.copy(alpha = .08f)
+    val outline = if (isMine) AriSamPalette.white.copy(alpha = .14f) else NocturneViolet.copy(alpha = .2f)
 
     when {
         unavailable -> Surface(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(AriSamDimensions.dp18),
             color = container,
-            border = BorderStroke(1.dp, outline),
+            border = BorderStroke(AriSamDimensions.dp1, outline),
         ) {
             Row(
-                Modifier.widthIn(min = 248.dp, max = 296.dp).padding(9.dp),
+                Modifier.widthIn(min = AriSamDimensions.dp248, max = AriSamDimensions.dp296).padding(AriSamDimensions.dp9),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
-                    modifier = Modifier.size(52.dp),
-                    shape = RoundedCornerShape(15.dp),
-                    color = if (isMine) Color.White.copy(alpha = .1f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.size(AriSamDimensions.dp52),
+                    shape = RoundedCornerShape(AriSamDimensions.dp15),
+                    color = if (isMine) AriSamPalette.white.copy(alpha = .1f) else MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = secondaryContent,
                 ) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MusicOff, null, Modifier.size(24.dp)) }
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MusicOff, null, Modifier.size(AriSamDimensions.dp24)) }
                 }
-                Column(Modifier.padding(start = 10.dp)) {
+                Column(Modifier.padding(start = AriSamDimensions.dp10)) {
                     Text(
                         stringResource(R.string.chat_song_unavailable),
                         color = primaryContent,
@@ -766,24 +768,24 @@ private fun NocturneSongCard(
             }
         }
         song == null -> Row(
-            Modifier.widthIn(min = 228.dp).padding(vertical = 5.dp),
+            Modifier.widthIn(min = AriSamDimensions.dp228).padding(vertical = AriSamDimensions.dp5),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CircularProgressIndicator(Modifier.size(18.dp), color = NocturneCyan, strokeWidth = 2.dp)
+            CircularProgressIndicator(Modifier.size(AriSamDimensions.dp18), color = NocturneCyan, strokeWidth = AriSamDimensions.dp2)
             Text(
                 stringResource(R.string.chat_shared_song_loading),
-                Modifier.padding(start = 10.dp),
+                Modifier.padding(start = AriSamDimensions.dp10),
                 color = primaryContent,
             )
         }
         else -> PressScaleBox({ onPlay(song) }) {
             Surface(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(AriSamDimensions.dp18),
                 color = container,
-                border = BorderStroke(1.dp, outline),
+                border = BorderStroke(AriSamDimensions.dp1, outline),
             ) {
                 Row(
-                    Modifier.widthIn(min = 252.dp, max = 300.dp).padding(7.dp),
+                    Modifier.widthIn(min = AriSamDimensions.dp252, max = AriSamDimensions.dp300).padding(AriSamDimensions.dp7),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box {
@@ -792,19 +794,19 @@ private fun NocturneSongCard(
                             contentDescription = song.title,
                             error = painterResource(R.drawable.arisam_app_icon_dark),
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(58.dp).clip(RoundedCornerShape(15.dp)),
+                            modifier = Modifier.size(AriSamDimensions.dp58).clip(RoundedCornerShape(AriSamDimensions.dp15)),
                         )
                         Box(
                             Modifier
                                 .align(Alignment.Center)
-                                .size(30.dp)
-                                .background(Color.Black.copy(alpha = .54f), CircleShape),
+                                .size(AriSamDimensions.dp30)
+                                .background(AriSamPalette.black.copy(alpha = .54f), CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = Color.White, modifier = Modifier.size(19.dp))
+                            Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = AriSamPalette.white, modifier = Modifier.size(AriSamDimensions.dp19))
                         }
                     }
-                    Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                    Column(Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp10)) {
                         Text(
                             song.title,
                             color = primaryContent,
@@ -820,13 +822,13 @@ private fun NocturneSongCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom) {
+                        Row(Modifier.padding(top = AriSamDimensions.dp6), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3), verticalAlignment = Alignment.Bottom) {
                             listOf(5, 10, 7, 13, 8).forEach { height ->
-                                Box(Modifier.width(3.dp).height(height.dp).background(NocturneCyan, CircleShape))
+                                Box(Modifier.width(AriSamDimensions.dp3).height(height.dp).background(NocturneCyan, CircleShape))
                             }
                         }
                     }
-                    Icon(Icons.Rounded.MusicNote, null, tint = secondaryContent, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.MusicNote, null, tint = secondaryContent, modifier = Modifier.size(AriSamDimensions.dp20))
                 }
             }
         }
@@ -846,32 +848,32 @@ private fun ExperienceComposer(
     onSend: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 9.dp),
-        shape = RoundedCornerShape(30.dp),
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp9),
+        shape = RoundedCornerShape(AriSamDimensions.dp30),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
-        shadowElevation = 16.dp,
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
+        shadowElevation = AriSamDimensions.dp16,
     ) {
         Column {
             AnimatedVisibility(replyTo != null || editing != null, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(start = 9.dp, top = 9.dp, end = 9.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                        .padding(start = AriSamDimensions.dp9, top = AriSamDimensions.dp9, end = AriSamDimensions.dp9)
+                        .clip(RoundedCornerShape(AriSamDimensions.dp18))
                         .background(NocturneViolet.copy(alpha = .1f))
-                        .border(1.dp, NocturneViolet.copy(alpha = .18f), RoundedCornerShape(18.dp))
-                        .padding(start = 11.dp, top = 7.dp, bottom = 7.dp),
+                        .border(AriSamDimensions.dp1, NocturneViolet.copy(alpha = .18f), RoundedCornerShape(AriSamDimensions.dp18))
+                        .padding(start = AriSamDimensions.dp11, top = AriSamDimensions.dp7, bottom = AriSamDimensions.dp7),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.width(3.dp).height(34.dp).background(if (editing != null) NocturneAmber else NocturneCyan, CircleShape))
+                    Box(Modifier.width(AriSamDimensions.dp3).height(AriSamDimensions.dp34).background(if (editing != null) NocturneAmber else NocturneCyan, CircleShape))
                     Icon(
                         if (editing != null) Icons.Rounded.Edit else Icons.AutoMirrored.Rounded.Reply,
                         null,
-                        Modifier.padding(start = 9.dp).size(19.dp),
+                        Modifier.padding(start = AriSamDimensions.dp9).size(AriSamDimensions.dp19),
                         tint = if (editing != null) NocturneAmber else NocturneCyan,
                     )
-                    Column(Modifier.weight(1f).padding(horizontal = 9.dp)) {
+                    Column(Modifier.weight(1f).padding(horizontal = AriSamDimensions.dp9)) {
                         Text(
                             stringResource(if (editing != null) R.string.chat_editing_message else R.string.chat_replying_to),
                             style = MaterialTheme.typography.labelLarge,
@@ -889,22 +891,22 @@ private fun ExperienceComposer(
                 }
             }
             Row(
-                Modifier.fillMaxWidth().padding(8.dp),
+                Modifier.fillMaxWidth().padding(AriSamDimensions.dp8),
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp7),
             ) {
                 val songEnabled = currentSong != null && editing == null && !isSending
                 Surface(
                     onClick = onSendSong,
                     enabled = songEnabled,
-                    modifier = Modifier.size(50.dp),
-                    shape = RoundedCornerShape(17.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp50),
+                    shape = RoundedCornerShape(AriSamDimensions.dp17),
                     color = if (songEnabled) NocturneCyan.copy(alpha = .14f) else MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = if (songEnabled) NocturneCyan else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .48f),
-                    border = BorderStroke(1.dp, if (songEnabled) NocturneCyan.copy(alpha = .26f) else Color.Transparent),
+                    border = BorderStroke(AriSamDimensions.dp1, if (songEnabled) NocturneCyan.copy(alpha = .26f) else AriSamPalette.transparent),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.MusicNote, stringResource(R.string.chat_share_current_song), Modifier.size(22.dp))
+                        Icon(Icons.Rounded.MusicNote, stringResource(R.string.chat_share_current_song), Modifier.size(AriSamDimensions.dp22))
                     }
                 }
                 OutlinedTextField(
@@ -913,20 +915,20 @@ private fun ExperienceComposer(
                     modifier = Modifier.weight(1f),
                     placeholder = { Text(stringResource(R.string.chat_message_hint)) },
                     maxLines = 5,
-                    shape = RoundedCornerShape(19.dp),
+                    shape = RoundedCornerShape(AriSamDimensions.dp19),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .7f),
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .56f),
                         focusedBorderColor = NocturneViolet.copy(alpha = .7f),
-                        unfocusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = AriSamPalette.transparent,
                     ),
                 )
                 val sendEnabled = draft.isNotBlank() && !isSending
                 PressScaleBox(onClick = onSend, enabled = sendEnabled) {
                     Box(
                         Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(17.dp))
+                            .size(AriSamDimensions.dp50)
+                            .clip(RoundedCornerShape(AriSamDimensions.dp17))
                             .background(
                                 if (sendEnabled) {
                                     Brush.linearGradient(listOf(NocturneViolet, NocturneIndigo))
@@ -942,12 +944,12 @@ private fun ExperienceComposer(
                         contentAlignment = Alignment.Center,
                     ) {
                         if (isSending) {
-                            CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+                            CircularProgressIndicator(Modifier.size(AriSamDimensions.dp22), color = AriSamPalette.white, strokeWidth = AriSamDimensions.dp2)
                         } else {
                             Icon(
                                 Icons.AutoMirrored.Rounded.Send,
                                 stringResource(R.string.send),
-                                tint = if (sendEnabled) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .5f),
+                                tint = if (sendEnabled) AriSamPalette.white else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .5f),
                             )
                         }
                     }
@@ -966,37 +968,37 @@ private fun MessageActionSheet(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
-        Box(Modifier.align(Alignment.CenterHorizontally).width(42.dp).height(4.dp).background(MaterialTheme.colorScheme.outlineVariant, CircleShape))
+    Column(Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp20, vertical = AriSamDimensions.dp10)) {
+        Box(Modifier.align(Alignment.CenterHorizontally).width(AriSamDimensions.dp42).height(AriSamDimensions.dp4).background(MaterialTheme.colorScheme.outlineVariant, CircleShape))
         Text(
             stringResource(R.string.chat_react),
-            Modifier.padding(top = 18.dp),
+            Modifier.padding(top = AriSamDimensions.dp18),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
         )
-        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth().padding(vertical = AriSamDimensions.dp16), horizontalArrangement = Arrangement.SpaceBetween) {
             QuickReactions.forEach { reaction ->
                 Surface(
                     onClick = { onReaction(reaction) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(AriSamDimensions.dp16),
                     color = NocturneViolet.copy(alpha = .1f),
-                    border = BorderStroke(1.dp, NocturneViolet.copy(alpha = .16f)),
-                ) { Text(reaction, Modifier.padding(10.dp)) }
+                    border = BorderStroke(AriSamDimensions.dp1, NocturneViolet.copy(alpha = .16f)),
+                ) { Text(reaction, Modifier.padding(AriSamDimensions.dp10)) }
             }
         }
         ActionRow(Icons.AutoMirrored.Rounded.Reply, R.string.chat_reply, onReply)
         if (isMine && message.messageType == ChatMessageTypeDto.TEXT && message.deletedAt == null) ActionRow(Icons.Rounded.Edit, R.string.chat_edit, onEdit)
         if (isMine && message.deletedAt == null) ActionRow(Icons.Rounded.DeleteOutline, R.string.delete, onDelete, destructive = true)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(AriSamDimensions.dp24))
     }
 }
 
 @Composable
 private fun ActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Int, onClick: () -> Unit, destructive: Boolean = false) {
-    Surface(onClick = onClick, color = Color.Transparent) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(onClick = onClick, color = AriSamPalette.transparent) {
+        Row(Modifier.fillMaxWidth().padding(vertical = AriSamDimensions.dp13), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-            Text(stringResource(label), Modifier.padding(start = 14.dp), color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(label), Modifier.padding(start = AriSamDimensions.dp14), color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -1014,29 +1016,29 @@ private fun ModernTypingBubble(name: String) {
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
         Surface(
-            shape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 7.dp),
+            shape = RoundedCornerShape(AriSamDimensions.dp20, AriSamDimensions.dp20, AriSamDimensions.dp20, AriSamDimensions.dp7),
             color = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
-            border = BorderStroke(1.dp, NocturneCyan.copy(alpha = .22f)),
+            border = BorderStroke(AriSamDimensions.dp1, NocturneCyan.copy(alpha = .22f)),
         ) {
             Row(
-                Modifier.padding(horizontal = 13.dp, vertical = 10.dp),
+                Modifier.padding(horizontal = AriSamDimensions.dp13, vertical = AriSamDimensions.dp10),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
             ) {
                 alphas.forEach { alpha ->
                     Box(
                         Modifier
-                            .size(7.dp)
+                            .size(AriSamDimensions.dp7)
                             .graphicsLayer {
                                 this.alpha = alpha.value
-                                translationY = -2.dp.toPx() * alpha.value
+                                translationY = AriSamDimensions.negative2.toPx() * alpha.value
                             }
                             .background(NocturneCyan, CircleShape),
                     )
                 }
                 Text(
                     stringResource(R.string.chat_typing_person, name),
-                    Modifier.padding(start = 5.dp),
+                    Modifier.padding(start = AriSamDimensions.dp5),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1048,44 +1050,44 @@ private fun ModernTypingBubble(name: String) {
 @Composable
 private fun NewConversationHero(name: String) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 56.dp),
+        Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp40, vertical = AriSamDimensions.dp56),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Box(
                 Modifier
-                    .size(112.dp)
+                    .size(AriSamDimensions.dp112)
                     .background(NocturneViolet.copy(alpha = .08f), CircleShape)
-                    .border(1.dp, NocturneViolet.copy(alpha = .12f), CircleShape),
+                    .border(AriSamDimensions.dp1, NocturneViolet.copy(alpha = .12f), CircleShape),
             )
             Box(
                 Modifier
-                    .size(82.dp)
+                    .size(AriSamDimensions.dp82)
                     .background(Brush.linearGradient(listOf(NocturneViolet, NocturneIndigo)), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.AddReaction, null, Modifier.size(36.dp), tint = Color.White)
+                Icon(Icons.Rounded.AddReaction, null, Modifier.size(AriSamDimensions.dp36), tint = AriSamPalette.white)
             }
             Box(
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .size(34.dp)
+                    .size(AriSamDimensions.dp34)
                     .background(NocturneCyan, CircleShape)
-                    .border(4.dp, MaterialTheme.colorScheme.background, CircleShape),
+                    .border(AriSamDimensions.dp4, MaterialTheme.colorScheme.background, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.MusicNote, null, Modifier.size(16.dp), tint = Color(0xFF062B2A))
+                Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp16), tint = AriSamPalette.tealInk)
             }
         }
         Text(
             stringResource(R.string.chat_start_conversation_with, name),
-            Modifier.padding(top = 22.dp),
+            Modifier.padding(top = AriSamDimensions.dp22),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.ExtraBold,
         )
         Text(
             stringResource(R.string.chat_empty_conversation_hint),
-            Modifier.padding(top = 8.dp),
+            Modifier.padding(top = AriSamDimensions.dp8),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -1097,15 +1099,15 @@ private fun MessageDeliveryIcon(status: ChatMessageStatusDto, isMine: Boolean = 
     ChatMessageStatusDto.PENDING -> Icon(
         Icons.Rounded.AccessTime,
         null,
-        Modifier.size(14.dp),
-        tint = if (isMine) Color.White.copy(alpha = .65f) else MaterialTheme.colorScheme.onSurfaceVariant,
+        Modifier.size(AriSamDimensions.dp14),
+        tint = if (isMine) AriSamPalette.white.copy(alpha = .65f) else MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    ChatMessageStatusDto.FAILED -> Icon(Icons.Rounded.ErrorOutline, null, Modifier.size(14.dp), tint = NocturneAmber)
-    ChatMessageStatusDto.READ -> Icon(Icons.Rounded.DoneAll, null, Modifier.size(14.dp), tint = NocturneCyan)
+    ChatMessageStatusDto.FAILED -> Icon(Icons.Rounded.ErrorOutline, null, Modifier.size(AriSamDimensions.dp14), tint = NocturneAmber)
+    ChatMessageStatusDto.READ -> Icon(Icons.Rounded.DoneAll, null, Modifier.size(AriSamDimensions.dp14), tint = NocturneCyan)
     else -> Icon(
         Icons.Rounded.Done,
         null,
-        Modifier.size(14.dp),
-        tint = if (isMine) Color.White.copy(alpha = .72f) else MaterialTheme.colorScheme.onSurfaceVariant,
+        Modifier.size(AriSamDimensions.dp14),
+        tint = if (isMine) AriSamPalette.white.copy(alpha = .72f) else MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.downloads
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -73,8 +75,8 @@ import com.arisamtunes.data.local.entity.DownloadedSongEntity
 import com.arisamtunes.data.local.toSongDto
 import java.io.File
 
-private val DownloadAccent = Color(0xFFFFC857)
-private val DownloadOnAccent = Color(0xFF0C1821)
+private val DownloadAccent = AriSamPalette.amberAccent
+private val DownloadOnAccent = AriSamPalette.darkBackground
 
 @Composable
 fun DownloadsRoute(
@@ -187,9 +189,9 @@ private fun DownloadsScreen(
 
 @Composable
 private fun DownloadSortControls(selected: DownloadSortOrder, onEvent: (DownloadsEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
         Text(stringResource(R.string.download_sort_by), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
             DownloadSortOrder.entries.forEach { order ->
                 FilterChip(
                     selected = selected == order,
@@ -215,7 +217,7 @@ private fun DownloadSortControls(selected: DownloadSortOrder, onEvent: (Download
 private fun DownloadDismissBackground(direction: SwipeToDismissBoxValue) {
     val alignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
     Box(
-        Modifier.fillMaxSize().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 22.dp),
+        Modifier.fillMaxSize().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = AriSamDimensions.dp22),
         contentAlignment = alignment,
     ) {
         Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.onErrorContainer)
@@ -233,27 +235,27 @@ private fun DownloadsHero(
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.extraLarge)
-            .background(Brush.linearGradient(listOf(Color(0xFF075985), Color(0xFF123246), Color(0xFF1E2A3A))))
-            .padding(22.dp),
+            .background(Brush.linearGradient(listOf(AriSamPalette.sky800, AriSamPalette.blueGray, AriSamPalette.darkSurface)))
+            .padding(AriSamDimensions.dp22),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
                 Box(
-                    modifier = Modifier.size(44.dp).clip(MaterialTheme.shapes.medium).background(DownloadAccent),
+                    modifier = Modifier.size(AriSamDimensions.dp44).clip(MaterialTheme.shapes.medium).background(DownloadAccent),
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.CloudDone, null, tint = DownloadOnAccent, modifier = Modifier.size(26.dp)) }
+                ) { Icon(Icons.Rounded.CloudDone, null, tint = DownloadOnAccent, modifier = Modifier.size(AriSamDimensions.dp26)) }
                 Column {
-                    Text(stringResource(R.string.downloads_title), color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.downloads_offline_title), color = Color(0xFFD9F2FF), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.downloads_title), color = AriSamPalette.white, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.downloads_offline_title), color = AriSamPalette.skyTint, style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            Text(stringResource(R.string.downloads_offline_hint), color = Color(0xFFB9E8FF), style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusPill(Icons.Rounded.Download, stringResource(R.string.downloads_count, itemCount), Color.White.copy(alpha = .15f))
+            Text(stringResource(R.string.downloads_offline_hint), color = AriSamPalette.cyanTint, style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
+                StatusPill(Icons.Rounded.Download, stringResource(R.string.downloads_count, itemCount), AriSamPalette.white.copy(alpha = .15f))
                 StatusPill(
                     Icons.Rounded.WorkspacePremium,
                     stringResource(if (isPremium) R.string.premium_active else R.string.premium_required_title),
-                    if (isPremium) Color(0xFF2A6F5A) else Color.White.copy(alpha = .12f),
+                    if (isPremium) AriSamPalette.teal700 else AriSamPalette.white.copy(alpha = .12f),
                 )
             }
             if (!isPremium) {
@@ -266,10 +268,10 @@ private fun DownloadsHero(
                     ),
                 ) {
                     if (isUpdatingPremium) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = DownloadOnAccent)
+                        CircularProgressIndicator(Modifier.size(AriSamDimensions.dp18), strokeWidth = AriSamDimensions.dp2, color = DownloadOnAccent)
                     } else {
                         Icon(Icons.Rounded.WorkspacePremium, null)
-                        Spacer(Modifier.width(7.dp))
+                        Spacer(Modifier.width(AriSamDimensions.dp7))
                         Text(stringResource(R.string.upgrade))
                     }
                 }
@@ -281,21 +283,21 @@ private fun DownloadsHero(
 @Composable
 private fun StatusPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, color: Color) {
     Row(
-        modifier = Modifier.clip(MaterialTheme.shapes.small).background(color).padding(horizontal = 10.dp, vertical = 7.dp),
+        modifier = Modifier.clip(MaterialTheme.shapes.small).background(color).padding(horizontal = AriSamDimensions.dp10, vertical = AriSamDimensions.dp7),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp5),
     ) {
-        Icon(icon, null, tint = Color.White, modifier = Modifier.size(15.dp))
-        Text(label, color = Color.White, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Icon(icon, null, tint = AriSamPalette.white, modifier = Modifier.size(AriSamDimensions.dp15))
+        Text(label, color = AriSamPalette.white, style = MaterialTheme.typography.labelMedium, maxLines = 1)
     }
 }
 
 @Composable
 private fun OfflineNotice() {
     Row(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.primaryContainer).border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium).padding(14.dp),
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.primaryContainer).border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium).padding(AriSamDimensions.dp14),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
     ) {
         Icon(Icons.Rounded.CheckCircle, null, tint = DownloadAccent)
         Text(stringResource(R.string.downloads_ready_offline), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -321,19 +323,19 @@ private fun DownloadTrackCard(item: DownloadedSongEntity, onClick: () -> Unit, o
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
                 .background(MaterialTheme.colorScheme.surfaceContainer)
-                .border(1.dp, if (isReady) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.error.copy(alpha = .55f), MaterialTheme.shapes.large)
-                .padding(12.dp),
+                .border(AriSamDimensions.dp1, if (isReady) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.error.copy(alpha = .55f), MaterialTheme.shapes.large)
+                .padding(AriSamDimensions.dp12),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
         ) {
             AsyncImage(
                 model = item.coverImageUrl,
                 contentDescription = item.title,
                 error = painterResource(R.drawable.arisam_app_icon_dark),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(58.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                modifier = Modifier.size(AriSamDimensions.dp58).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
             )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                 Text(item.title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(listOfNotNull(item.artistName, item.album).joinToString(" • "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
@@ -344,21 +346,21 @@ private fun DownloadTrackCard(item: DownloadedSongEntity, onClick: () -> Unit, o
                 if (isRunning) {
                     LinearProgressIndicator(
                         progress = { item.downloadProgress.coerceIn(0, 99) / 100f },
-                        modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = AriSamDimensions.dp3),
                         color = DownloadAccent,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     )
                 }
             }
             Box(
-                modifier = Modifier.size(40.dp).clip(MaterialTheme.shapes.medium).background(if (isReady) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.size(AriSamDimensions.dp40).clip(MaterialTheme.shapes.medium).background(if (isReady) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 when {
                     isReady -> Icon(Icons.Rounded.PlayArrow, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     isQueued || isRunning -> CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(AriSamDimensions.dp22),
+                        strokeWidth = AriSamDimensions.dp2,
                         color = DownloadAccent,
                     )
                     isFailed -> IconButton(onClick = onRetry) {
@@ -374,9 +376,9 @@ private fun DownloadTrackCard(item: DownloadedSongEntity, onClick: () -> Unit, o
 @Composable
 private fun DownloadErrorCard(code: String, isUpdatingPremium: Boolean, onEvent: (DownloadsEvent) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.errorContainer).padding(14.dp),
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.errorContainer).padding(AriSamDimensions.dp14),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
     ) {
         Icon(Icons.Rounded.ErrorOutline, null, tint = MaterialTheme.colorScheme.onErrorContainer)
         Column(Modifier.weight(1f)) {
@@ -403,7 +405,7 @@ private fun DownloadErrorCard(code: String, isUpdatingPremium: Boolean, onEvent:
                 enabled = !isUpdatingPremium,
             ) {
                 if (isUpdatingPremium) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(AriSamDimensions.dp18), strokeWidth = AriSamDimensions.dp2)
                 } else {
                     Text(stringResource(R.string.upgrade))
                 }
@@ -416,12 +418,12 @@ private fun DownloadErrorCard(code: String, isUpdatingPremium: Boolean, onEvent:
 @Composable
 private fun EmptyDownloads(onEvent: (DownloadsEvent) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.surfaceContainer).padding(vertical = 46.dp, horizontal = 28.dp),
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.surfaceContainer).padding(vertical = AriSamDimensions.dp46, horizontal = AriSamDimensions.dp28),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
     ) {
-        Box(modifier = Modifier.size(68.dp).clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Download, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(34.dp))
+        Box(modifier = Modifier.size(AriSamDimensions.dp68).clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Download, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(AriSamDimensions.dp34))
         }
         Text(stringResource(R.string.downloads_empty), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(stringResource(R.string.downloads_empty_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
@@ -431,19 +433,19 @@ private fun EmptyDownloads(onEvent: (DownloadsEvent) -> Unit) {
 
 @Composable
 private fun DownloadsLoading() {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        repeat(4) { ShimmerBox(Modifier.fillMaxWidth().height(82.dp)) }
+    Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
+        repeat(4) { ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp82)) }
     }
 }
 
 @Composable
 private fun DownloadsError(onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = AriSamDimensions.dp40),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
     ) {
-        Icon(Icons.Rounded.Refresh, null, tint = DownloadAccent, modifier = Modifier.size(32.dp))
+        Icon(Icons.Rounded.Refresh, null, tint = DownloadAccent, modifier = Modifier.size(AriSamDimensions.dp32))
         Text(stringResource(R.string.downloads_load_error), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }

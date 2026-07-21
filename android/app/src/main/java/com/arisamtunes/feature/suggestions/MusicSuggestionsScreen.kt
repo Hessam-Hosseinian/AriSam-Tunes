@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.suggestions
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.animateColorAsState
@@ -128,13 +130,13 @@ fun MusicSuggestionsScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 18.dp),
+                .padding(horizontal = AriSamDimensions.dp24, vertical = AriSamDimensions.dp18),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.AutoAwesome,
@@ -159,7 +161,7 @@ fun MusicSuggestionsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 104.dp, bottom = 112.dp),
+                .padding(top = AriSamDimensions.dp104, bottom = AriSamDimensions.dp112),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -169,7 +171,7 @@ fun MusicSuggestionsScreen(
                     text = stringResource(R.string.music_suggestions_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp),
+                    modifier = Modifier.padding(horizontal = AriSamDimensions.dp32),
                 )
                 else -> HexagonSongPlane(state.songs, selectionState)
             }
@@ -222,9 +224,9 @@ private fun MusicSuggestionsLoadingShimmer() {
         onDrawBehind {
             val brush = Brush.linearGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = .04f),
-                    Color(0xFF7DD3FC).copy(alpha = .22f),
-                    Color.White.copy(alpha = .04f),
+                    AriSamPalette.white.copy(alpha = .04f),
+                    AriSamPalette.sky300.copy(alpha = .22f),
+                    AriSamPalette.white.copy(alpha = .04f),
                 ),
                 start = Offset(offset.value - 260f, offset.value - 260f),
                 end = Offset(offset.value + 260f, offset.value + 260f),
@@ -249,9 +251,9 @@ private fun SuggestionActionBar(
 ) {
     val selectedCount = selectionState.selectedCount
     Column(
-        modifier = modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+        modifier = modifier.padding(horizontal = AriSamDimensions.dp24, vertical = AriSamDimensions.dp14),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp7),
     ) {
         if (creationFailed) {
             Text(
@@ -264,19 +266,19 @@ private fun SuggestionActionBar(
         Button(
             onClick = { onCreatePlaylist(selectionState.selectedIds()) },
             enabled = selectedCount > 0 && !isCreatingPlaylist,
-            modifier = Modifier.fillMaxWidth().height(54.dp),
-            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp54),
+            shape = RoundedCornerShape(AriSamDimensions.dp18),
             colors = ButtonDefaults.buttonColors(),
         ) {
             if (isCreatingPlaylist) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp22),
                     color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
+                    strokeWidth = AriSamDimensions.dp2,
                 )
                 Text(
                     text = stringResource(R.string.music_suggestions_creating_playlist),
-                    modifier = Modifier.padding(start = 10.dp),
+                    modifier = Modifier.padding(start = AriSamDimensions.dp10),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -357,7 +359,7 @@ private fun HexagonSongPlane(
         MinaBox(
             state = state,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            contentPadding = PaddingValues(horizontal = AriSamDimensions.dp16, vertical = AriSamDimensions.dp10),
         ) {
             items(
                 count = cellsPerTile * WrapTileCount * WrapTileCount,
@@ -439,7 +441,7 @@ private fun HexagonSong(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(3.dp)
+            .padding(AriSamDimensions.dp3)
             .graphicsLayer {
                 scaleX = scale.value * selectionScale.value
                 scaleY = scale.value * selectionScale.value
@@ -449,7 +451,7 @@ private fun HexagonSong(
             }
             .drawWithCache {
                 val borderPath = size.createHexagonPath()
-                val borderWidth = (if (isSelected) 5.dp else 3.dp).toPx()
+                val borderWidth = (if (isSelected) AriSamDimensions.dp5 else AriSamDimensions.dp3).toPx()
                 onDrawBehind {
                     drawPath(
                         path = borderPath,
@@ -473,9 +475,9 @@ private fun HexagonSong(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        .46f to Color(0xFF06141D).copy(alpha = .12f),
-                        1f to Color(0xFF06141D).copy(alpha = .96f),
+                        0f to AriSamPalette.transparent,
+                        .46f to AriSamPalette.suggestionInk.copy(alpha = .12f),
+                        1f to AriSamPalette.suggestionInk.copy(alpha = .96f),
                     ),
                 ),
         )
@@ -488,16 +490,16 @@ private fun HexagonSong(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 17.dp)
-                    .size(30.dp)
-                    .background(SelectedColor, RoundedCornerShape(10.dp)),
+                    .padding(top = AriSamDimensions.dp17)
+                    .size(AriSamDimensions.dp30)
+                    .background(SelectedColor, RoundedCornerShape(AriSamDimensions.dp10)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = stringResource(R.string.music_suggestions_selected),
-                    tint = Color.White,
-                    modifier = Modifier.size(19.dp),
+                    tint = AriSamPalette.white,
+                    modifier = Modifier.size(AriSamDimensions.dp19),
                 )
             }
         }
@@ -505,12 +507,12 @@ private fun HexagonSong(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(.72f)
-                .padding(bottom = 18.dp),
+                .padding(bottom = AriSamDimensions.dp18),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = song.title,
-                color = Color.White,
+                color = AriSamPalette.white,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -519,7 +521,7 @@ private fun HexagonSong(
             )
             Text(
                 text = song.artistName,
-                color = Color.White.copy(alpha = .72f),
+                color = AriSamPalette.white.copy(alpha = .72f),
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -535,8 +537,8 @@ private fun Int.toEven(): Int = if (this % 2 == 0) this else this + 1
 private fun SuggestionError(onRetry: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp14),
+        modifier = Modifier.padding(horizontal = AriSamDimensions.dp32),
     ) {
         Text(
             text = stringResource(R.string.music_suggestions_error),
@@ -573,6 +575,6 @@ private const val HexagonVertices = 6
 private const val WrapBufferCells = 2
 private const val WrapTileCount = 3
 private const val CenterTileIndex = WrapTileCount / 2
-private val HexagonRadius = 70.dp
-private val SelectedColor = Color(0xFF0EA5E9)
-private val UnselectedBorderColor = Color(0xFF7DD3FC).copy(alpha = .78f)
+private val HexagonRadius = AriSamDimensions.dp70
+private val SelectedColor = AriSamPalette.sky500
+private val UnselectedBorderColor = AriSamPalette.sky300.copy(alpha = .78f)

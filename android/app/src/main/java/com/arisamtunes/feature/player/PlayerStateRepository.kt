@@ -1,11 +1,20 @@
 package com.arisamtunes.feature.player
 
+import androidx.annotation.StringRes
+import com.arisamtunes.R
 import com.arisamtunes.data.catalog.SongDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
+
+enum class PlaybackError(@param:StringRes val messageRes: Int) {
+    Generic(R.string.playback_error_generic),
+    Speed(R.string.playback_error_speed),
+    Seek(R.string.playback_error_seek),
+    Crossfade(R.string.playback_error_crossfade),
+}
 
 data class PlayerState(
     val currentSong: SongDto? = null,
@@ -22,7 +31,7 @@ data class PlayerState(
     val playbackSpeed: Float = 1f,
     val sleepTimerEndsAtMillis: Long? = null,
     val isCrossfadeEnabled: Boolean = true,
-    val playbackError: String? = null,
+    val playbackError: PlaybackError? = null,
     val visualizerBands: List<Float> = List(32) { 0.08f },
 )
 
@@ -62,8 +71,8 @@ class PlayerStateRepository @Inject constructor() {
         _state.update { state -> state.copy(isPlaying = isPlaying) }
     }
 
-    fun setPlaybackError(message: String?) {
-        _state.update { state -> state.copy(playbackError = message, isPlaying = false) }
+    fun setPlaybackError(error: PlaybackError?) {
+        _state.update { state -> state.copy(playbackError = error, isPlaying = false) }
     }
 
     fun seekTo(seconds: Int) {

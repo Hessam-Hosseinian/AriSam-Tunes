@@ -1,5 +1,6 @@
 package com.arisamtunes.feature.settings
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -181,7 +182,7 @@ private fun SettingsScreen(
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
             ) {
                 Icon(Icons.AutoMirrored.Rounded.Logout, null)
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(AriSamDimensions.dp8))
                 Text(
                     stringResource(R.string.logout),
                     style = MaterialTheme.typography.labelLarge,
@@ -204,14 +205,14 @@ private fun SettingsSection(
             modifier = Modifier.padding(AriSamThemeTokens.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.md),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12)) {
                 icon()
                 Column {
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(AriSamDimensions.dp2))
             content()
         }
     }
@@ -226,8 +227,8 @@ private fun <T> PreferenceChips(
     onSelected: (T) -> Unit,
 ) {
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
         modifier = Modifier.fillMaxWidth(),
     ) {
         options.forEach { option ->

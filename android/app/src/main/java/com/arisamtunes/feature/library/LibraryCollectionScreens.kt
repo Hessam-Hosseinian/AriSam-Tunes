@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.library
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -243,52 +245,52 @@ private fun CollectionHero(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp))
+            .clip(RoundedCornerShape(bottomStart = AriSamDimensions.dp38, bottomEnd = AriSamDimensions.dp38))
             .background(Brush.linearGradient(listOf(colors.heroStart, colors.heroEnd)))
-            .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 26.dp),
+            .padding(start = AriSamDimensions.dp18, end = AriSamDimensions.dp18, top = AriSamDimensions.dp12, bottom = AriSamDimensions.dp26),
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = .2f)),
+            modifier = Modifier.clip(CircleShape).background(AriSamPalette.black.copy(alpha = .2f)),
         ) {
-            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Color.White)
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = AriSamPalette.white)
         }
         Column(
-            modifier = Modifier.fillMaxWidth().padding(top = 54.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = AriSamDimensions.dp54),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             Surface(
-                modifier = Modifier.size(76.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.White.copy(alpha = .14f),
-                contentColor = Color.White,
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .2f)),
+                modifier = Modifier.size(AriSamDimensions.dp76),
+                shape = RoundedCornerShape(AriSamDimensions.dp24),
+                color = AriSamPalette.white.copy(alpha = .14f),
+                contentColor = AriSamPalette.white,
+                border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .2f)),
             ) {
-                Box(contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(38.dp)) }
+                Box(contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(AriSamDimensions.dp38)) }
             }
-            Text(stringResource(title), color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
-            Text(stringResource(subtitle), color = Color.White.copy(alpha = .76f), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-            Text(stringResource(R.string.library_song_count, songCount), color = Color.White.copy(alpha = .7f), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(title), color = AriSamPalette.white, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+            Text(stringResource(subtitle), color = AriSamPalette.white.copy(alpha = .76f), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            Text(stringResource(R.string.library_song_count, songCount), color = AriSamPalette.white.copy(alpha = .7f), style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
                 Button(
                     onClick = onPlayAll,
                     enabled = songCount > 0 && !isResolvingQueue,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = colors.heroStart),
+                    colors = ButtonDefaults.buttonColors(containerColor = AriSamPalette.white, contentColor = colors.heroStart),
                 ) {
-                    if (isResolvingQueue) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = colors.heroStart)
+                    if (isResolvingQueue) CircularProgressIndicator(Modifier.size(AriSamDimensions.dp18), strokeWidth = AriSamDimensions.dp2, color = colors.heroStart)
                     else Icon(Icons.Rounded.PlayArrow, null)
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(AriSamDimensions.dp6))
                     Text(stringResource(R.string.play_all))
                 }
                 OutlinedButton(
                     onClick = onShuffle,
                     enabled = songCount > 0 && !isResolvingQueue,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .42f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AriSamPalette.white),
+                    border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .42f)),
                 ) {
                     Icon(Icons.Rounded.Shuffle, null)
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(AriSamDimensions.dp6))
                     Text(stringResource(R.string.shuffle))
                 }
             }
@@ -307,15 +309,15 @@ private fun CollectionSongRow(
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainer,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f)),
+            border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f)),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(AriSamDimensions.dp10),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
             ) {
                 if (song.coverImageUrl.isNullOrBlank()) {
-                    Box(Modifier.size(58.dp).clip(MaterialTheme.shapes.medium).background(accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(AriSamDimensions.dp58).clip(MaterialTheme.shapes.medium).background(accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.MusicNote, null, tint = accent)
                     }
                 } else {
@@ -324,10 +326,10 @@ private fun CollectionSongRow(
                         contentDescription = song.title,
                         error = painterResource(R.drawable.arisam_app_icon_dark),
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(58.dp).clip(MaterialTheme.shapes.medium),
+                        modifier = Modifier.size(AriSamDimensions.dp58).clip(MaterialTheme.shapes.medium),
                     )
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                     Text(song.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(listOfNotNull(song.artistName, song.album).joinToString(" • "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -343,7 +345,7 @@ private fun CollectionSongRow(
 private fun DismissBackground(direction: SwipeToDismissBoxValue) {
     val alignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
     Box(
-        Modifier.fillMaxSize().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 22.dp),
+        Modifier.fillMaxSize().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = AriSamDimensions.dp22),
         contentAlignment = alignment,
     ) {
         Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.library_remove_item), tint = MaterialTheme.colorScheme.onErrorContainer)
@@ -357,12 +359,12 @@ private fun CollectionEmptyState(kind: LibraryCollectionKind, onExplore: () -> U
     val title = if (kind == LibraryCollectionKind.Liked) R.string.library_liked_empty_title else R.string.library_recent_empty_title
     val hint = if (kind == LibraryCollectionKind.Liked) R.string.library_liked_empty_hint else R.string.library_recent_empty_hint
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 58.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp28, vertical = AriSamDimensions.dp58),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
     ) {
-        Box(Modifier.size(78.dp).clip(RoundedCornerShape(26.dp)).background(colors.accent.copy(alpha = .13f)).border(1.dp, colors.accent.copy(alpha = .28f), RoundedCornerShape(26.dp)), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(38.dp), tint = colors.accent)
+        Box(Modifier.size(AriSamDimensions.dp78).clip(RoundedCornerShape(AriSamDimensions.dp26)).background(colors.accent.copy(alpha = .13f)).border(AriSamDimensions.dp1, colors.accent.copy(alpha = .28f), RoundedCornerShape(AriSamDimensions.dp26)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(AriSamDimensions.dp38), tint = colors.accent)
         }
         Text(stringResource(title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Text(stringResource(hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
@@ -370,7 +372,7 @@ private fun CollectionEmptyState(kind: LibraryCollectionKind, onExplore: () -> U
             onClick = onExplore,
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.accent,
-                contentColor = Color(0xFF0C1821),
+                contentColor = AriSamPalette.darkBackground,
             ),
         ) {
             Text(stringResource(R.string.start_exploring))
@@ -391,16 +393,16 @@ private fun collectionColors(kind: LibraryCollectionKind) = when (kind) {
     LibraryCollectionKind.Liked -> CollectionColors(
         backgroundTop = MaterialTheme.colorScheme.background,
         backgroundBottom = MaterialTheme.colorScheme.surfaceContainer,
-        heroStart = Color(0xFF8E2D57),
-        heroEnd = Color(0xFF321B42),
-        accent = Color(0xFFFF7AAA),
+        heroStart = AriSamPalette.roseHero,
+        heroEnd = AriSamPalette.plum800,
+        accent = AriSamPalette.pink300,
     )
     LibraryCollectionKind.Recent -> CollectionColors(
         backgroundTop = MaterialTheme.colorScheme.background,
         backgroundBottom = MaterialTheme.colorScheme.surfaceContainer,
-        heroStart = Color(0xFF075985),
-        heroEnd = Color(0xFF123246),
-        accent = Color(0xFF58D3FF),
+        heroStart = AriSamPalette.sky800,
+        heroEnd = AriSamPalette.blueGray,
+        accent = AriSamPalette.cyan400,
     )
 }
 

@@ -1,5 +1,7 @@
 package com.arisamtunes.core.navigation
 
+import com.arisamtunes.core.design.colors.AriSamPalette
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -143,7 +145,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
     SharedTransitionLayout {
       val playerSharedTransitionScope = this
       Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = AriSamPalette.transparent,
         contentColor = MaterialTheme.colorScheme.onBackground,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
@@ -152,11 +154,11 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(AriSamDimensions.dp36)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                                 contentAlignment = Alignment.Center,
@@ -164,10 +166,10 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                                 Image(
                                     painter = painterResource(R.drawable.arisam_mark_dark),
                                     contentDescription = stringResource(R.string.app_logo_description),
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(AriSamDimensions.dp24),
                                 )
                             }
-                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp1)) {
                                 Text(
                                     stringResource(R.string.app_name),
                                     style = MaterialTheme.typography.titleLarge,
@@ -220,7 +222,7 @@ fun AriSamAppShell(onLoggedOut: () -> Unit) {
                 if (showMainChrome) {
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 0.dp,
+                        tonalElevation = AriSamDimensions.dp0,
                     ) {
                         MainDestinations.forEach { destination ->
                             NavigationBarItem(
@@ -484,17 +486,17 @@ private fun HeaderProfileAction(
     IconButton(onClick = onClick) {
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(AriSamDimensions.dp34)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .55f), CircleShape),
+                .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.primary.copy(alpha = .55f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (avatarUrl.isNullOrBlank()) {
                 Icon(
                     Icons.Rounded.AccountCircle,
                     stringResource(R.string.profile_picture),
-                    modifier = Modifier.size(27.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp27),
                 )
             } else {
                 AsyncImage(

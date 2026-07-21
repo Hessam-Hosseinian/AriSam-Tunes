@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.social
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -119,12 +121,12 @@ import kotlin.math.PI
 import kotlin.math.roundToLong
 import kotlin.math.sin
 
-private val ProfileHeroHeight = 448.dp
-private val ProfileBackdropHeight = 362.dp
-private val ProfileCardShape = RoundedCornerShape(28.dp)
-private val ProfileAccent = Color(0xFF38C6F4)
-private val ProfileViolet = Color(0xFF7C6CF2)
-private val ProfileInk = Color(0xFF06131D)
+private val ProfileHeroHeight = AriSamDimensions.dp448
+private val ProfileBackdropHeight = AriSamDimensions.dp362
+private val ProfileCardShape = RoundedCornerShape(AriSamDimensions.dp28)
+private val ProfileAccent = AriSamPalette.cyanAccent
+private val ProfileViolet = AriSamPalette.indigoSoft
+private val ProfileInk = AriSamPalette.profileInk
 
 @Composable
 fun SocialProfileRoute(
@@ -147,7 +149,7 @@ fun SocialProfileRoute(
     val snackbarBottomPadding = if (onBack != null) {
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     } else {
-        0.dp
+        AriSamDimensions.dp0
     }
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(viewModel::uploadAvatar)
@@ -247,7 +249,7 @@ private fun ProfileContent(
     val navigationBarPadding = if (onBack != null) {
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     } else {
-        0.dp
+        AriSamDimensions.dp0
     }
     var entered by remember(user.id) { mutableStateOf(false) }
     LaunchedEffect(user.id) { entered = true }
@@ -351,10 +353,10 @@ private fun ProfileContent(
                 when (playlists.loadState.append) {
                     is LoadState.Loading -> item(key = "playlist_append_loading") {
                         Box(
-                            Modifier.fillMaxWidth().padding(20.dp),
+                            Modifier.fillMaxWidth().padding(AriSamDimensions.dp20),
                             contentAlignment = Alignment.Center,
                         ) {
-                            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(Modifier.size(AriSamDimensions.dp24), strokeWidth = AriSamDimensions.dp2)
                         }
                     }
                     is LoadState.Error -> item(key = "playlist_append_error") {
@@ -383,7 +385,7 @@ private fun ProfileHeroStage(
     val statusBarPadding = if (onBack != null) {
         WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     } else {
-        0.dp
+        AriSamDimensions.dp0
     }
     Box(Modifier.fillMaxWidth().height(ProfileHeroHeight)) {
         ProfileAuroraBackdrop(
@@ -403,11 +405,11 @@ private fun ProfileHeroStage(
                 onClick = navigateBack,
                 modifier = Modifier
                     .padding(start = spacing.md, top = spacing.md + statusBarPadding)
-                    .size(46.dp),
+                    .size(AriSamDimensions.dp46),
                 shape = CircleShape,
-                color = Color.Black.copy(alpha = .28f),
-                contentColor = Color.White,
-                border = BorderStroke(1.dp, Color.White.copy(alpha = .16f)),
+                color = AriSamPalette.black.copy(alpha = .28f),
+                contentColor = AriSamPalette.white,
+                border = BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .16f)),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
@@ -419,7 +421,7 @@ private fun ProfileHeroStage(
             visible = entered,
             enter = fadeIn(tween(520, delayMillis = 60)) +
                 slideInVertically(tween(650, easing = FastOutSlowInEasing)) { it / 5 },
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 28.dp + statusBarPadding),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = AriSamDimensions.dp28 + statusBarPadding),
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -433,15 +435,15 @@ private fun ProfileHeroStage(
                 )
                 Text(
                     text = user.displayName,
-                    color = Color.White,
+                    color = AriSamPalette.white,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 32.dp),
+                    modifier = Modifier.padding(horizontal = AriSamDimensions.dp32),
                 )
                 ListenerBadge(isPremium = user.isPremium)
-                MusicPulseDecoration(Modifier.padding(top = 2.dp))
+                MusicPulseDecoration(Modifier.padding(top = AriSamDimensions.dp2))
             }
         }
 
@@ -484,45 +486,45 @@ private fun ProfileAuroraBackdrop(modifier: Modifier = Modifier) {
 
     Box(
         modifier
-            .clip(RoundedCornerShape(bottomStart = 42.dp, bottomEnd = 42.dp))
+            .clip(RoundedCornerShape(bottomStart = AriSamDimensions.dp42, bottomEnd = AriSamDimensions.dp42))
             .background(
                 Brush.linearGradient(
-                    listOf(ProfileInk, Color(0xFF0A3345), Color(0xFF111E42)),
+                    listOf(ProfileInk, AriSamPalette.cyan900, AriSamPalette.navyVioletDark),
                 ),
             ),
     ) {
         Box(
             Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = 58.dp, y = (-72).dp)
-                .size(245.dp)
+                .offset(x = AriSamDimensions.dp58, y = AriSamDimensions.negative72)
+                .size(AriSamDimensions.dp245)
                 .graphicsLayer {
                     translationX = drift * 38f
                     translationY = drift * 18f
                     scaleX = breathe
                     scaleY = breathe
                 }
-                .blur(54.dp)
+                .blur(AriSamDimensions.dp54)
                 .background(ProfileAccent.copy(alpha = .38f), CircleShape),
         )
         Box(
             Modifier
                 .align(Alignment.BottomStart)
-                .offset(x = (-58).dp, y = 44.dp)
-                .size(220.dp)
+                .offset(x = AriSamDimensions.negative58, y = AriSamDimensions.dp44)
+                .size(AriSamDimensions.dp220)
                 .graphicsLayer {
                     translationX = -drift * 32f
                     translationY = drift * 24f
                     scaleX = 2f - breathe
                     scaleY = 2f - breathe
                 }
-                .blur(60.dp)
+                .blur(AriSamDimensions.dp60)
                 .background(ProfileViolet.copy(alpha = .32f), CircleShape),
         )
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    listOf(Color.White.copy(alpha = .14f), Color.Transparent),
+                    listOf(AriSamPalette.white.copy(alpha = .14f), AriSamPalette.transparent),
                     center = center.copy(y = size.height * .12f),
                     radius = size.width * .7f,
                 ),
@@ -557,23 +559,23 @@ private fun ProfileAvatar(
 
     Box(
         Modifier
-            .size(132.dp)
+            .size(AriSamDimensions.dp132)
             .graphicsLayer { translationY = floatY },
         contentAlignment = Alignment.Center,
     ) {
         Box(
             Modifier
-                .size(126.dp)
+                .size(AriSamDimensions.dp126)
                 .graphicsLayer {
                     scaleX = ringScale
                     scaleY = ringScale
                     alpha = (1.09f - ringScale) * 5.5f + .18f
                 }
-                .border(2.dp, ProfileAccent, CircleShape),
+                .border(AriSamDimensions.dp2, ProfileAccent, CircleShape),
         )
         val avatarModifier = Modifier
-            .size(112.dp)
-            .border(4.dp, Color.White.copy(alpha = .94f), CircleShape)
+            .size(AriSamDimensions.dp112)
+            .border(AriSamDimensions.dp4, AriSamPalette.white.copy(alpha = .94f), CircleShape)
             .clip(CircleShape)
         if (isOwnProfile) {
             PressScaleBox(
@@ -590,26 +592,26 @@ private fun ProfileAvatar(
         when {
             isUploading -> Box(
                 Modifier
-                    .size(112.dp)
+                    .size(AriSamDimensions.dp112)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = .58f)),
+                    .background(AriSamPalette.black.copy(alpha = .58f)),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(Modifier.size(32.dp), color = Color.White, strokeWidth = 3.dp)
+                CircularProgressIndicator(Modifier.size(AriSamDimensions.dp32), color = AriSamPalette.white, strokeWidth = AriSamDimensions.dp3)
             }
             isOwnProfile -> Surface(
                 onClick = onClick,
-                modifier = Modifier.align(Alignment.BottomEnd).size(38.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).size(AriSamDimensions.dp38),
                 shape = CircleShape,
                 color = ProfileAccent,
                 contentColor = ProfileInk,
-                border = BorderStroke(3.dp, Color.White),
+                border = BorderStroke(AriSamDimensions.dp3, AriSamPalette.white),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Rounded.PhotoCamera,
                         stringResource(R.string.profile_change_photo),
-                        Modifier.size(19.dp),
+                        Modifier.size(AriSamDimensions.dp19),
                     )
                 }
             }
@@ -617,17 +619,17 @@ private fun ProfileAvatar(
 
         if (user.isPremium) {
             Surface(
-                modifier = Modifier.align(Alignment.BottomStart).size(36.dp),
+                modifier = Modifier.align(Alignment.BottomStart).size(AriSamDimensions.dp36),
                 shape = CircleShape,
                 color = AriSamThemeTokens.tehranAmber,
-                border = BorderStroke(3.dp, Color.White),
+                border = BorderStroke(AriSamDimensions.dp3, AriSamPalette.white),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Rounded.Verified,
                         stringResource(R.string.premium_active),
                         tint = ProfileInk,
-                        modifier = Modifier.size(19.dp),
+                        modifier = Modifier.size(AriSamDimensions.dp19),
                     )
                 }
             }
@@ -642,14 +644,14 @@ private fun ProfileAvatarImage(user: PublicUserDto, modifier: Modifier) {
             modifier.background(Brush.linearGradient(listOf(ProfileViolet, ProfileAccent))),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.Person, null, tint = Color.White, modifier = Modifier.size(42.dp))
+            Icon(Icons.Rounded.Person, null, tint = AriSamPalette.white, modifier = Modifier.size(AriSamDimensions.dp42))
         }
     } else {
         AsyncImage(
             model = user.avatarUrl,
             contentDescription = user.displayName,
             contentScale = ContentScale.Crop,
-            modifier = modifier.background(Color(0xFF102C3A)),
+            modifier = modifier.background(AriSamPalette.teal900),
         )
     }
 }
@@ -658,19 +660,19 @@ private fun ProfileAvatarImage(user: PublicUserDto, modifier: Modifier) {
 private fun ListenerBadge(isPremium: Boolean) {
     Surface(
         shape = CircleShape,
-        color = Color.White.copy(alpha = .1f),
-        contentColor = if (isPremium) AriSamThemeTokens.tehranAmber else Color.White.copy(alpha = .78f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = .13f)),
+        color = AriSamPalette.white.copy(alpha = .1f),
+        contentColor = if (isPremium) AriSamThemeTokens.tehranAmber else AriSamPalette.white.copy(alpha = .78f),
+        border = BorderStroke(AriSamDimensions.dp1, AriSamPalette.white.copy(alpha = .13f)),
     ) {
         Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            Modifier.padding(horizontal = AriSamDimensions.dp12, vertical = AriSamDimensions.dp6),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp6),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 if (isPremium) Icons.Rounded.Verified else Icons.Rounded.Headphones,
                 null,
-                Modifier.size(15.dp),
+                Modifier.size(AriSamDimensions.dp15),
             )
             Text(
                 stringResource(if (isPremium) R.string.profile_premium_listener else R.string.profile_listener),
@@ -690,18 +692,18 @@ private fun MusicPulseDecoration(modifier: Modifier = Modifier) {
         animationSpec = infiniteRepeatable(tween(2_000, easing = LinearEasing)),
         label = "profileMusicPhase",
     )
-    Canvas(modifier.size(width = 112.dp, height = 24.dp)) {
+    Canvas(modifier.size(width = AriSamDimensions.dp112, height = AriSamDimensions.dp24)) {
         val barCount = 13
         val spacing = size.width / barCount
         repeat(barCount) { index ->
             val wave = ((sin(phase + index * .72f) + 1f) * .5f)
-            val barHeight = 4.dp.toPx() + wave * 10.dp.toPx()
+            val barHeight = AriSamDimensions.dp4.toPx() + wave * AriSamDimensions.dp10.toPx()
             val x = spacing * index + spacing / 2f
             drawLine(
-                color = Color.White.copy(alpha = .22f + wave * .28f),
+                color = AriSamPalette.white.copy(alpha = .22f + wave * .28f),
                 start = androidx.compose.ui.geometry.Offset(x, center.y - barHeight / 2f),
                 end = androidx.compose.ui.geometry.Offset(x, center.y + barHeight / 2f),
-                strokeWidth = 2.dp.toPx(),
+                strokeWidth = AriSamDimensions.dp2.toPx(),
                 cap = StrokeCap.Round,
             )
         }
@@ -719,11 +721,11 @@ private fun ProfileStatsCard(
         modifier = Modifier.fillMaxWidth(),
         shape = ProfileCardShape,
         color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .97f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
-        shadowElevation = 14.dp,
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
+        shadowElevation = AriSamDimensions.dp14,
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 18.dp),
+            Modifier.fillMaxWidth().padding(vertical = AriSamDimensions.dp18),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -734,7 +736,7 @@ private fun ProfileStatsCard(
                 onClick = onFollowersClick,
                 modifier = Modifier.weight(1f),
             )
-            Box(Modifier.width(1.dp).height(46.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            Box(Modifier.width(AriSamDimensions.dp1).height(AriSamDimensions.dp46).background(MaterialTheme.colorScheme.outlineVariant))
             AnimatedProfileStat(
                 value = user.followingCount,
                 label = stringResource(R.string.social_following),
@@ -765,9 +767,9 @@ private fun AnimatedProfileStat(
         modifier = modifier.semantics { contentDescription = description },
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp12),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2),
         ) {
             Text(
                 animatedValue.roundToLong().toString(),
@@ -790,24 +792,24 @@ private fun ProfileIdentityCard(user: PublicUserDto, isOwnProfile: Boolean) {
     Surface(
         shape = ProfileCardShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .78f)),
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .78f)),
     ) {
         Column(
-            Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.padding(AriSamDimensions.dp20),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp36),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = .12f),
                     contentColor = MaterialTheme.colorScheme.primary,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Headphones, null, Modifier.size(19.dp))
+                        Icon(Icons.Rounded.Headphones, null, Modifier.size(AriSamDimensions.dp19))
                     }
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(AriSamDimensions.dp10))
                 Column {
                     Text(
                         stringResource(R.string.profile_about),
@@ -848,15 +850,15 @@ private fun ProfileActions(
     onSettingsClick: (() -> Unit)?,
 ) {
     if (isOwnProfile) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
             Surface(
                 shape = MaterialTheme.shapes.large,
-                color = if (isPremium) Color(0xFFFFC857).copy(alpha = .16f) else MaterialTheme.colorScheme.surfaceContainer,
-                border = BorderStroke(1.dp, if (isPremium) Color(0xFFFFC857).copy(alpha = .55f) else MaterialTheme.colorScheme.outlineVariant),
+                color = if (isPremium) AriSamPalette.amberAccent.copy(alpha = .16f) else MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(AriSamDimensions.dp1, if (isPremium) AriSamPalette.amberAccent.copy(alpha = .55f) else MaterialTheme.colorScheme.outlineVariant),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Rounded.WorkspacePremium, null, tint = Color(0xFFFFC857))
+                Column(Modifier.padding(AriSamDimensions.dp16), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8)) {
+                        Icon(Icons.Rounded.WorkspacePremium, null, tint = AriSamPalette.amberAccent)
                         Text(
                             stringResource(if (isPremium) R.string.premium_active else R.string.profile_premium_demo_title),
                             modifier = Modifier.weight(1f),
@@ -865,9 +867,9 @@ private fun ProfileActions(
                     }
                     Text(stringResource(R.string.profile_premium_demo_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     Button(onClick = onPremiumClick, enabled = !isUpdatingPremium, modifier = Modifier.fillMaxWidth()) {
-                        if (isUpdatingPremium) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp)
-                        else Icon(Icons.Rounded.WorkspacePremium, null, Modifier.size(19.dp))
-                        Spacer(Modifier.width(8.dp))
+                        if (isUpdatingPremium) CircularProgressIndicator(Modifier.size(AriSamDimensions.dp19), strokeWidth = AriSamDimensions.dp2)
+                        else Icon(Icons.Rounded.WorkspacePremium, null, Modifier.size(AriSamDimensions.dp19))
+                        Spacer(Modifier.width(AriSamDimensions.dp8))
                         Text(stringResource(if (isPremium) R.string.profile_premium_renew else R.string.profile_premium_activate))
                     }
                 }
@@ -875,18 +877,18 @@ private fun ProfileActions(
             FilledTonalButton(
                 onClick = onAvatarClick,
                 enabled = !isUploadingAvatar,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
+                modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp54),
                 shape = MaterialTheme.shapes.large,
             ) {
-                if (isUploadingAvatar) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                else Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(19.dp))
-                Spacer(Modifier.width(8.dp))
+                if (isUploadingAvatar) CircularProgressIndicator(Modifier.size(AriSamDimensions.dp20), strokeWidth = AriSamDimensions.dp2)
+                else Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(AriSamDimensions.dp19))
+                Spacer(Modifier.width(AriSamDimensions.dp8))
                 Text(stringResource(if (isUploadingAvatar) R.string.profile_photo_uploading else R.string.profile_change_photo), fontWeight = FontWeight.Bold)
             }
             onSettingsClick?.let { openSettings ->
-                OutlinedButton(onClick = openSettings, modifier = Modifier.fillMaxWidth().height(54.dp), shape = MaterialTheme.shapes.large) {
-                    Icon(Icons.Rounded.Settings, null, Modifier.size(19.dp))
-                    Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = openSettings, modifier = Modifier.fillMaxWidth().height(AriSamDimensions.dp54), shape = MaterialTheme.shapes.large) {
+                    Icon(Icons.Rounded.Settings, null, Modifier.size(AriSamDimensions.dp19))
+                    Spacer(Modifier.width(AriSamDimensions.dp8))
                     Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold)
                 }
             }
@@ -894,12 +896,12 @@ private fun ProfileActions(
     } else {
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             Button(
                 onClick = onFollowClick,
                 enabled = !isUpdatingFollow,
-                modifier = Modifier.weight(1f).height(54.dp),
+                modifier = Modifier.weight(1f).height(AriSamDimensions.dp54),
                 shape = MaterialTheme.shapes.large,
                 colors = if (isFollowing) {
                     ButtonDefaults.buttonColors(
@@ -912,9 +914,9 @@ private fun ProfileActions(
             ) {
                 if (isUpdatingFollow) {
                     CircularProgressIndicator(
-                        Modifier.size(20.dp),
+                        Modifier.size(AriSamDimensions.dp20),
                         color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
+                        strokeWidth = AriSamDimensions.dp2,
                     )
                 } else {
                     AnimatedContent(
@@ -926,10 +928,10 @@ private fun ProfileActions(
                         label = "profileFollowState",
                     ) { following ->
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(7.dp),
+                            horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp7),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            if (following) Icon(Icons.Rounded.Check, null, Modifier.size(18.dp))
+                            if (following) Icon(Icons.Rounded.Check, null, Modifier.size(AriSamDimensions.dp18))
                             Text(
                                 stringResource(if (following) R.string.social_unfollow else R.string.social_follow),
                                 fontWeight = FontWeight.Bold,
@@ -940,12 +942,12 @@ private fun ProfileActions(
             }
             OutlinedButton(
                 onClick = onMessageClick,
-                modifier = Modifier.weight(1f).height(54.dp),
+                modifier = Modifier.weight(1f).height(AriSamDimensions.dp54),
                 shape = MaterialTheme.shapes.large,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .48f)),
+                border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.primary.copy(alpha = .48f)),
             ) {
-                Icon(Icons.AutoMirrored.Rounded.Chat, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(7.dp))
+                Icon(Icons.AutoMirrored.Rounded.Chat, null, Modifier.size(AriSamDimensions.dp18))
+                Spacer(Modifier.width(AriSamDimensions.dp7))
                 Text(stringResource(R.string.chat_message), fontWeight = FontWeight.Bold)
             }
         }
@@ -959,7 +961,7 @@ private fun PlaylistSectionHeading(count: Int, isOwnProfile: Boolean) {
         Modifier.fillMaxWidth().padding(horizontal = spacing.lg, vertical = spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
             Text(
                 stringResource(R.string.social_public_playlists),
                 color = MaterialTheme.colorScheme.onBackground,
@@ -980,13 +982,13 @@ private fun PlaylistSectionHeading(count: Int, isOwnProfile: Boolean) {
             )
         }
         Surface(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(AriSamDimensions.dp48),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary.copy(alpha = .12f),
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.MusicNote, null, Modifier.size(24.dp))
+                Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp24))
             }
         }
     }
@@ -1034,14 +1036,14 @@ private fun CinematicPlaylistCard(playlist: PlaylistDto) {
         modifier = Modifier.fillMaxWidth(),
         shape = ProfileCardShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
     ) {
-        Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(AriSamDimensions.dp9), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10)) {
             Box(
                 Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(AriSamDimensions.dp22))
                     .background(Brush.linearGradient(listOf(ProfileViolet, ProfileAccent))),
             ) {
                 if (!playlist.coverImageUrl.isNullOrBlank()) {
@@ -1057,7 +1059,7 @@ private fun CinematicPlaylistCard(playlist: PlaylistDto) {
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(Color.Transparent, ProfileInk.copy(alpha = .66f)),
+                                    listOf(AriSamPalette.transparent, ProfileInk.copy(alpha = .66f)),
                                     startY = 90f,
                                 ),
                             ),
@@ -1066,32 +1068,32 @@ private fun CinematicPlaylistCard(playlist: PlaylistDto) {
                     Box(
                         Modifier
                             .align(Alignment.Center)
-                            .size(64.dp)
-                            .background(Color.White.copy(alpha = .14f), CircleShape),
+                            .size(AriSamDimensions.dp64)
+                            .background(AriSamPalette.white.copy(alpha = .14f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Rounded.MusicNote, null, tint = Color.White, modifier = Modifier.size(34.dp))
+                        Icon(Icons.Rounded.MusicNote, null, tint = AriSamPalette.white, modifier = Modifier.size(AriSamDimensions.dp34))
                     }
                 }
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(9.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(AriSamDimensions.dp9),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = .48f),
-                    contentColor = Color.White,
+                    color = AriSamPalette.black.copy(alpha = .48f),
+                    contentColor = AriSamPalette.white,
                 ) {
                     Row(
-                        Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        Modifier.padding(horizontal = AriSamDimensions.dp9, vertical = AriSamDimensions.dp5),
+                        horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp4),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Rounded.MusicNote, null, Modifier.size(13.dp))
+                        Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp13))
                         Text(playlist.songCount.toString(), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
             Column(
-                Modifier.padding(horizontal = 3.dp, vertical = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                Modifier.padding(horizontal = AriSamDimensions.dp3, vertical = AriSamDimensions.dp2),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2),
             ) {
                 Text(
                     playlist.name,
@@ -1119,10 +1121,10 @@ private fun PlaylistShimmerRow() {
         horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.md),
     ) {
         repeat(2) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp9)) {
                 ShimmerBox(Modifier.fillMaxWidth().aspectRatio(1f))
-                ShimmerBox(Modifier.fillMaxWidth(.78f).height(18.dp))
-                ShimmerBox(Modifier.fillMaxWidth(.46f).height(12.dp))
+                ShimmerBox(Modifier.fillMaxWidth(.78f).height(AriSamDimensions.dp18))
+                ShimmerBox(Modifier.fillMaxWidth(.46f).height(AriSamDimensions.dp12))
             }
         }
     }
@@ -1134,21 +1136,21 @@ private fun ProfilePlaylistEmptyState() {
         modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg),
         shape = ProfileCardShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(28.dp),
+            Modifier.fillMaxWidth().padding(AriSamDimensions.dp28),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(9.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp9),
         ) {
             Surface(
-                modifier = Modifier.size(62.dp),
+                modifier = Modifier.size(AriSamDimensions.dp62),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = .11f),
                 contentColor = MaterialTheme.colorScheme.primary,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.MusicNote, null, Modifier.size(30.dp))
+                    Icon(Icons.Rounded.MusicNote, null, Modifier.size(AriSamDimensions.dp30))
                 }
             }
             Text(
@@ -1175,7 +1177,7 @@ private fun ProfilePlaylistLoadError(onRetry: () -> Unit) {
         contentColor = MaterialTheme.colorScheme.error,
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp16, vertical = AriSamDimensions.dp12),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -1184,8 +1186,8 @@ private fun ProfilePlaylistLoadError(onRetry: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
             FilledTonalButton(onClick = onRetry) {
-                Icon(Icons.Rounded.Refresh, null, Modifier.size(17.dp))
-                Spacer(Modifier.width(6.dp))
+                Icon(Icons.Rounded.Refresh, null, Modifier.size(AriSamDimensions.dp17))
+                Spacer(Modifier.width(AriSamDimensions.dp6))
                 Text(stringResource(R.string.retry))
             }
         }
@@ -1196,8 +1198,8 @@ private fun ProfilePlaylistLoadError(onRetry: () -> Unit) {
 private fun ProfileLoadingState() {
     LazyColumn(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
-        contentPadding = PaddingValues(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp18),
+        contentPadding = PaddingValues(bottom = AriSamDimensions.dp32),
     ) {
         item {
             Box(Modifier.fillMaxWidth().height(ProfileHeroHeight)) {
@@ -1205,21 +1207,21 @@ private fun ProfileLoadingState() {
                 ShimmerBox(
                     Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 34.dp)
-                        .size(116.dp)
+                        .padding(top = AriSamDimensions.dp34)
+                        .size(AriSamDimensions.dp116)
                         .clip(CircleShape),
                 )
                 ShimmerBox(
                     Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = AriSamDimensions.dp16)
                         .fillMaxWidth()
-                        .height(94.dp),
+                        .height(AriSamDimensions.dp94),
                 )
             }
         }
-        item { ShimmerBox(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(132.dp)) }
-        item { ShimmerBox(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(54.dp)) }
+        item { ShimmerBox(Modifier.padding(horizontal = AriSamDimensions.dp16).fillMaxWidth().height(AriSamDimensions.dp132)) }
+        item { ShimmerBox(Modifier.padding(horizontal = AriSamDimensions.dp16).fillMaxWidth().height(AriSamDimensions.dp54)) }
         item { PlaylistShimmerRow() }
     }
 }
@@ -1243,18 +1245,18 @@ private fun ProfileErrorState(onRetry: () -> Unit) {
             enter = fadeIn(tween(360)) + scaleIn(spring(dampingRatio = .72f), initialScale = .82f),
         ) {
             Column(
-                Modifier.padding(32.dp),
+                Modifier.padding(AriSamDimensions.dp32),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
             ) {
                 Surface(
-                    modifier = Modifier.size(76.dp),
+                    modifier = Modifier.size(AriSamDimensions.dp76),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.error.copy(alpha = .12f),
                     contentColor = MaterialTheme.colorScheme.error,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Headphones, null, Modifier.size(36.dp))
+                        Icon(Icons.Rounded.Headphones, null, Modifier.size(AriSamDimensions.dp36))
                     }
                 }
                 Text(
@@ -1264,7 +1266,7 @@ private fun ProfileErrorState(onRetry: () -> Unit) {
                 )
                 FilledTonalButton(onClick = onRetry) {
                     Icon(Icons.Rounded.Refresh, null)
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(AriSamDimensions.dp8))
                     Text(stringResource(R.string.retry))
                 }
             }
@@ -1276,15 +1278,15 @@ private fun ProfileErrorState(onRetry: () -> Unit) {
 private fun ProfileEmptyState() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.padding(32.dp),
+            Modifier.padding(AriSamDimensions.dp32),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp10),
         ) {
             Icon(
                 Icons.Rounded.Person,
                 null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(AriSamDimensions.dp52),
             )
             Text(
                 stringResource(R.string.social_profile_empty),

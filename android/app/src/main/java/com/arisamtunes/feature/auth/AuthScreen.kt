@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.auth
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
@@ -270,13 +272,13 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
                             colors = ButtonDefaults.buttonColors(),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
+                                .height(AriSamDimensions.dp52),
                         ) {
                             if (state.isLoading) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
+                                    modifier = Modifier.size(AriSamDimensions.dp22),
                                     color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp,
+                                    strokeWidth = AriSamDimensions.dp2,
                                 )
                             } else {
                                 Text(stringResource(if (mode == AuthMode.Login) R.string.login else R.string.create_account))
@@ -330,27 +332,27 @@ private fun AuthBrandMark() {
         animationSpec = tween(620, easing = FastOutSlowInEasing),
         label = "authLogoLaunch",
     )
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(156.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(AriSamDimensions.dp156)) {
         Box(
             modifier = Modifier
-                .size(138.dp)
+                .size(AriSamDimensions.dp138)
                 .scale(pulseScale)
                 .clip(CircleShape)
-                .background(Color(0xFF0797DB).copy(alpha = pulseAlpha)),
+                .background(AriSamPalette.brandBlue.copy(alpha = pulseAlpha)),
         )
         Surface(
             modifier = Modifier
-                .size(148.dp)
+                .size(AriSamDimensions.dp148)
                 .scale(logoScale)
                 .clip(CircleShape),
-            color = Color.White,
-            shadowElevation = 0.dp,
+            color = AriSamPalette.white,
+            shadowElevation = AriSamDimensions.dp0,
         ) {}
         Image(
             painter = painterResource(R.drawable.arisam_mark_dark),
             contentDescription = stringResource(R.string.app_logo_description),
 //            contentScale = ContentScale.Fit,
-//            colorFilter = ColorFilter.tint(Color(0xFF081721)),
+//            colorFilter = ColorFilter.tint(AriSamPalette.authInk),
 //            modifier = Modifier
 //                .scale(logoScale)
 //                .fillMaxWidth(.72f)
@@ -359,10 +361,10 @@ private fun AuthBrandMark() {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(22.dp)
+                .size(AriSamDimensions.dp22)
                 .scale(pulseScale)
                 .clip(CircleShape)
-                .background(Color(0xFF0797DB)),
+                .background(AriSamPalette.brandBlue),
         )
     }
 }
@@ -370,22 +372,22 @@ private fun AuthBrandMark() {
 @Composable
 private fun AuthErrorBanner(error: AuthUiError, modifier: Modifier = Modifier) {
     val accent = when (error) {
-        AuthUiError.Offline, AuthUiError.ServerUnavailable, AuthUiError.TimedOut -> Color(0xFF38BDF8)
-        AuthUiError.RateLimited -> Color(0xFFFBBF24)
-        else -> Color(0xFFFB7185)
+        AuthUiError.Offline, AuthUiError.ServerUnavailable, AuthUiError.TimedOut -> AriSamPalette.sky400
+        AuthUiError.RateLimited -> AriSamPalette.amber500
+        else -> AriSamPalette.rose400
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF081721).copy(alpha = .82f))
-            .border(1.dp, accent.copy(alpha = .36f), RoundedCornerShape(18.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .clip(RoundedCornerShape(AriSamDimensions.dp18))
+            .background(AriSamPalette.authInk.copy(alpha = .82f))
+            .border(AriSamDimensions.dp1, accent.copy(alpha = .36f), RoundedCornerShape(AriSamDimensions.dp18))
+            .padding(horizontal = AriSamDimensions.dp14, vertical = AriSamDimensions.dp12),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(AriSamDimensions.dp38)
                 .clip(CircleShape)
                 .background(accent.copy(alpha = .16f)),
             contentAlignment = Alignment.Center,
@@ -394,19 +396,19 @@ private fun AuthErrorBanner(error: AuthUiError, modifier: Modifier = Modifier) {
                 imageVector = error.icon(),
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(21.dp),
+                modifier = Modifier.size(AriSamDimensions.dp21),
             )
         }
-        Spacer(Modifier.width(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Spacer(Modifier.width(AriSamDimensions.dp12))
+        Column(verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp2)) {
             Text(
                 text = stringResource(error.titleRes()),
-                color = Color.White,
+                color = AriSamPalette.white,
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
                 text = stringResource(error.messageRes()),
-                color = Color.White.copy(alpha = .82f),
+                color = AriSamPalette.white.copy(alpha = .82f),
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(

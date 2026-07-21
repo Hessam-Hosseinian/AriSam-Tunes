@@ -1,5 +1,6 @@
 package com.arisamtunes.feature.search
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -129,7 +130,7 @@ private fun SearchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = spacing.lg)
-                    .height(60.dp),
+                    .height(AriSamDimensions.dp60),
                 singleLine = true,
                 placeholder = { Text(stringResource(R.string.search_hint), maxLines = 1) },
                 leadingIcon = { Icon(Icons.Rounded.Search, null) },
@@ -142,7 +143,7 @@ private fun SearchScreen(
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(AriSamDimensions.dp18),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -262,7 +263,7 @@ private fun SearchResults(
         if (results.loadState.append is LoadState.Loading) {
             item {
                 Box(Modifier.fillMaxWidth().padding(spacing.md), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(AriSamDimensions.dp24), color = MaterialTheme.colorScheme.primary, strokeWidth = AriSamDimensions.dp2)
                 }
             }
         }
@@ -279,9 +280,9 @@ private fun SearchArtistRow(artist: SearchArtistResult, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(AriSamDimensions.dp18))
                 .background(MaterialTheme.colorScheme.surfaceContainer)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
+                .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(AriSamDimensions.dp18))
                 .padding(spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -291,10 +292,10 @@ private fun SearchArtistRow(artist: SearchArtistResult, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(R.drawable.arisam_app_icon_dark),
                 error = painterResource(R.drawable.arisam_app_icon_dark),
-                modifier = Modifier.size(62.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                modifier = Modifier.size(AriSamDimensions.dp62).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
             )
             Spacer(Modifier.width(spacing.md))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                 Text(
                     artist.name,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -310,7 +311,7 @@ private fun SearchArtistRow(artist: SearchArtistResult, onClick: () -> Unit) {
                 )
             }
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.size(AriSamDimensions.dp40).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Rounded.Person, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -326,9 +327,9 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(AriSamDimensions.dp18))
                 .background(MaterialTheme.colorScheme.surfaceContainer)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
+                .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(AriSamDimensions.dp18))
                 .padding(spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -338,10 +339,10 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(R.drawable.arisam_app_icon_dark),
                 error = painterResource(R.drawable.arisam_app_icon_dark),
-                modifier = Modifier.size(62.dp).clip(RoundedCornerShape(14.dp)),
+                modifier = Modifier.size(AriSamDimensions.dp62).clip(RoundedCornerShape(AriSamDimensions.dp14)),
             )
             Spacer(Modifier.width(spacing.md))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp3)) {
                 Text(
                     song.title,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -361,7 +362,7 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
             Spacer(Modifier.width(spacing.sm))
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(AriSamDimensions.dp40)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
@@ -416,9 +417,9 @@ private fun SearchStartState(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(AriSamDimensions.dp16))
                         .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                        .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(AriSamDimensions.dp16))
                         .padding(start = spacing.md, top = spacing.sm, bottom = spacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -472,13 +473,13 @@ private fun SearchMessage(
         ) {
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(AriSamDimensions.dp72)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                    .border(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(34.dp))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(AriSamDimensions.dp34))
             }
             Spacer(Modifier.height(spacing.xs))
             Text(
@@ -508,7 +509,7 @@ private fun SearchLoadingState() {
         modifier = Modifier.fillMaxSize().padding(horizontal = spacing.lg, vertical = spacing.md),
         verticalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
-        repeat(6) { ShimmerBox(Modifier.fillMaxWidth().height(80.dp)) }
+        repeat(6) { ShimmerBox(Modifier.fillMaxWidth().height(AriSamDimensions.dp80)) }
     }
 }
 
@@ -524,7 +525,7 @@ private fun SearchErrorState(retry: () -> Unit, isOffline: Boolean) {
                 if (isOffline) Icons.Rounded.WifiOff else Icons.Rounded.ErrorOutline,
                 null,
                 tint = if (isOffline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(42.dp),
+                modifier = Modifier.size(AriSamDimensions.dp42),
             )
             Text(
                 stringResource(if (isOffline) R.string.error_offline_title else R.string.search_error_title),
@@ -555,7 +556,7 @@ private fun SearchInlineRetry(retry: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Icon(Icons.Rounded.Refresh, null)
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(AriSamDimensions.dp8))
         Text(stringResource(R.string.retry_search))
     }
 }

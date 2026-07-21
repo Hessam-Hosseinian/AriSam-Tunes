@@ -1,5 +1,7 @@
 package com.arisamtunes.feature.artist
 
+import com.arisamtunes.core.design.spacing.AriSamDimensions
+import com.arisamtunes.core.design.colors.AriSamPalette
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -119,24 +121,24 @@ private fun FollowedArtistsHeader(count: Int, onBack: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp))
-            .background(Brush.linearGradient(listOf(Color(0xFF075985), Color(0xFF3B1E65))))
-            .padding(16.dp),
+            .clip(RoundedCornerShape(bottomStart = AriSamDimensions.dp38, bottomEnd = AriSamDimensions.dp38))
+            .background(Brush.linearGradient(listOf(AriSamPalette.sky800, AriSamPalette.purpleHero)))
+            .padding(AriSamDimensions.dp16),
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = .2f))) {
-            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Color.White)
+        IconButton(onClick = onBack, modifier = Modifier.clip(CircleShape).background(AriSamPalette.black.copy(alpha = .2f))) {
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = AriSamPalette.white)
         }
         Column(
-            Modifier.fillMaxWidth().padding(top = 58.dp, bottom = 18.dp),
+            Modifier.fillMaxWidth().padding(top = AriSamDimensions.dp58, bottom = AriSamDimensions.dp18),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp8),
         ) {
-            Box(Modifier.size(72.dp).clip(RoundedCornerShape(24.dp)).background(Color.White.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Groups, null, Modifier.size(38.dp), tint = Color.White)
+            Box(Modifier.size(AriSamDimensions.dp72).clip(RoundedCornerShape(AriSamDimensions.dp24)).background(AriSamPalette.white.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Groups, null, Modifier.size(AriSamDimensions.dp38), tint = AriSamPalette.white)
             }
-            Text(stringResource(R.string.followed_artists_title), color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
-            Text(stringResource(R.string.followed_artists_subtitle), color = Color.White.copy(alpha = .74f), textAlign = TextAlign.Center)
-            Text(stringResource(R.string.followed_artists_count, count), color = Color.White.copy(alpha = .68f), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.followed_artists_title), color = AriSamPalette.white, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+            Text(stringResource(R.string.followed_artists_subtitle), color = AriSamPalette.white.copy(alpha = .74f), textAlign = TextAlign.Center)
+            Text(stringResource(R.string.followed_artists_count, count), color = AriSamPalette.white.copy(alpha = .68f), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -152,26 +154,26 @@ private fun FollowedArtistRow(
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainer,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
+            border = androidx.compose.foundation.BorderStroke(AriSamDimensions.dp1, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(11.dp),
+                Modifier.fillMaxWidth().padding(AriSamDimensions.dp11),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
             ) {
                 AsyncImage(
                     model = artist.imageUri,
                     contentDescription = artist.name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(62.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier.size(AriSamDimensions.dp62).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
                 )
                 Column(Modifier.weight(1f)) {
                     Text(artist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(stringResource(R.string.artist_role), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
                 OutlinedButton(onClick = onUnfollow) {
-                    Icon(Icons.Rounded.PersonRemove, null, Modifier.size(17.dp))
-                    Spacer(Modifier.width(5.dp))
+                    Icon(Icons.Rounded.PersonRemove, null, Modifier.size(AriSamDimensions.dp17))
+                    Spacer(Modifier.width(AriSamDimensions.dp5))
                     Text(stringResource(R.string.social_unfollow))
                 }
             }
@@ -182,12 +184,12 @@ private fun FollowedArtistRow(
 @Composable
 private fun FollowedArtistsEmpty(onExplore: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 58.dp),
+        Modifier.fillMaxWidth().padding(horizontal = AriSamDimensions.dp28, vertical = AriSamDimensions.dp58),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(AriSamDimensions.dp12),
     ) {
-        Box(Modifier.size(82.dp).clip(RoundedCornerShape(28.dp)).background(Color(0xFF38C6F4).copy(alpha = .12f)).border(1.dp, Color(0xFF38C6F4).copy(alpha = .3f), RoundedCornerShape(28.dp)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Groups, null, Modifier.size(40.dp), tint = Color(0xFF38C6F4))
+        Box(Modifier.size(AriSamDimensions.dp82).clip(RoundedCornerShape(AriSamDimensions.dp28)).background(AriSamPalette.cyanAccent.copy(alpha = .12f)).border(AriSamDimensions.dp1, AriSamPalette.cyanAccent.copy(alpha = .3f), RoundedCornerShape(AriSamDimensions.dp28)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Groups, null, Modifier.size(AriSamDimensions.dp40), tint = AriSamPalette.cyanAccent)
         }
         Text(stringResource(R.string.followed_artists_empty), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Text(stringResource(R.string.followed_artists_empty_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)

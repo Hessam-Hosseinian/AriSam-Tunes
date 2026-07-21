@@ -443,4 +443,20 @@
     <string name="music_suggestions_playlist_error">Your mix couldn’t be created. Your selections are safe; try again.</string>
     <string name="music_suggestions_playlist_name">My First Mix</string>
     <string name="music_suggestions_playlist_description">Made for you from your selected artists, genres, moods, languages, tags, and release eras.</string>
+    <string name="artist_verified_symbol" translatable="false">✓</string>
+    <string name="character_count_format">%1$d/%2$d</string>
+    <string name="page_indicator_format">%1$d/%2$d</string>
+    <string name="queue_position_format">%1$d</string>
+    <string name="remaining_duration_format">−%1$s</string>
+    <string name="rhythm_game_best_bulleted">• BEST %1$d×</string>
+    <string name="playback_error_generic">Playback failed</string>
+    <string name="playback_error_speed">Could not change playback speed</string>
+    <string name="playback_error_seek">Could not seek to that position</string>
+    <string name="playback_error_crossfade">Crossfade failed</string>
+    <string name="metadata_bitrate_value">%1$d kbps</string>
+    <string name="metadata_sample_rate_value">%1$d Hz</string>
+    <string name="metadata_file_size_value">%1$.2f MB</string>
+    <string name="metadata_extra_value">%1$s: %2$s</string>
+    <string name="rhythm_combo_value">%1$d×</string>
+    <string name="rhythm_accuracy_value">%1$d%%</string>
 </resources>
