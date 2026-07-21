@@ -42,21 +42,14 @@ The detailed implementation report and per-section contribution breakdown are av
 
 ## Demo
 
-> 🎬 A walkthrough video will be published here.
-
-<!--
-When the video is ready:
-1. Save its cover image as docs/media/demo-cover.jpg.
-2. Upload the video to GitHub Releases, YouTube, or another stable host.
-3. Replace VIDEO_URL below and remove this comment wrapper.
-
 <p align="center">
-  <a href="VIDEO_URL">
-    <img src="docs/media/demo-cover.jpg" width="900" alt="Watch the AriSam Tunes demo video">
+  <a href="docs/media/arisam-tunes-demo.mp4">
+    <img src="docs/media/home-discovery.png" width="360" alt="Watch the AriSam Tunes application demo">
   </a>
 </p>
-<p align="center"><strong>Click the image to watch the full demo.</strong></p>
--->
+<p align="center">
+  <strong><a href="docs/media/arisam-tunes-demo.mp4">▶ Watch the full application walkthrough</a></strong>
+</p>
 
 ## Screenshots
 
