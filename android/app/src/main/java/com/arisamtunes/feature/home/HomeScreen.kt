@@ -37,7 +37,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,11 +45,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
@@ -70,7 +71,7 @@ fun HomeRoute(
     onQuickAction: (HomeQuickAction) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     HomeScreen(state, viewModel::refresh, onSongClick, onPlaylistClick, onQuickAction)
 }
 
@@ -90,7 +91,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF081721), Color(0xFF0B2230), Color(0xFF102B3B)))),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -125,7 +126,7 @@ private fun HomeLoadingSkeleton() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF081721), Color(0xFF0B2230), Color(0xFF102B3B)))),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -176,19 +177,19 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = stringResource(R.string.home_spotlight),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = stringResource(R.string.home_spotlight_hint),
-                    color = Color(0xFF8ED8FF),
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             Text(
                 text = "${pagerState.settledPage + 1}/${pages.size}",
-                color = Color.White.copy(alpha = .58f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelMedium,
             )
         }
@@ -206,6 +207,8 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                     model = song.coverImageUrl,
                     contentDescription = song.title,
                     contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.arisam_app_icon_dark),
+                    error = painterResource(R.drawable.arisam_app_icon_dark),
                     modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)),
                 )
                 Box(
@@ -273,8 +276,8 @@ private fun SpotlightCarousel(songs: List<SongDto>, onSongClick: (SongDto) -> Un
                         .height(6.dp)
                         .clip(CircleShape)
                         .background(
-                            if (index == pagerState.currentPage) Color(0xFF8ED8FF)
-                            else Color.White.copy(alpha = .22f),
+                            if (index == pagerState.currentPage) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
                         ),
                 )
             }
@@ -319,21 +322,21 @@ private fun QuickAction(
         Column(
             modifier = Modifier.fillMaxWidth().height(122.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF0A1D29).copy(alpha = .88f))
-                .border(1.dp, Color.White.copy(alpha = .12f), RoundedCornerShape(22.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
                 .padding(spacing.md),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(
                 Modifier.size(46.dp).clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF0797DB).copy(alpha = .16f)),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(data.icon, null, tint = Color(0xFF8ED8FF), modifier = Modifier.size(25.dp))
+                Icon(data.icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(25.dp))
             }
             Text(
                 stringResource(data.label),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
@@ -369,6 +372,8 @@ private fun ArtworkSongCard(song: SongDto, rank: Int, onClick: () -> Unit) {
                     song.coverImageUrl,
                     song.title,
                     contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.arisam_app_icon_dark),
+                    error = painterResource(R.drawable.arisam_app_icon_dark),
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(20.dp)),
                 )
                 Box(
@@ -396,11 +401,11 @@ private fun ArtworkSongCard(song: SongDto, rank: Int, onClick: () -> Unit) {
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 )
             }
-            Text(song.title, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(song.title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 song.artistName,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = .62f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -411,106 +416,16 @@ private fun ArtworkSongCard(song: SongDto, rank: Int, onClick: () -> Unit) {
 @Composable
 private fun NewReleaseSection(songs: List<SongDto>, onClick: (SongDto) -> Unit) {
     val spacing = AriSamThemeTokens.spacing
-    val leadSong = songs.first()
-    Column(
-        modifier = Modifier.padding(horizontal = spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+        Box(Modifier.padding(horizontal = spacing.lg)) {
         SectionTitle(R.string.home_release_radar)
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF0A1D29).copy(alpha = .9f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .12f)),
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
-            Column(Modifier.padding(spacing.sm), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
-                PressScaleBox(onClick = { onClick(leadSong) }, modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(158.dp)
-                            .clip(RoundedCornerShape(18.dp)),
-                    ) {
-                        AsyncImage(
-                            leadSong.coverImageUrl,
-                            leadSong.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        Box(
-                            Modifier.fillMaxSize().background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFF07141C).copy(alpha = .12f), Color(0xFF07141C).copy(alpha = .92f)),
-                                ),
-                            ),
-                        )
-                        Column(
-                            modifier = Modifier.align(Alignment.BottomStart).padding(spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.home_new_releases),
-                                color = Color(0xFF8ED8FF),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                leadSong.title,
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                leadSong.artistName,
-                                color = Color.White.copy(alpha = .72f),
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Box(
-                            Modifier.align(Alignment.BottomEnd).padding(spacing.md).size(44.dp)
-                                .clip(CircleShape).background(Color(0xFF0797DB)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = Color.White)
-                        }
-                    }
-                }
-                songs.drop(1).take(3).forEach { song ->
-                    PressScaleBox(onClick = { onClick(song) }, modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.sm, vertical = spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            AsyncImage(
-                                song.coverImageUrl,
-                                song.title,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(58.dp).clip(MaterialTheme.shapes.medium),
-                            )
-                            Spacer(Modifier.width(spacing.md))
-                            Column(Modifier.weight(1f)) {
-                                Text(song.title, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(
-                                    song.artistName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White.copy(alpha = .62f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            Box(
-                                Modifier.size(34.dp).clip(CircleShape)
-                                    .background(Color(0xFF0797DB).copy(alpha = .16f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = Color(0xFF8ED8FF))
-                            }
-                        }
-                    }
-                }
+            itemsIndexed(songs, key = { _, song -> song.id }) { index, song ->
+                ArtworkSongCard(song, index + 1) { onClick(song) }
             }
         }
     }
@@ -549,6 +464,8 @@ private fun PlaylistSection(
                                 playlist.coverImageUrl,
                                 playlist.name,
                                 contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.arisam_app_icon_dark),
+                                error = painterResource(R.drawable.arisam_app_icon_dark),
                                 modifier = Modifier.fillMaxSize(),
                             )
                         } else {
@@ -584,7 +501,7 @@ private fun PlaylistSection(
 
 @Composable
 private fun SectionTitle(title: Int) {
-    Text(stringResource(title), color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Text(stringResource(title), color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 }
 
 @Composable

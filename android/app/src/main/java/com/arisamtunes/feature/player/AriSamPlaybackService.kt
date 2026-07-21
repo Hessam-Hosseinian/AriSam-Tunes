@@ -22,6 +22,8 @@ class AriSamPlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         playbackController.currentMediaSession()?.let(::removeSession)
+        // The controller is application-scoped and is also used by PlayerViewModel.
+        // Releasing it here makes a later service restart reuse a released player/cache.
         playbackController.releaseMediaSession()
         super.onDestroy()
     }

@@ -17,8 +17,16 @@ class MusicSeeder(
     private val extractor: MetadataExtractor = MetadataExtractor(),
 ) {
     fun seed() {
-        val sources = discovery.discover()
-        val summary = SeedSummary(totalFound = sources.size)
+        val discovered = discovery.discover()
+        val deduplicated = MusicContentDeduplicator().deduplicate(discovered)
+        val sources = deduplicated.unique
+        val summary = SeedSummary(
+            totalFound = discovered.size,
+            duplicatesSkipped = deduplicated.duplicates.size,
+        )
+        deduplicated.duplicates.forEach { duplicate ->
+            println("⚠️ Duplicate skipped: ${duplicate.duplicate.relativePath} | same content as ${duplicate.original.relativePath}")
+        }
         val extracted = sources.mapNotNull { source ->
             runCatching { extractor.extract(source) }
                 .onSuccess { song ->
@@ -33,10 +41,25 @@ class MusicSeeder(
         if (extracted.size < 50) extracted += generateDemos(50 - extracted.size, summary)
 
         dataSource.connection.use { connection ->
-            try { extracted.forEach { upsert(connection, it) }; connection.commit() }
+            try {
+                removeDuplicateSeedRows(connection, deduplicated.duplicates)
+                extracted.forEach { upsert(connection, it) }
+                connection.commit()
+            }
             catch (error: Throwable) { connection.rollback(); throw error }
         }
         printSummary(summary, extracted.size)
+    }
+
+    private fun removeDuplicateSeedRows(connection: Connection, duplicates: List<DuplicateAudio>) {
+        if (duplicates.isEmpty()) return
+        connection.prepareStatement("DELETE FROM songs WHERE source_relative_path = ?").use { statement ->
+            duplicates.forEach { duplicate ->
+                statement.setString(1, duplicate.duplicate.relativePath.toString())
+                statement.addBatch()
+            }
+            statement.executeBatch()
+        }
     }
 
     private fun generateDemos(count: Int, summary: SeedSummary): List<ExtractedSong> {
@@ -94,6 +117,7 @@ class MusicSeeder(
         ════════════════════════════════════════
         SEED SUMMARY
         Total audio files found: ${summary.totalFound}
+        Duplicate audio files skipped: ${summary.duplicatesSkipped}
         Successfully extracted (full tags): ${summary.fullyExtracted}
         Partially extracted (some fallback): ${summary.partiallyExtracted}
         Failed to read: ${summary.failed}

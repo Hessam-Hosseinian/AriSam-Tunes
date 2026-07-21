@@ -7,9 +7,16 @@ import com.arisamtunes.data.catalog.SongDto
 import com.arisamtunes.data.catalog.SongSpectrumDto
 import com.arisamtunes.data.local.LocalLibraryRepository
 import com.arisamtunes.feature.downloads.DownloadWorkScheduler
+import com.arisamtunes.feature.downloads.DownloadEnqueueResult
+import com.arisamtunes.data.preferences.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
@@ -18,8 +25,14 @@ class PlayerViewModel @Inject constructor(
     private val catalogRepository: CatalogRepository,
     private val localLibraryRepository: LocalLibraryRepository,
     private val downloadWorkScheduler: DownloadWorkScheduler,
+    preferencesRepository: PreferencesRepository,
 ) : ViewModel() {
     val state = repository.state
+    val isPremium = preferencesRepository.preferences
+        .map { it.isPremium }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    private val _downloadResults = MutableSharedFlow<DownloadEnqueueResult>(extraBufferCapacity = 1)
+    val downloadResults = _downloadResults.asSharedFlow()
 
     fun play(song: SongDto) = playbackController.play(song)
 
@@ -43,6 +56,8 @@ class PlayerViewModel @Inject constructor(
 
     fun cyclePlaybackSpeed() = playbackController.cyclePlaybackSpeed()
 
+    fun setPlaybackSpeed(speed: Float) = playbackController.setPlaybackSpeed(speed)
+
     fun setSleepTimer(minutes: Int) = playbackController.setSleepTimer(minutes)
 
     fun toggleCrossfade() = playbackController.toggleCrossfade()
@@ -57,7 +72,9 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleLike(song: SongDto) = viewModelScope.launch { localLibraryRepository.toggleLiked(song) }
 
-    fun download(song: SongDto) = downloadWorkScheduler.enqueue(song)
+    fun download(song: SongDto) = viewModelScope.launch {
+        _downloadResults.emit(downloadWorkScheduler.enqueue(song))
+    }
 
     fun seekTo(seconds: Int) = playbackController.seekTo(seconds)
 

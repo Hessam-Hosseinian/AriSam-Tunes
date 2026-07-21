@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AriSam Tunes default cover">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#075985"/>
+      <stop offset="0.55" stop-color="#4c1d95"/>
+      <stop offset="1" stop-color="#0c1821"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.22" r="0.8">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="72" fill="url(#background)"/>
+  <rect width="512" height="512" rx="72" fill="url(#glow)"/>
+  <circle cx="256" cy="256" r="126" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.24" stroke-width="4"/>
+  <path d="M304 142v205.5c0 38-31.4 68.5-70.2 68.5-34.2 0-61.8-23.7-61.8-53s27.6-53 61.8-53c13 0 25 3.4 34.2 9.2V184l-116 25.5v112c0 38-31.4 68.5-70.2 68.5C47.6 390 20 366.3 20 337s27.6-53 61.8-53c13 0 25 3.4 34.2 9.2V180l188-38z" fill="#f0f9ff" transform="translate(76 -22) scale(.78)"/>
+</svg>

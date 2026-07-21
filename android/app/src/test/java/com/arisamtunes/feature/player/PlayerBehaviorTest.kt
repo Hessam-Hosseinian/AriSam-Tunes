@@ -70,6 +70,18 @@ class PlayerBehaviorTest {
     }
 
     @Test
+    fun legacyOfflineSong_usesResolvedMediaDurationForSeeking() {
+        val repository = PlayerStateRepository()
+        repository.play(song("offline", durationSeconds = 0), replaceQueue = true)
+
+        repository.updateCurrentSongDuration(180)
+        repository.seekTo(90)
+
+        assertEquals(180, repository.state.value.currentSong?.durationSeconds)
+        assertEquals(90_000L, repository.state.value.progressMillis)
+    }
+
+    @Test
     fun syncedLyricsJson_acceptsArrayAndWrappedMillisecondShapes() {
         val array = parseSyncedLyricsJson("""[{"time":1.5,"text":"One"}]""")
         val wrapped = parseSyncedLyricsJson(

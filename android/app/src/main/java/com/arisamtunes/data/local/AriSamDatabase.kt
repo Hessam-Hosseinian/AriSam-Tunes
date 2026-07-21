@@ -7,6 +7,7 @@ import com.arisamtunes.data.local.dao.CachedSongDao
 import com.arisamtunes.data.local.dao.CachedUserProfileDao
 import com.arisamtunes.data.local.dao.ChatMessageDao
 import com.arisamtunes.data.local.dao.DownloadedSongDao
+import com.arisamtunes.data.local.dao.FollowedArtistDao
 import com.arisamtunes.data.local.dao.LikedSongDao
 import com.arisamtunes.data.local.dao.RecentlyPlayedDao
 import com.arisamtunes.data.local.dao.RemoteKeyDao
@@ -16,6 +17,7 @@ import com.arisamtunes.data.local.entity.CachedUserProfileEntity
 import com.arisamtunes.data.local.entity.ChatMessageEntity
 import com.arisamtunes.data.local.entity.ChatRemoteKeyEntity
 import com.arisamtunes.data.local.entity.DownloadedSongEntity
+import com.arisamtunes.data.local.entity.FollowedArtistEntity
 import com.arisamtunes.data.local.entity.LikedSongEntity
 import com.arisamtunes.data.local.entity.RecentlyPlayedEntity
 import com.arisamtunes.data.local.entity.RemoteKeyEntity
@@ -32,8 +34,9 @@ import com.arisamtunes.data.local.entity.SearchHistoryEntity
         CachedUserProfileEntity::class,
         CachedSongEntity::class,
         RemoteKeyEntity::class,
+        FollowedArtistEntity::class,
     ],
-    version = 3,
+    version = 7,
     exportSchema = false,
 )
 @TypeConverters(AriSamTypeConverters::class)
@@ -41,6 +44,7 @@ abstract class AriSamDatabase : RoomDatabase() {
     abstract fun searchHistoryDao(): SearchHistoryDao
     abstract fun likedSongDao(): LikedSongDao
     abstract fun downloadedSongDao(): DownloadedSongDao
+    abstract fun followedArtistDao(): FollowedArtistDao
     abstract fun recentlyPlayedDao(): RecentlyPlayedDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun cachedUserProfileDao(): CachedUserProfileDao

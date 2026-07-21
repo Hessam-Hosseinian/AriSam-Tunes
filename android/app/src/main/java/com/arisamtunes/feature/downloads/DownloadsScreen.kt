@@ -19,22 +19,32 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,11 +52,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
@@ -61,17 +73,16 @@ import com.arisamtunes.data.local.entity.DownloadedSongEntity
 import com.arisamtunes.data.local.toSongDto
 import java.io.File
 
-private val DownloadPageBackground = Color(0xFF0C1821)
-private val DownloadCardBackground = Color(0xFF172536)
 private val DownloadAccent = Color(0xFFFFC857)
-private val DownloadSecondary = Color(0xFFBAE6FD)
+private val DownloadOnAccent = Color(0xFF0C1821)
 
 @Composable
 fun DownloadsRoute(
-    onSongClick: (SongDto) -> Unit,
+    onSongClick: (SongDto, List<SongDto>) -> Unit,
     viewModel: DownloadsViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val completedDownloads by viewModel.completedDownloads.collectAsStateWithLifecycle()
     val downloads = viewModel.downloads.collectAsLazyPagingItems()
     DownloadsScreen(
         state = state,
@@ -83,10 +94,46 @@ fun DownloadsRoute(
     ) {
         items(downloads.itemCount, key = { index -> downloads.peek(index)?.songId ?: index }) { index ->
             downloads[index]?.let { item ->
-                DownloadTrackCard(
-                    item = item,
-                    onClick = { onSongClick(item.toSongDto()) },
-                )
+                val dismissState = rememberSwipeToDismissBoxState()
+                var confirmDelete by remember(item.songId) { mutableStateOf(false) }
+                LaunchedEffect(dismissState.currentValue) {
+                    if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+                        confirmDelete = true
+                        dismissState.reset()
+                    }
+                }
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = { DownloadDismissBackground(dismissState.dismissDirection) },
+                ) {
+                    DownloadTrackCard(
+                        item = item,
+                        onClick = {
+                            val sortedQueue = when (state.sortOrder) {
+                                DownloadSortOrder.Newest -> completedDownloads.sortedByDescending { it.downloadedAt }
+                                DownloadSortOrder.Title -> completedDownloads.sortedBy { it.title.lowercase() }
+                                DownloadSortOrder.Artist -> completedDownloads.sortedBy { it.artistName?.lowercase().orEmpty() }
+                            }
+                            onSongClick(item.toSongDto(), sortedQueue.map(DownloadedSongEntity::toSongDto))
+                        },
+                        onRetry = { viewModel.onEvent(DownloadsEvent.RetryDownload(item.toSongDto())) },
+                    )
+                }
+                if (confirmDelete) {
+                    AlertDialog(
+                        onDismissRequest = { confirmDelete = false },
+                        icon = { Icon(Icons.Rounded.DeleteOutline, null) },
+                        title = { Text(stringResource(R.string.download_delete_title)) },
+                        text = { Text(stringResource(R.string.download_delete_description, item.title)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                confirmDelete = false
+                                viewModel.onEvent(DownloadsEvent.DeleteDownload(item.songId))
+                            }) { Text(stringResource(R.string.delete)) }
+                        },
+                        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
+                    )
+                }
             }
         }
     }
@@ -104,21 +151,29 @@ private fun DownloadsScreen(
 ) {
     val spacing = AriSamThemeTokens.spacing
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(DownloadPageBackground),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(horizontal = spacing.lg, vertical = spacing.lg),
         verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
-        item { DownloadsHero(itemCount, state.isPremium) }
+        item {
+            DownloadsHero(
+                itemCount = itemCount,
+                isPremium = state.isPremium,
+                isUpdatingPremium = state.isUpdatingPremium,
+                onUpgrade = { onEvent(DownloadsEvent.UpgradeTapped) },
+            )
+        }
+        item { DownloadSortControls(state.sortOrder, onEvent) }
         item { OfflineNotice() }
-        state.errorCode?.let { code -> item { DownloadErrorCard(code, onEvent) } }
+        state.errorCode?.let { code -> item { DownloadErrorCard(code, state.isUpdatingPremium, onEvent) } }
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(stringResource(R.string.downloads_library), color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.downloads_count, itemCount), color = DownloadSecondary, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.downloads_library), color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.downloads_count, itemCount), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
             }
         }
         when {
@@ -131,7 +186,49 @@ private fun DownloadsScreen(
 }
 
 @Composable
-private fun DownloadsHero(itemCount: Int, isPremium: Boolean) {
+private fun DownloadSortControls(selected: DownloadSortOrder, onEvent: (DownloadsEvent) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.download_sort_by), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DownloadSortOrder.entries.forEach { order ->
+                FilterChip(
+                    selected = selected == order,
+                    onClick = { onEvent(DownloadsEvent.SortChanged(order)) },
+                    label = {
+                        Text(
+                            stringResource(
+                                when (order) {
+                                    DownloadSortOrder.Newest -> R.string.download_sort_newest
+                                    DownloadSortOrder.Title -> R.string.download_sort_title
+                                    DownloadSortOrder.Artist -> R.string.download_sort_artist
+                                },
+                            ),
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadDismissBackground(direction: SwipeToDismissBoxValue) {
+    val alignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+    Box(
+        Modifier.fillMaxSize().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 22.dp),
+        contentAlignment = alignment,
+    ) {
+        Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.onErrorContainer)
+    }
+}
+
+@Composable
+private fun DownloadsHero(
+    itemCount: Int,
+    isPremium: Boolean,
+    isUpdatingPremium: Boolean,
+    onUpgrade: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -144,7 +241,7 @@ private fun DownloadsHero(itemCount: Int, isPremium: Boolean) {
                 Box(
                     modifier = Modifier.size(44.dp).clip(MaterialTheme.shapes.medium).background(DownloadAccent),
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.CloudDone, null, tint = DownloadPageBackground, modifier = Modifier.size(26.dp)) }
+                ) { Icon(Icons.Rounded.CloudDone, null, tint = DownloadOnAccent, modifier = Modifier.size(26.dp)) }
                 Column {
                     Text(stringResource(R.string.downloads_title), color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text(stringResource(R.string.downloads_offline_title), color = Color(0xFFD9F2FF), style = MaterialTheme.typography.bodyMedium)
@@ -158,6 +255,24 @@ private fun DownloadsHero(itemCount: Int, isPremium: Boolean) {
                     stringResource(if (isPremium) R.string.premium_active else R.string.premium_required_title),
                     if (isPremium) Color(0xFF2A6F5A) else Color.White.copy(alpha = .12f),
                 )
+            }
+            if (!isPremium) {
+                Button(
+                    onClick = onUpgrade,
+                    enabled = !isUpdatingPremium,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DownloadAccent,
+                        contentColor = DownloadOnAccent,
+                    ),
+                ) {
+                    if (isUpdatingPremium) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = DownloadOnAccent)
+                    } else {
+                        Icon(Icons.Rounded.WorkspacePremium, null)
+                        Spacer(Modifier.width(7.dp))
+                        Text(stringResource(R.string.upgrade))
+                    }
+                }
             }
         }
     }
@@ -178,25 +293,35 @@ private fun StatusPill(icon: androidx.compose.ui.graphics.vector.ImageVector, la
 @Composable
 private fun OfflineNotice() {
     Row(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(Color(0xFF102532)).border(1.dp, Color(0xFF2D6682), MaterialTheme.shapes.medium).padding(14.dp),
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.primaryContainer).border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Rounded.CheckCircle, null, tint = DownloadAccent)
-        Text(stringResource(R.string.downloads_ready_offline), color = DownloadSecondary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.downloads_ready_offline), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun DownloadTrackCard(item: DownloadedSongEntity, onClick: () -> Unit) {
+private fun DownloadTrackCard(item: DownloadedSongEntity, onClick: () -> Unit, onRetry: () -> Unit) {
     val isReady = item.downloadState == LocalLibraryRepository.DownloadStateCompleted && File(item.localFilePath).isFile
-    PressScaleBox(onClick = { if (isReady) onClick() }, modifier = Modifier.fillMaxWidth()) {
+    val isQueued = item.downloadState == LocalLibraryRepository.DownloadStateQueued
+    val isRunning = item.downloadState == LocalLibraryRepository.DownloadStateRunning
+    val isFailed = item.downloadState == LocalLibraryRepository.DownloadStateFailed ||
+        (item.downloadState == LocalLibraryRepository.DownloadStateCompleted && !isReady)
+    val statusText = when {
+        isReady -> stringResource(R.string.downloads_ready_offline)
+        isQueued -> stringResource(R.string.download_status_queued)
+        isRunning -> stringResource(R.string.download_status_progress, item.downloadProgress.coerceIn(0, 99))
+        else -> stringResource(R.string.downloads_not_ready)
+    }
+    PressScaleBox(onClick = onClick, modifier = Modifier.fillMaxWidth(), enabled = isReady) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
-                .background(DownloadCardBackground)
-                .border(1.dp, if (isReady) Color(0xFF28445A) else Color(0xFF6E3A44), MaterialTheme.shapes.large)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, if (isReady) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.error.copy(alpha = .55f), MaterialTheme.shapes.large)
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -204,39 +329,85 @@ private fun DownloadTrackCard(item: DownloadedSongEntity, onClick: () -> Unit) {
             AsyncImage(
                 model = item.coverImageUrl,
                 contentDescription = item.title,
+                error = painterResource(R.drawable.arisam_app_icon_dark),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(58.dp).clip(MaterialTheme.shapes.medium).background(Color(0xFF264052)),
+                modifier = Modifier.size(58.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
             )
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(item.title, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(listOfNotNull(item.artistName, item.album).joinToString(" • "), color = DownloadSecondary, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(listOfNotNull(item.artistName, item.album).joinToString(" • "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    stringResource(if (isReady) R.string.downloads_ready_offline else R.string.downloads_not_ready),
-                    color = if (isReady) DownloadAccent else Color(0xFFFFB4AB),
+                    statusText,
+                    color = if (isReady) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelMedium,
                 )
+                if (isRunning) {
+                    LinearProgressIndicator(
+                        progress = { item.downloadProgress.coerceIn(0, 99) / 100f },
+                        modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                        color = DownloadAccent,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    )
+                }
             }
             Box(
-                modifier = Modifier.size(40.dp).clip(MaterialTheme.shapes.medium).background(if (isReady) DownloadAccent.copy(alpha = .16f) else Color(0xFFFFB4AB).copy(alpha = .12f)),
+                modifier = Modifier.size(40.dp).clip(MaterialTheme.shapes.medium).background(if (isReady) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(if (isReady) Icons.Rounded.PlayArrow else Icons.Rounded.ErrorOutline, null, tint = if (isReady) DownloadAccent else Color(0xFFFFB4AB))
+                when {
+                    isReady -> Icon(Icons.Rounded.PlayArrow, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    isQueued || isRunning -> CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = DownloadAccent,
+                    )
+                    isFailed -> IconButton(onClick = onRetry) {
+                        Icon(Icons.Rounded.Refresh, stringResource(R.string.retry), tint = MaterialTheme.colorScheme.error)
+                    }
+                    else -> Icon(Icons.Rounded.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DownloadErrorCard(code: String, onEvent: (DownloadsEvent) -> Unit) {
+private fun DownloadErrorCard(code: String, isUpdatingPremium: Boolean, onEvent: (DownloadsEvent) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(Color(0xFF3D252B)).padding(14.dp),
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.errorContainer).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(Icons.Rounded.ErrorOutline, null, tint = Color(0xFFFFB4AB))
+        Icon(Icons.Rounded.ErrorOutline, null, tint = MaterialTheme.colorScheme.onErrorContainer)
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.premium_required_title), color = Color.White, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.error_code_format, code), color = Color(0xFFFFDAD6), style = MaterialTheme.typography.bodySmall)
+            Text(
+                stringResource(
+                    if (code == DownloadsViewModel.PremiumRequired) R.string.premium_required_title
+                    else R.string.download_action_failed,
+                ),
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                stringResource(
+                    if (code == DownloadsViewModel.PremiumRequired) R.string.downloads_premium_description
+                    else R.string.download_action_failed_description,
+                ),
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (code == DownloadsViewModel.PremiumRequired) {
+            TextButton(
+                onClick = { onEvent(DownloadsEvent.UpgradeTapped) },
+                enabled = !isUpdatingPremium,
+            ) {
+                if (isUpdatingPremium) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.upgrade))
+                }
+            }
         }
         TextButton(onClick = { onEvent(DownloadsEvent.DismissError) }) { Text(stringResource(R.string.dismiss)) }
     }
@@ -245,15 +416,15 @@ private fun DownloadErrorCard(code: String, onEvent: (DownloadsEvent) -> Unit) {
 @Composable
 private fun EmptyDownloads(onEvent: (DownloadsEvent) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge).background(DownloadCardBackground).padding(vertical = 46.dp, horizontal = 28.dp),
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.surfaceContainer).padding(vertical = 46.dp, horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(modifier = Modifier.size(68.dp).clip(MaterialTheme.shapes.large).background(Color(0xFF123246)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Download, null, tint = DownloadAccent, modifier = Modifier.size(34.dp))
+        Box(modifier = Modifier.size(68.dp).clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Download, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(34.dp))
         }
-        Text(stringResource(R.string.downloads_empty), color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.downloads_empty_hint), color = DownloadSecondary, style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.downloads_empty), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.downloads_empty_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         OutlinedButton(onClick = { onEvent(DownloadsEvent.DownloadTapped) }) { Text(stringResource(R.string.try_download)) }
     }
 }
@@ -273,8 +444,8 @@ private fun DownloadsError(onRetry: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Rounded.Refresh, null, tint = DownloadAccent, modifier = Modifier.size(32.dp))
-        Text(stringResource(R.string.downloads_load_error), color = DownloadSecondary)
-        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = DownloadAccent, contentColor = DownloadPageBackground)) { Text(stringResource(R.string.retry)) }
+        Text(stringResource(R.string.downloads_load_error), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }
 

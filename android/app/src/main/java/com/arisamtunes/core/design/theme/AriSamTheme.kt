@@ -20,12 +20,17 @@ import com.arisamtunes.core.design.typography.scaled
 
 private val DarkColors = darkColorScheme(
     primary = DarkPrimary,
-    onPrimary = DarkTextPrimary,
+    onPrimary = DarkOnPrimary,
     primaryContainer = DarkPrimaryVariant,
     onPrimaryContainer = DarkTextPrimary,
     secondary = DarkSecondary,
     onSecondary = DarkBackground,
-    tertiary = DarkSecondary,
+    secondaryContainer = DarkSecondaryContainer,
+    onSecondaryContainer = DarkOnSecondaryContainer,
+    tertiary = DarkTertiary,
+    onTertiary = Color(0xFF2E1065),
+    tertiaryContainer = DarkTertiaryContainer,
+    onTertiaryContainer = DarkOnTertiaryContainer,
     background = DarkBackground,
     onBackground = DarkTextPrimary,
     surface = DarkSurface,
@@ -34,9 +39,17 @@ private val DarkColors = darkColorScheme(
     onSurfaceVariant = DarkTextSecondary,
     surfaceContainer = DarkSurface,
     surfaceContainerHigh = DarkSurfaceVariant,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
     outline = DarkBorder,
     outlineVariant = DarkBorder.copy(alpha = .62f),
     error = ErrorDark,
+    onError = DarkOnError,
+    errorContainer = DarkErrorContainer,
+    onErrorContainer = DarkOnErrorContainer,
+    inverseSurface = LightSurfaceVariant,
+    inverseOnSurface = LightTextPrimary,
+    inversePrimary = LightPrimary,
+    scrim = Color.Black,
 )
 
 private val LightColors = lightColorScheme(
@@ -46,7 +59,12 @@ private val LightColors = lightColorScheme(
     onPrimaryContainer = Color.White,
     secondary = LightSecondary,
     onSecondary = Color.White,
-    tertiary = LightSecondary,
+    secondaryContainer = LightSecondaryContainer,
+    onSecondaryContainer = LightOnSecondaryContainer,
+    tertiary = LightTertiary,
+    onTertiary = Color.White,
+    tertiaryContainer = LightTertiaryContainer,
+    onTertiaryContainer = LightOnTertiaryContainer,
     background = LightBackground,
     onBackground = LightTextPrimary,
     surface = LightSurface,
@@ -55,9 +73,17 @@ private val LightColors = lightColorScheme(
     onSurfaceVariant = LightTextSecondary,
     surfaceContainer = LightSurfaceVariant,
     surfaceContainerHigh = LightBorder,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
     outline = LightBorder,
     outlineVariant = LightBorder.copy(alpha = .72f),
     error = ErrorLight,
+    onError = Color.White,
+    errorContainer = LightErrorContainer,
+    onErrorContainer = LightOnErrorContainer,
+    inverseSurface = DarkSurface,
+    inverseOnSurface = DarkTextPrimary,
+    inversePrimary = DarkPrimary,
+    scrim = Color.Black,
 )
 
 @Composable
@@ -69,7 +95,10 @@ fun AriSamTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         val window = (view.context as Activity).window
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
+        }
     }
 
     CompositionLocalProvider(LocalAriSamSpacing provides AriSamSpacing()) {
@@ -87,4 +116,5 @@ object AriSamThemeTokens {
         @Composable @ReadOnlyComposable get() = LocalAriSamSpacing.current
 
     val tehranAmber = TehranAmber
+    val onTehranAmber = TehranAmberInk
 }

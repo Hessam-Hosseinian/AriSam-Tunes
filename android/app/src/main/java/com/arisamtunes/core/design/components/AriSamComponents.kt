@@ -57,6 +57,7 @@ fun GlassCard(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = GlassAlpha),
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
         Box(Modifier.padding(contentPadding), content = content)

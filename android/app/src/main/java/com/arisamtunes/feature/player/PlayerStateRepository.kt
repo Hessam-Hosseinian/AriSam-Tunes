@@ -91,6 +91,31 @@ class PlayerStateRepository @Inject constructor() {
         }
     }
 
+    fun updateCurrentSongDuration(durationSeconds: Int) {
+        if (durationSeconds <= 0) return
+        _state.update { state ->
+            val current = state.currentSong ?: return@update state
+            if (current.durationSeconds == durationSeconds) return@update state
+            val updated = current.copy(durationSeconds = durationSeconds)
+            state.copy(
+                currentSong = updated,
+                queue = state.queue.map { if (it.id == updated.id) updated else it },
+                originalQueue = state.originalQueue.map { if (it.id == updated.id) updated else it },
+            )
+        }
+    }
+
+    fun updateCurrentSongMetadata(song: SongDto) {
+        _state.update { state ->
+            if (state.currentSong?.id != song.id) return@update state
+            state.copy(
+                currentSong = song,
+                queue = state.queue.map { if (it.id == song.id) song else it },
+                originalQueue = state.originalQueue.map { if (it.id == song.id) song else it },
+            )
+        }
+    }
+
     fun setCrossfadePreview(song: SongDto?, seconds: Int = 0, millis: Long = seconds * 1_000L) {
         _state.update { state ->
             val safeMillis = millis.coerceIn(0L, (song?.durationSeconds ?: 0) * 1_000L)

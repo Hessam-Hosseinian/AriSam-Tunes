@@ -24,12 +24,15 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,16 +44,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -58,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
@@ -70,11 +73,9 @@ import com.arisamtunes.core.design.preview.PreviewCatalogData
 import com.arisamtunes.core.design.theme.AriSamTheme
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.SongDto
+import com.arisamtunes.data.local.SearchHistoryEntry
+import java.io.IOException
 import kotlinx.coroutines.flow.flowOf
-
-private val SearchBackground = Brush.verticalGradient(
-    listOf(Color(0xFF081721), Color(0xFF0B2230), Color(0xFF102B3B)),
-)
 
 @Composable
 fun SearchRoute(
@@ -82,9 +83,19 @@ fun SearchRoute(
     onArtistClick: (String) -> Unit,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val results = viewModel.results.collectAsLazyPagingItems()
-    SearchScreen(state, results, viewModel::updateQuery, viewModel::updateFilter, onSongClick, onArtistClick)
+    SearchScreen(
+        state = state,
+        results = results,
+        onQueryChange = viewModel::updateQuery,
+        onFilterChange = viewModel::updateFilter,
+        onRecentSearchClick = viewModel::selectRecentSearch,
+        onRecentSearchDelete = viewModel::deleteRecentSearch,
+        onRecentSearchesClear = viewModel::clearRecentSearches,
+        onSongClick = onSongClick,
+        onArtistClick = onArtistClick,
+    )
 }
 
 @Composable
@@ -93,6 +104,9 @@ private fun SearchScreen(
     results: LazyPagingItems<SongDto>,
     onQueryChange: (String) -> Unit,
     onFilterChange: (SearchFilter) -> Unit,
+    onRecentSearchClick: (SearchHistoryEntry) -> Unit,
+    onRecentSearchDelete: (Long) -> Unit,
+    onRecentSearchesClear: () -> Unit,
     onSongClick: (SongDto) -> Unit,
     onArtistClick: (String) -> Unit,
 ) {
@@ -101,7 +115,7 @@ private fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SearchBackground),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         Column(
             modifier = Modifier
@@ -130,19 +144,19 @@ private fun SearchScreen(
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 shape = RoundedCornerShape(18.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF0A1D29),
-                    unfocusedContainerColor = Color(0xFF0A1D29).copy(alpha = .84f),
-                    focusedBorderColor = Color(0xFF0797DB),
-                    unfocusedBorderColor = Color.White.copy(alpha = .14f),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedLeadingIconColor = Color(0xFF8ED8FF),
-                    unfocusedLeadingIconColor = Color.White.copy(alpha = .54f),
-                    focusedTrailingIconColor = Color(0xFF8ED8FF),
-                    unfocusedTrailingIconColor = Color.White.copy(alpha = .54f),
-                    focusedPlaceholderColor = Color.White.copy(alpha = .42f),
-                    unfocusedPlaceholderColor = Color.White.copy(alpha = .42f),
-                    cursorColor = Color(0xFF8ED8FF),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    cursorColor = MaterialTheme.colorScheme.primary,
                 ),
             )
             SearchFilterRail(state.filter, onFilterChange)
@@ -154,10 +168,18 @@ private fun SearchScreen(
                 .animateContentSize(),
         ) {
             when {
-                state.query.isBlank() -> SearchStartState()
+                state.query.isBlank() -> SearchStartState(
+                    recentSearches = state.recentSearches,
+                    onSearchClick = onRecentSearchClick,
+                    onSearchDelete = onRecentSearchDelete,
+                    onClear = onRecentSearchesClear,
+                )
                 results.loadState.refresh is LoadState.Loading -> SearchLoadingState()
-                results.loadState.refresh is LoadState.Error && state.artists.isEmpty() -> SearchErrorState(results::retry)
-                results.itemCount == 0 && state.artists.isEmpty() -> SearchEmptyState()
+                results.loadState.refresh is LoadState.Error && state.artists.isEmpty() -> {
+                    val error = (results.loadState.refresh as LoadState.Error).error
+                    SearchErrorState(results::retry, isOffline = error.isOfflineFailure())
+                }
+                results.itemCount == 0 && state.artists.isEmpty() -> SearchEmptyState { onQueryChange("") }
                 else -> SearchResults(state.artists, results, onSongClick, onArtistClick)
             }
         }
@@ -183,16 +205,16 @@ private fun SearchFilterRail(selectedFilter: SearchFilter, onFilterChange: (Sear
                 },
                 shape = CircleShape,
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = Color(0xFF0A1D29).copy(alpha = .72f),
-                    labelColor = Color.White.copy(alpha = .62f),
-                    selectedContainerColor = Color(0xFF0797DB),
-                    selectedLabelColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = selectedFilter == filter,
-                    borderColor = Color.White.copy(alpha = .12f),
-                    selectedBorderColor = Color(0xFF8ED8FF).copy(alpha = .58f),
+                    borderColor = MaterialTheme.colorScheme.outlineVariant,
+                    selectedBorderColor = MaterialTheme.colorScheme.primary,
                 ),
             )
         }
@@ -215,7 +237,7 @@ private fun SearchResults(
         item {
             Text(
                 text = stringResource(R.string.search_results_count, results.itemCount + artists.size),
-                color = Color.White.copy(alpha = .58f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(bottom = spacing.xs),
             )
@@ -224,7 +246,7 @@ private fun SearchResults(
             item {
                 Text(
                     stringResource(R.string.search_filter_artists),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = spacing.xs),
@@ -240,7 +262,7 @@ private fun SearchResults(
         if (results.loadState.append is LoadState.Loading) {
             item {
                 Box(Modifier.fillMaxWidth().padding(spacing.md), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFF8ED8FF), strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
                 }
             }
         }
@@ -258,8 +280,8 @@ private fun SearchArtistRow(artist: SearchArtistResult, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF102B3B))
-                .border(1.dp, Color(0xFF8ED8FF).copy(alpha = .18f), RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
                 .padding(spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -267,13 +289,15 @@ private fun SearchArtistRow(artist: SearchArtistResult, onClick: () -> Unit) {
                 model = artist.imageUrl,
                 contentDescription = artist.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(62.dp).clip(CircleShape).background(Color(0xFF0A1D29)),
+                placeholder = painterResource(R.drawable.arisam_app_icon_dark),
+                error = painterResource(R.drawable.arisam_app_icon_dark),
+                modifier = Modifier.size(62.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
             )
             Spacer(Modifier.width(spacing.md))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     artist.name,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -281,15 +305,15 @@ private fun SearchArtistRow(artist: SearchArtistResult, onClick: () -> Unit) {
                 )
                 Text(
                     stringResource(R.string.artist_open_profile),
-                    color = Color.White.copy(alpha = .56f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF0797DB).copy(alpha = .18f)),
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.Person, null, tint = Color(0xFF8ED8FF))
+                Icon(Icons.Rounded.Person, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
     }
@@ -303,8 +327,8 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF0A1D29).copy(alpha = .88f))
-                .border(1.dp, Color.White.copy(alpha = .1f), RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
                 .padding(spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -312,13 +336,15 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
                 model = song.coverImageUrl,
                 contentDescription = song.title,
                 contentScale = ContentScale.Crop,
+                placeholder = painterResource(R.drawable.arisam_app_icon_dark),
+                error = painterResource(R.drawable.arisam_app_icon_dark),
                 modifier = Modifier.size(62.dp).clip(RoundedCornerShape(14.dp)),
             )
             Spacer(Modifier.width(spacing.md))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     song.title,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -326,7 +352,7 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
                 )
                 Text(
                     listOfNotNull(song.artistName, song.album).joinToString(" • "),
-                    color = Color.White.copy(alpha = .56f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -337,35 +363,107 @@ private fun SearchResultRow(song: SongDto, onSongClick: (SongDto) -> Unit) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF0797DB).copy(alpha = .18f)),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = Color(0xFF8ED8FF))
+                Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
     }
 }
 
 @Composable
-private fun SearchStartState() {
-    SearchMessage(
-        icon = Icons.Rounded.Search,
-        title = R.string.search_start_title,
-        body = R.string.search_hint,
-    )
+private fun SearchStartState(
+    recentSearches: List<SearchHistoryEntry>,
+    onSearchClick: (SearchHistoryEntry) -> Unit,
+    onSearchDelete: (Long) -> Unit,
+    onClear: () -> Unit,
+) {
+    if (recentSearches.isEmpty()) {
+        SearchMessage(
+            icon = Icons.Rounded.Search,
+            title = R.string.search_start_title,
+            body = R.string.search_hint,
+        )
+        return
+    }
+
+    val spacing = AriSamThemeTokens.spacing
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = spacing.lg, vertical = spacing.md),
+        verticalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.search_history_title),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                TextButton(onClick = onClear) {
+                    Text(stringResource(R.string.search_history_clear), color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        items(recentSearches, key = SearchHistoryEntry::id) { entry ->
+            PressScaleBox(onClick = { onSearchClick(entry) }, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                        .padding(start = spacing.md, top = spacing.sm, bottom = spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.History, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(spacing.md))
+                    Text(
+                        text = entry.query,
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    IconButton(onClick = { onSearchDelete(entry.id) }) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.search_history_remove),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun SearchEmptyState() {
+private fun SearchEmptyState(onClearSearch: () -> Unit) {
     SearchMessage(
         icon = Icons.Rounded.MusicNote,
         title = R.string.search_empty_title,
         body = R.string.search_empty,
+        actionLabel = R.string.clear_search,
+        onAction = onClearSearch,
     )
 }
 
 @Composable
-private fun SearchMessage(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Int, body: Int) {
+private fun SearchMessage(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: Int,
+    body: Int,
+    actionLabel: Int? = null,
+    onAction: (() -> Unit)? = null,
+) {
     val spacing = AriSamThemeTokens.spacing
     Box(Modifier.fillMaxSize().padding(spacing.xl), contentAlignment = Alignment.Center) {
         Column(
@@ -376,24 +474,29 @@ private fun SearchMessage(icon: androidx.compose.ui.graphics.vector.ImageVector,
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF0797DB).copy(alpha = .14f))
-                    .border(1.dp, Color(0xFF8ED8FF).copy(alpha = .24f), CircleShape),
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, null, tint = Color(0xFF8ED8FF), modifier = Modifier.size(34.dp))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(34.dp))
             }
             Spacer(Modifier.height(spacing.xs))
             Text(
                 stringResource(title),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 stringResource(body),
-                color = Color.White.copy(alpha = .54f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
+            if (actionLabel != null && onAction != null) {
+                Button(onClick = onAction) {
+                    Text(stringResource(actionLabel))
+                }
+            }
         }
     }
 }
@@ -410,23 +513,28 @@ private fun SearchLoadingState() {
 }
 
 @Composable
-private fun SearchErrorState(retry: () -> Unit) {
+private fun SearchErrorState(retry: () -> Unit, isOffline: Boolean) {
     val spacing = AriSamThemeTokens.spacing
     Box(Modifier.fillMaxSize().padding(spacing.xl), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
-            Icon(Icons.Rounded.ErrorOutline, null, tint = Color(0xFFFB7185), modifier = Modifier.size(42.dp))
+            Icon(
+                if (isOffline) Icons.Rounded.WifiOff else Icons.Rounded.ErrorOutline,
+                null,
+                tint = if (isOffline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(42.dp),
+            )
             Text(
-                stringResource(R.string.search_error_title),
-                color = Color.White,
+                stringResource(if (isOffline) R.string.error_offline_title else R.string.search_error_title),
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
             Button(
                 onClick = retry,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0797DB), contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(),
             ) {
                 Icon(Icons.Rounded.Refresh, null)
                 Spacer(Modifier.width(spacing.sm))
@@ -436,11 +544,14 @@ private fun SearchErrorState(retry: () -> Unit) {
     }
 }
 
+private fun Throwable.isOfflineFailure(): Boolean = generateSequence(this) { it.cause }
+    .any { it is IOException }
+
 @Composable
 private fun SearchInlineRetry(retry: () -> Unit) {
     Button(
         onClick = retry,
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0797DB), contentColor = Color.White),
+        colors = ButtonDefaults.buttonColors(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Icon(Icons.Rounded.Refresh, null)
@@ -467,6 +578,9 @@ private fun SearchResultsPreview() {
             results = results,
             onQueryChange = {},
             onFilterChange = {},
+            onRecentSearchClick = {},
+            onRecentSearchDelete = {},
+            onRecentSearchesClear = {},
             onSongClick = {},
             onArtistClick = {},
         )
@@ -483,6 +597,9 @@ private fun SearchEmptyQueryPreview() {
             results = results,
             onQueryChange = {},
             onFilterChange = {},
+            onRecentSearchClick = {},
+            onRecentSearchDelete = {},
+            onRecentSearchesClear = {},
             onSongClick = {},
             onArtistClick = {},
         )

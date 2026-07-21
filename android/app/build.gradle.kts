@@ -84,6 +84,14 @@ android {
         buildConfig = true
     }
 
+    bundle {
+        language {
+            // The app switches between Persian and English at runtime, so both
+            // language resources must always be installed with the base APK.
+            enableSplit = false
+        }
+    }
+
     sourceSets {
         getByName("main") {
             // Artist profiles live at the repository root so new artists can be added
@@ -113,6 +121,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
@@ -136,6 +145,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.palette)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

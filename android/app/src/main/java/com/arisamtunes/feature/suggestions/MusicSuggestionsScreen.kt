@@ -41,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -63,11 +62,13 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.arisamtunes.R
 import com.arisamtunes.data.catalog.SongDto
@@ -87,7 +88,7 @@ fun MusicSuggestionsRoute(
     onContinue: () -> Unit,
     viewModel: MusicSuggestionsViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val playlistName = stringResource(R.string.music_suggestions_playlist_name)
     val playlistDescription = stringResource(R.string.music_suggestions_playlist_description)
     MusicSuggestionsScreen(
@@ -118,7 +119,7 @@ fun MusicSuggestionsScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFF06141D), Color(0xFF0A2635), Color(0xFF071922)),
+                    listOf(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.surfaceContainer),
                 ),
             )
             .windowInsetsPadding(WindowInsets.safeDrawing),
@@ -138,18 +139,18 @@ fun MusicSuggestionsScreen(
                 Icon(
                     imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
-                    tint = Color(0xFF7DD3FC),
+                    tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     text = stringResource(R.string.music_suggestions_title),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
             }
             Text(
                 text = stringResource(R.string.music_suggestions_subtitle),
-                color = Color.White.copy(alpha = .68f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
@@ -166,7 +167,7 @@ fun MusicSuggestionsScreen(
                 state.hasError -> SuggestionError(onRetry)
                 state.songs.isEmpty() -> Text(
                     text = stringResource(R.string.music_suggestions_empty),
-                    color = Color.White.copy(alpha = .72f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp),
                 )
@@ -255,7 +256,7 @@ private fun SuggestionActionBar(
         if (creationFailed) {
             Text(
                 text = stringResource(R.string.music_suggestions_playlist_error),
-                color = Color(0xFFFFB4AB),
+                color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
             )
@@ -265,15 +266,12 @@ private fun SuggestionActionBar(
             enabled = selectedCount > 0 && !isCreatingPlaylist,
             modifier = Modifier.fillMaxWidth().height(54.dp),
             shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0284C7),
-                contentColor = Color.White,
-            ),
+            colors = ButtonDefaults.buttonColors(),
         ) {
             if (isCreatingPlaylist) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     strokeWidth = 2.dp,
                 )
                 Text(
@@ -465,6 +463,7 @@ private fun HexagonSong(
         AsyncImage(
             model = song.coverImageUrl,
             contentDescription = song.title,
+            error = painterResource(R.drawable.arisam_app_icon_dark),
             contentScale = ContentScale.Crop,
             filterQuality = FilterQuality.Low,
             modifier = Modifier.fillMaxSize(),
@@ -541,7 +540,7 @@ private fun SuggestionError(onRetry: () -> Unit) {
     ) {
         Text(
             text = stringResource(R.string.music_suggestions_error),
-            color = Color.White.copy(alpha = .72f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Button(onClick = onRetry) {

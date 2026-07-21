@@ -1,21 +1,42 @@
 package com.arisamtunes.feature.songdetail
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
@@ -36,21 +57,19 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -59,18 +78,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.arisamtunes.R
-import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.components.PressScaleBox
+import com.arisamtunes.core.design.components.ShimmerBox
 import com.arisamtunes.core.design.theme.AriSamThemeTokens
 import com.arisamtunes.data.catalog.PlaylistDto
 import com.arisamtunes.data.catalog.SongDto
@@ -91,7 +115,7 @@ fun SongDetailRoute(
     onShare: (SongDto) -> Unit,
     viewModel: SongDetailViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     SongDetailScreen(
         state = state,
         onBack = onBack,
@@ -125,34 +149,78 @@ private fun SongDetailScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val songAddedMessage = stringResource(R.string.playlist_song_added)
+    val ambientMotion = rememberInfiniteTransition(label = "songDetailAmbient")
+    val ambientPhase by ambientMotion.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5_600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "songDetailAmbientPhase",
+    )
+    val contentState = when {
+        state.isLoading -> SongDetailContentState.Loading
+        state.hasError -> SongDetailContentState.Error
+        state.song == null -> SongDetailContentState.Empty
+        else -> SongDetailContentState.Ready
+    }
     LaunchedEffect(state.playlistActionDone) {
         if (state.playlistActionDone) snackbarHostState.showSnackbar(songAddedMessage)
     }
     Box(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.background))),
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = .16f),
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background,
+                    ),
+                ),
+            ),
     ) {
-      Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
+        SongAmbientBackdrop(ambientPhase)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
+        ) {
+            SongDetailTopBar(onBack = onBack, phase = ambientPhase)
+            AnimatedContent(
+                targetState = contentState,
+                modifier = Modifier.weight(1f),
+                transitionSpec = {
+                    (fadeIn(tween(360)) + slideInVertically(tween(480, easing = FastOutSlowInEasing)) { it / 12 }) togetherWith
+                        fadeOut(tween(180))
+                },
+                label = "songDetailContent",
+            ) { target ->
+                when (target) {
+                    SongDetailContentState.Loading -> Loading()
+                    SongDetailContentState.Error -> ErrorState(onRetry)
+                    SongDetailContentState.Empty -> EmptyState()
+                    SongDetailContentState.Ready -> state.song?.let { song ->
+                        SongMetadata(
+                            song = song,
+                            isLiked = state.isLiked,
+                            onPlay = onPlay,
+                            onShare = onShare,
+                            onToggleLike = onToggleLike,
+                            onAddToPlaylistClick = onAddToPlaylistClick,
+                        )
+                    }
+                }
             }
-            Text(
-                stringResource(R.string.song_information),
-                modifier = Modifier.weight(1f).padding(end = 48.dp),
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
         }
-        when {
-            state.isLoading -> Loading()
-            state.hasError -> ErrorState(onRetry)
-            state.song == null -> EmptyState()
-            else -> SongMetadata(state.song, state.isLiked, onPlay, onShare, onToggleLike, onAddToPlaylistClick)
-        }
-      }
-      SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).padding(AriSamThemeTokens.spacing.lg))
+        SnackbarHost(
+            snackbarHostState,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(AriSamThemeTokens.spacing.lg),
+        )
     }
     if (state.showPlaylistPicker) {
         PlaylistPickerDialog(
@@ -177,6 +245,85 @@ private fun SongDetailScreen(
     }
 }
 
+private enum class SongDetailContentState { Loading, Error, Empty, Ready }
+
+@Composable
+private fun SongAmbientBackdrop(phase: Float) {
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .size(320.dp)
+                .graphicsLayer {
+                    translationX = 170f + phase * 42f
+                    translationY = -95f + phase * 34f
+                    alpha = .2f
+                    scaleX = 1f + phase * .06f
+                    scaleY = 1f + phase * .06f
+                }
+                .background(
+                    Brush.radialGradient(listOf(primary, Color.Transparent)),
+                    CircleShape,
+                ),
+        )
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .size(250.dp)
+                .graphicsLayer {
+                    translationX = -145f - phase * 30f
+                    translationY = phase * 75f
+                    alpha = .14f
+                }
+                .background(
+                    Brush.radialGradient(listOf(secondary, Color.Transparent)),
+                    CircleShape,
+                ),
+        )
+    }
+}
+
+@Composable
+private fun SongDetailTopBar(onBack: () -> Unit, phase: Float) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PressScaleBox(onClick = onBack) {
+            Surface(
+                modifier = Modifier.size(46.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .88f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f)),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back))
+                }
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.song_information),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Text(
+                stringResource(R.string.song_detail_header_hint),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+        MiniEqualizer(phase = phase, modifier = Modifier.width(46.dp).height(30.dp))
+    }
+}
+
 @Composable
 private fun SongMetadata(
     song: SongDto,
@@ -188,71 +335,100 @@ private fun SongMetadata(
 ) {
     val spacing = AriSamThemeTokens.spacing
     val facts = song.metadataFacts()
+    val listState = rememberLazyListState()
+    val heroCollapse by remember {
+        derivedStateOf {
+            if (listState.firstVisibleItemIndex > 0) 1f
+            else (listState.firstVisibleItemScrollOffset / 420f).coerceIn(0f, 1f)
+        }
+    }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = spacing.xl),
+        state = listState,
+        modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+        contentPadding = PaddingValues(top = spacing.sm, bottom = spacing.xxl),
         verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
-        item { SongHero(song, onPlay) }
-        item { SongQuickFacts(song) }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(spacing.md),
-            ) {
-                Button(onClick = onToggleLike, modifier = Modifier.weight(1f).height(50.dp), shape = MaterialTheme.shapes.large) {
-                    Icon(if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null)
-                    Text(stringResource(if (isLiked) R.string.song_liked else R.string.song_like))
-                }
-                Button(onClick = onAddToPlaylistClick, modifier = Modifier.weight(1f).height(50.dp), shape = MaterialTheme.shapes.large) {
-                    Icon(Icons.Rounded.Add, null)
-                    Text(stringResource(R.string.playlist_add_song))
-                }
-            }
+        item(key = "hero", contentType = "hero") { SongHero(song, onPlay, heroCollapse) }
+        item(key = "facts", contentType = "facts") {
+            RevealSection(delayMillis = 90) { SongQuickFacts(song) }
         }
-        item {
-            OutlinedButton(
-                onClick = { onShare(song) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.lg).height(50.dp),
-                shape = MaterialTheme.shapes.large,
-            ) {
-                Icon(Icons.Rounded.Share, null)
-                Text(stringResource(R.string.chat_share_song))
-            }
-        }
-        if (song.tags.isNotEmpty() || song.isExplicit || song.isLocal || song.isDemo) {
-            item { SongChips(song) }
-        }
-        item {
-            MetadataSection(
-                title = R.string.metadata_core,
-                rows = facts.take(8),
-            )
-        }
-        item {
-            MetadataSection(
-                title = R.string.metadata_audio,
-                rows = facts.drop(8).take(8),
-            )
-        }
-        item {
-            MetadataSection(
-                title = R.string.metadata_catalog,
-                rows = facts.drop(16),
-            )
-        }
-        val extraRows = song.extraMetadata.metadataRows()
-        if (extraRows.isNotEmpty()) {
-            item { MetadataSection(R.string.metadata_discovered_extra, extraRows) }
-        }
-        song.lyrics?.takeIf(String::isNotBlank)?.let { lyrics ->
-            item {
-                MetadataSection(
-                    title = R.string.metadata_lyrics,
-                    rows = listOf(MetadataRow(R.string.metadata_lyrics, lyrics)),
+        item(key = "actions", contentType = "actions") {
+            RevealSection(delayMillis = 160) {
+                SongActionDock(
+                    song = song,
+                    isLiked = isLiked,
+                    onToggleLike = onToggleLike,
+                    onAddToPlaylistClick = onAddToPlaylistClick,
+                    onShare = onShare,
                 )
             }
         }
+        if (song.tags.isNotEmpty() || song.isExplicit || song.isLocal || song.isDemo) {
+            item(key = "chips", contentType = "chips") {
+                RevealSection(delayMillis = 210) { SongChips(song) }
+            }
+        }
+        item(key = "metadata_core", contentType = "metadata") {
+            RevealSection(delayMillis = 240) {
+                MetadataSection(
+                    title = R.string.metadata_core,
+                    rows = facts.take(8),
+                    accent = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        item(key = "metadata_audio", contentType = "metadata") {
+            RevealSection(delayMillis = 280) {
+                MetadataSection(
+                    title = R.string.metadata_audio,
+                    rows = facts.drop(8).take(8),
+                    accent = MaterialTheme.colorScheme.secondary,
+                )
+            }
+        }
+        item(key = "metadata_catalog", contentType = "metadata") {
+            RevealSection(delayMillis = 320) {
+                MetadataSection(
+                    title = R.string.metadata_catalog,
+                    rows = facts.drop(16),
+                    accent = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        }
+        val extraRows = song.extraMetadata.metadataRows()
+        if (extraRows.isNotEmpty()) {
+            item(key = "metadata_extra", contentType = "metadata") {
+                RevealSection(delayMillis = 360) {
+                    MetadataSection(R.string.metadata_discovered_extra, extraRows, MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        song.lyrics?.takeIf(String::isNotBlank)?.let { lyrics ->
+            item(key = "lyrics", contentType = "metadata") {
+                RevealSection(delayMillis = 400) {
+                    MetadataSection(
+                        title = R.string.metadata_lyrics,
+                        rows = listOf(MetadataRow(R.string.metadata_lyrics, lyrics)),
+                        accent = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RevealSection(delayMillis: Int, content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(delayMillis.toLong())
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(340)) + slideInVertically(tween(480, easing = FastOutSlowInEasing)) { it / 4 },
+    ) {
+        content()
     }
 }
 
@@ -338,42 +514,303 @@ private fun PlaylistPickerDialog(
 }
 
 @Composable
-private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit) {
+private fun SongHero(song: SongDto, onPlay: (SongDto) -> Unit, collapseProgress: Float) {
     val spacing = AriSamThemeTokens.spacing
+    val motion = rememberInfiniteTransition(label = "songHeroMotion")
+    val floatOffset by motion.animateFloat(
+        initialValue = -5f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2_800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "songCoverFloat",
+    )
+    val glowRotation by motion.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(18_000, easing = LinearEasing)),
+        label = "songGlowRotation",
+    )
+    var entered by remember(song.id) { mutableStateOf(false) }
+    LaunchedEffect(song.id) { entered = true }
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = spacing.lg, vertical = spacing.sm),
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.lg, vertical = spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
+        verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
-      Box(Modifier.size(230.dp)) {
-        AsyncImage(
-            model = song.coverImageUrl,
-            contentDescription = song.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.extraLarge),
-        )
-        Box(
-            Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge).background(
-                Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.scrim.copy(alpha = .9f))),
-            ),
-        )
-        PressScaleBox(
-            onClick = { onPlay(song) },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).size(58.dp).clip(MaterialTheme.shapes.large)
-                .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))),
+        AnimatedVisibility(
+            visible = entered,
+            enter = fadeIn(tween(520)) + scaleIn(tween(620, easing = FastOutSlowInEasing), initialScale = .82f),
         ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), tint = MaterialTheme.colorScheme.onPrimary)
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(286.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    Modifier
+                        .size(274.dp)
+                        .rotate(glowRotation)
+                        .background(
+                            Brush.sweepGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = .08f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = .55f),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = .12f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = .08f),
+                                ),
+                            ),
+                            RoundedCornerShape(48.dp),
+                        ),
+                )
+                Box(
+                    Modifier
+                        .size(248.dp)
+                        .graphicsLayer {
+                            translationY = floatOffset - collapseProgress * 12f
+                            scaleX = 1f - collapseProgress * .045f
+                            scaleY = 1f - collapseProgress * .045f
+                            shadowElevation = 30f
+                            shape = RoundedCornerShape(38.dp)
+                            clip = true
+                        },
+                ) {
+                    AsyncImage(
+                        model = song.coverImageUrl,
+                        contentDescription = song.title,
+                        error = painterResource(R.drawable.arisam_app_icon_dark),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.scrim.copy(alpha = .84f),
+                                    ),
+                                ),
+                            ),
+                    )
+                    MiniEqualizer(
+                        phase = floatOffset / 6f,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(18.dp)
+                            .width(62.dp)
+                            .height(34.dp),
+                    )
+                }
+                PulsingPlayButton(
+                    onClick = { onPlay(song) },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 28.dp, bottom = 6.dp),
+                )
             }
         }
-      }
-      Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-          Text(song.title, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-          Text(song.artistName, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-          song.album?.takeIf(String::isNotBlank)?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
-      }
+        AnimatedVisibility(
+            visible = entered,
+            enter = fadeIn(tween(440, delayMillis = 110)) + slideInVertically(tween(520, delayMillis = 110)) { it / 3 },
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text(
+                    song.title,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    song.artistName,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                song.album?.takeIf(String::isNotBlank)?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun PulsingPlayButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "songPlayPulse")
+    val pulse by transition.animateFloat(
+        initialValue = .92f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1_250, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "songPlayPulseScale",
+    )
+    Box(modifier.size(78.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .size(70.dp)
+                .scale(pulse)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = .18f), CircleShape),
+        )
+        PressScaleBox(onClick = onClick, modifier = Modifier.size(62.dp)) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = CircleShape,
+                color = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Box(
+                    Modifier.background(
+                        Brush.linearGradient(
+                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                        ),
+                    ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play), modifier = Modifier.size(34.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniEqualizer(phase: Float, modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(5) { index ->
+            val wave = kotlin.math.abs(kotlin.math.sin((phase * 2.1f + index * .72f).toDouble())).toFloat()
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .height((8 + wave * 22).dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                        ),
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SongActionDock(
+    song: SongDto,
+    isLiked: Boolean,
+    onToggleLike: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
+    onShare: (SongDto) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AriSamThemeTokens.spacing.lg),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .86f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f)),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SongAction(
+                icon = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                label = stringResource(if (isLiked) R.string.song_liked else R.string.song_like),
+                selected = isLiked,
+                onClick = onToggleLike,
+            )
+            ActionDivider()
+            SongAction(
+                icon = Icons.Rounded.Add,
+                label = stringResource(R.string.playlist_add_song),
+                onClick = onAddToPlaylistClick,
+            )
+            ActionDivider()
+            SongAction(
+                icon = Icons.Rounded.Share,
+                label = stringResource(R.string.share),
+                onClick = { onShare(song) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SongAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.14f else 1f,
+        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        label = "songActionIconScale",
+    )
+    PressScaleBox(onClick = onClick, modifier = Modifier.weight(1f)) {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Surface(
+                modifier = Modifier.size(42.dp),
+                shape = CircleShape,
+                color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = .2f)
+                else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = .7f),
+                contentColor = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, null, Modifier.size(22.dp).scale(iconScale))
+                }
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionDivider() {
+    Box(
+        Modifier
+            .width(1.dp)
+            .height(48.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = .55f)),
+    )
 }
 
 @Composable
@@ -420,19 +857,36 @@ private fun SongChips(song: SongDto) {
 }
 
 @Composable
-private fun MetadataSection(@StringRes title: Int, rows: List<MetadataRow>) {
+private fun MetadataSection(@StringRes title: Int, rows: List<MetadataRow>, accent: Color) {
     val visibleRows = rows.filter { it.value.isNotBlank() }
     if (visibleRows.isEmpty()) return
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = AriSamThemeTokens.spacing.lg),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .88f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, accent.copy(alpha = .23f)),
     ) {
         Column(Modifier.padding(AriSamThemeTokens.spacing.lg), verticalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AriSamThemeTokens.spacing.sm)) {
-                Icon(Icons.Rounded.Info, null, tint = MaterialTheme.colorScheme.primary)
-                Text(stringResource(title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Surface(
+                    modifier = Modifier.size(36.dp),
+                    shape = CircleShape,
+                    color = accent.copy(alpha = .14f),
+                    contentColor = accent,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Info, null, modifier = Modifier.size(19.dp))
+                    }
+                }
+                Column {
+                    Text(stringResource(title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        stringResource(R.string.song_detail_fields_count, visibleRows.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             visibleRows.forEachIndexed { index, row ->
                 MetadataLine(row)
@@ -451,18 +905,87 @@ private fun MetadataLine(row: MetadataRow) {
 }
 
 @Composable
-private fun Loading() = Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-
-@Composable
-private fun ErrorState(onRetry: () -> Unit) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    TextButton(onClick = onRetry) { Icon(Icons.Rounded.Refresh, null); Text(stringResource(R.string.retry)) }
+private fun Loading() {
+    val transition = rememberInfiniteTransition(label = "songLoadingMotion")
+    val phase by transition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1_400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "songLoadingPhase",
+    )
+    Column(
+        Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            ShimmerBox(
+                Modifier
+                    .size(248.dp)
+                    .graphicsLayer {
+                        translationY = phase * 5f
+                        shadowElevation = 18f
+                        shape = RoundedCornerShape(38.dp)
+                        clip = true
+                    },
+            )
+            MiniEqualizer(phase, Modifier.width(66.dp).height(38.dp))
+        }
+        ShimmerBox(Modifier.fillMaxWidth(.68f).height(30.dp))
+        ShimmerBox(Modifier.fillMaxWidth(.42f).height(18.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            repeat(3) { ShimmerBox(Modifier.weight(1f).height(78.dp)) }
+        }
+        ShimmerBox(Modifier.fillMaxWidth().height(96.dp))
+    }
 }
 
 @Composable
-private fun EmptyState() = Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-        Text(stringResource(R.string.song_detail_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun ErrorState(onRetry: () -> Unit) = Box(
+    Modifier.fillMaxSize().navigationBarsPadding().padding(28.dp),
+    contentAlignment = Alignment.Center,
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    ) {
+        Column(
+            Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Icon(Icons.Rounded.Refresh, null, Modifier.size(44.dp))
+            Text(stringResource(R.string.playlist_load_error_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+        }
+    }
+}
+
+@Composable
+private fun EmptyState() = Box(
+    Modifier.fillMaxSize().navigationBarsPadding().padding(32.dp),
+    contentAlignment = Alignment.Center,
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .86f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(52.dp), tint = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.song_detail_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

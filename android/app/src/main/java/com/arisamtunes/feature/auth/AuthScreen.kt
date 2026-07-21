@@ -82,8 +82,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
 import com.arisamtunes.R
 import com.arisamtunes.core.design.components.GlassCard
 import com.arisamtunes.core.design.theme.AriSamTheme
@@ -96,6 +98,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val horizontalDirection = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
     var launched by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { launched = true }
     val introScale by animateFloatAsState(
@@ -108,7 +111,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFF081721), Color(0xFF0B2230), Color(0xFF102B3B)),
+                    listOf(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.surfaceContainer),
                 ),
             ),
     ) {
@@ -125,7 +128,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
             Spacer(Modifier.height(spacing.xl))
             Text(
                 text = stringResource(R.string.app_name),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.scale(introScale),
@@ -137,7 +140,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
             ) { mode ->
                 Text(
                     text = stringResource(if (mode == AuthMode.Login) R.string.auth_login_tagline else R.string.auth_register_tagline),
-                    color = Color(0xFF8ED8FF),
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                 )
@@ -152,12 +155,12 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
                         (
                             slideInHorizontally(
                                 animationSpec = tween(360, easing = FastOutSlowInEasing),
-                                initialOffsetX = { it * direction },
+                                initialOffsetX = { it * direction * horizontalDirection },
                             ) + fadeIn(tween(220, delayMillis = 80))
                         ) togetherWith (
                             slideOutHorizontally(
                                 animationSpec = tween(280, easing = FastOutSlowInEasing),
-                                targetOffsetX = { -it * direction },
+                                targetOffsetX = { -it * direction * horizontalDirection },
                             ) + fadeOut(tween(180))
                         ) using SizeTransform(clip = false)
                     },
@@ -264,10 +267,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
                         Button(
                             onClick = { onEvent(AuthEvent.Submit) },
                             enabled = !state.isLoading,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF0797DB),
-                                contentColor = Color.White,
-                            ),
+                            colors = ButtonDefaults.buttonColors(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
@@ -275,7 +275,7 @@ fun AuthScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modif
                             if (state.isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(22.dp),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     strokeWidth = 2.dp,
                                 )
                             } else {
@@ -430,7 +430,7 @@ private fun AuthFieldError(visible: Boolean, text: String) {
     ) {
         Text(
             text = text,
-            color = Color(0xFFFB7185),
+            color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -438,15 +438,24 @@ private fun AuthFieldError(visible: Boolean, text: String) {
 
 @Composable
 private fun authTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Color(0xFF0797DB),
-    focusedLabelColor = Color(0xFF0797DB),
-    focusedLeadingIconColor = Color(0xFF0797DB),
-    cursorColor = Color(0xFF0797DB),
-    errorBorderColor = Color(0xFFFB7185),
-    errorLabelColor = Color(0xFFFB7185),
-    errorLeadingIconColor = Color(0xFFFB7185),
-    errorTrailingIconColor = Color(0xFFFB7185),
-    errorSupportingTextColor = Color(0xFFFB7185),
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    cursorColor = MaterialTheme.colorScheme.primary,
+    errorBorderColor = MaterialTheme.colorScheme.error,
+    errorLabelColor = MaterialTheme.colorScheme.error,
+    errorLeadingIconColor = MaterialTheme.colorScheme.error,
+    errorTrailingIconColor = MaterialTheme.colorScheme.error,
+    errorSupportingTextColor = MaterialTheme.colorScheme.error,
 )
 
 private fun AuthUiError.messageRes() = when (this) {

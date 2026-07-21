@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -226,7 +227,7 @@ fun RhythmGameRoute(
     val gradeVisible = lastGrade != null && renderMillis - gradeShownAt < 620L
     val gameDescription = stringResource(R.string.rhythm_game_hint)
 
-    Box(Modifier.fillMaxSize().background(Color(0xFF070711))) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         PulsePlayField(
             modifier = Modifier
                 .fillMaxSize()
@@ -299,12 +300,12 @@ fun RhythmGameRoute(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     RoundGameButton(onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = Color.White)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = MaterialTheme.colorScheme.onSurface)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             stringResource(R.string.rhythm_game_title),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 3.sp,
                             fontSize = 15.sp,
@@ -325,14 +326,14 @@ fun RhythmGameRoute(
                         Icon(
                             if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             stringResource(if (state.isPlaying) R.string.pause else R.string.play),
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
                 Text(
                     song.title,
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color.White.copy(alpha = .58f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     fontSize = 12.sp,
                     maxLines = 1,
@@ -362,9 +363,9 @@ fun RhythmGameRoute(
                 }
                 Spacer(Modifier.size(8.dp))
                 Surface(
-                    color = Color(0xFF11111F).copy(alpha = .88f),
+                    color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .92f),
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .08f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 17.dp, vertical = 10.dp),
@@ -379,7 +380,7 @@ fun RhythmGameRoute(
                                 beatMap.isNullOrEmpty() -> stringResource(R.string.rhythm_game_syncing)
                                 else -> stringResource(R.string.rhythm_game_ready)
                             },
-                            color = Color.White.copy(alpha = .7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -399,7 +400,7 @@ fun RhythmGameRoute(
         ) {
             Surface(
                 onClick = viewModel::togglePlayPause,
-                color = Color(0xFF11111F).copy(alpha = .95f),
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(28.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors[0].copy(alpha = .34f)),
             ) {
@@ -409,7 +410,7 @@ fun RhythmGameRoute(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(Icons.Rounded.PlayArrow, null, tint = PulseColors[0], modifier = Modifier.size(36.dp))
-                    Text(stringResource(R.string.rhythm_game_resume), color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.rhythm_game_resume), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -425,10 +426,14 @@ private fun PulsePlayField(
     renderMillis: Long,
     isPlaying: Boolean,
 ) {
+    val fieldBackground = MaterialTheme.colorScheme.background
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val padSurface = MaterialTheme.colorScheme.surfaceContainerHigh
+    val highlightColor = MaterialTheme.colorScheme.onSurface
     Canvas(modifier) {
         drawRect(
             Brush.radialGradient(
-                listOf(PulseColors[1].copy(alpha = .10f + levels[1] * .08f), Color(0xFF070711)),
+                listOf(PulseColors[1].copy(alpha = .10f + levels[1] * .08f), fieldBackground),
                 center = Offset(size.width * .5f, size.height * .52f),
                 radius = size.maxDimension * .74f,
             ),
@@ -439,7 +444,7 @@ private fun PulsePlayField(
         while (y < size.height) {
             var x = gridStep * .5f
             while (x < size.width) {
-                drawCircle(Color.White.copy(alpha = .025f), 1.1.dp.toPx(), Offset(x, y))
+                drawCircle(gridColor.copy(alpha = .45f), 1.1.dp.toPx(), Offset(x, y))
                 x += gridStep
             }
             y += gridStep
@@ -458,7 +463,7 @@ private fun PulsePlayField(
             val radius = (47f + level * 9f).dp.toPx()
             drawCircle(color.copy(alpha = .035f + level * .09f), radius * 1.65f, center)
             drawCircle(color.copy(alpha = .08f + level * .12f), radius * 1.28f, center)
-            drawCircle(Color(0xFF10101E), radius, center)
+            drawCircle(padSurface, radius, center)
             drawCircle(
                 Brush.radialGradient(
                     listOf(color.copy(alpha = .18f + level * .38f), Color.Transparent),
@@ -470,7 +475,7 @@ private fun PulsePlayField(
             )
             drawCircle(color.copy(alpha = .42f + level * .45f), radius, center, style = Stroke((1.5f + level * 2f).dp.toPx()))
             drawCircle(
-                color = Color.White.copy(alpha = .08f),
+                color = gridColor,
                 radius = radius + 7.dp.toPx(),
                 center = center,
                 style = Stroke(3.dp.toPx()),
@@ -515,14 +520,14 @@ private fun PulsePlayField(
                 drawCircle(color.copy(alpha = .24f), noteRadius * 1.55f, noteCenter)
                 drawCircle(
                     Brush.radialGradient(
-                        listOf(Color.White, color, color.copy(alpha = .76f)),
+                        listOf(highlightColor, color, color.copy(alpha = .76f)),
                         center = noteCenter - Offset(noteRadius * .22f, noteRadius * .25f),
                         radius = noteRadius * 1.2f,
                     ),
                     noteRadius,
                     noteCenter,
                 )
-                drawCircle(Color.White.copy(alpha = .82f), noteRadius, noteCenter, style = Stroke(1.5.dp.toPx()))
+                drawCircle(highlightColor.copy(alpha = .82f), noteRadius, noteCenter, style = Stroke(1.5.dp.toPx()))
 
                 if (remaining <= 0L) {
                     val age = (-remaining).toFloat()
@@ -574,7 +579,7 @@ private fun PulsePlayField(
             )
         }
 
-        if (!isPlaying) drawRect(Color(0xFF070711).copy(alpha = .58f))
+        if (!isPlaying) drawRect(fieldBackground.copy(alpha = .7f))
     }
 }
 
@@ -606,8 +611,8 @@ private fun RoundGameButton(onClick: () -> Unit, content: @Composable () -> Unit
         onClick = onClick,
         modifier = Modifier.size(42.dp),
         shape = CircleShape,
-        color = Color.White.copy(alpha = .07f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .1f)),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
     }
@@ -617,13 +622,13 @@ private fun RoundGameButton(onClick: () -> Unit, content: @Composable () -> Unit
 private fun GameStat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        color = Color.White.copy(alpha = .045f),
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(15.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = .16f)),
     ) {
         Column(Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, color = color.copy(alpha = .72f), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
-            Text(value, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1)
+            Text(value, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1)
         }
     }
 }

@@ -37,6 +37,12 @@ data class HomeCatalog(
     val userPlaylists: List<PlaylistDto>,
 )
 
+data class PlaylistSections(
+    val global: List<PlaylistDto>,
+    val local: List<PlaylistDto>,
+    val user: List<PlaylistDto>,
+)
+
 @Singleton
 class CatalogRepository @Inject constructor(
     private val client: HttpClient,
@@ -118,6 +124,17 @@ class CatalogRepository @Inject constructor(
         ).flow.map { pagingData -> pagingData.map { CatalogUrlNormalizer.song(it.toSongDto()) } }
 
     suspend fun playlists(): List<PlaylistDto> = client.get("playlists").body<PlaylistListDto>().items.map(CatalogUrlNormalizer::playlist)
+
+    suspend fun playlistSections(): PlaylistSections = coroutineScope {
+        val global = async { client.get("playlists/global").body<PlaylistListDto>().items }
+        val local = async { client.get("playlists/local").body<PlaylistListDto>().items }
+        val user = async { playlists().filter { it.scope == UserPlaylistScope && it.canEdit } }
+        PlaylistSections(
+            global = global.await().map(CatalogUrlNormalizer::playlist),
+            local = local.await().map(CatalogUrlNormalizer::playlist),
+            user = user.await(),
+        )
+    }
 
     suspend fun playlist(id: String): PlaylistDto = CatalogUrlNormalizer.playlist(client.get("playlists/$id").body())
 

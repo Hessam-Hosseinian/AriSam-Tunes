@@ -41,6 +41,7 @@ data class ExtractedSong(
 
 data class SeedSummary(
     var totalFound: Int = 0,
+    var duplicatesSkipped: Int = 0,
     var fullyExtracted: Int = 0,
     var partiallyExtracted: Int = 0,
     var failed: Int = 0,
