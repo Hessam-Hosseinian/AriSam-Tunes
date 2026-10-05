@@ -23,7 +23,6 @@ AriSam Tunes is a complete client–server music application built as a native A
 
 The app supports both **English and Persian**, including runtime language switching, correct **LTR/RTL** behavior, and light, dark, and system themes.
 
-The detailed implementation report and per-section contribution breakdown are available in [PROJECT_REPORT.md](PROJECT_REPORT.md).
 
 ## Table of contents
 
@@ -265,7 +264,6 @@ flowchart LR
 ├── music_data/          Development music catalog and generated covers
 ├── docs/                Supporting setup documentation
 ├── tools/               Development, deployment, and diagnostics scripts
-├── PROJECT_REPORT.md    Technical report and team contribution breakdown
 ├── docker-compose.yml   PostgreSQL and backend services
 └── .env.example         Safe environment-variable template
 ```
